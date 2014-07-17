@@ -1,0 +1,117 @@
+import SimPy.Simulation as Simulation
+import random
+import numpy
+import constants
+
+
+class Client():
+    def __init__(self, id_, serverList, replicaSelectionStrategy,
+                 accessPattern, replicationFactor):
+        self.serverList = serverList
+        self.pendingRequestsMap = {node: 0 for node in serverList}
+        self.responseTimesMap = {node: 0 for node in serverList}
+        self.taskTimeTracker = {}
+        self.accessPattern = accessPattern
+        self.replicationFactor = replicationFactor
+        self.REPLICA_SELECTION_STRATEGY = replicaSelectionStrategy
+        self.pendingRequestsMonitor = Simulation.Monitor(name="PendingRequests")
+
+    def schedule(self, task):
+
+        replicaSet = None
+        replicaToServe = None
+        firstReplicaIndex = None
+
+        # Pick a random node and it's next RF - 1 number of neighbours
+        # to be the replicas represents SimpleSnitch + uniform request access
+        if (self.accessPattern == "uniform"):
+            firstReplicaIndex = random.randint(0, len(self.serverList) - 1)
+        elif(self.accessPattern == "zipfian"):
+            firstReplicaIndex = numpy.random.zipf(2) % len(self.serverList)
+
+        replicaSet = [self.serverList[i % len(self.serverList)]
+                      for i in range(firstReplicaIndex,
+                                     firstReplicaIndex +
+                                     self.replicationFactor)]
+
+        sortedReplicaSet = self.sort(replicaSet)
+        replicaToServe = sortedReplicaSet[0]
+
+        delay = constants.NW_LATENCY_BASE + \
+            random.normalvariate(constants.NW_LATENCY_MU,
+                                 constants.NW_LATENCY_SIGMA)
+        startTime = Simulation.now()
+        self.taskTimeTracker[task] = startTime
+
+        messageDeliveryProcess = DeliverMessageWithDelay()
+        Simulation.activate(messageDeliveryProcess,
+                            messageDeliveryProcess.run(task,
+                                                       delay,
+                                                       replicaToServe),
+                            at=Simulation.now())
+
+        latencyTracker = LatencyTracker()
+        Simulation.activate(latencyTracker,
+                            latencyTracker.run(self, task, replicaToServe),
+                            at=Simulation.now())
+        self.pendingRequestsMap[replicaToServe] += 1
+        self.pendingRequestsMonitor.observe(
+            self.pendingRequestsMap[replicaToServe])
+
+    def sort(self, originalReplicaSet):
+
+        replicaSet = originalReplicaSet[0:]
+
+        if(self.REPLICA_SELECTION_STRATEGY == "RANDOM"):
+            # Pick a random node for the request.
+            # Represents SimpleSnitch + uniform request access.
+            # Ignore scores and everything else.
+            random.shuffle(replicaSet)
+
+        elif(self.REPLICA_SELECTION_STRATEGY == "PENDING"):
+            # Sort by number of pending requests
+            replicaSet.sort(key=self.pendingRequestsMap.get)
+
+        elif(self.REPLICA_SELECTION_STRATEGY == "RESPONSE_TIME"):
+            # Sort by number of pending requests
+            replicaSet.sort(key=self.responseTimesMap.get)
+        else:
+            print self.REPLICA_SELECTION_STRATEGY
+            assert False, "REPLICA_SELECTION_STRATEGY isn't set or is invalid"
+
+        return replicaSet
+
+
+class DeliverMessageWithDelay(Simulation.Process):
+    def __init__(self):
+        Simulation.Process.__init__(self, name='LatencyTracker')
+
+    def run(self, task, delay, replicaToServe):
+        yield Simulation.hold, self, delay
+        replicaToServe.enqueue_task(task)
+
+
+class LatencyTracker(Simulation.Process):
+    def __init__(self):
+        Simulation.Process.__init__(self, name='LatencyTracker')
+
+    # When a task completes, update the CassandraProcess' latency measurements.
+    # This does not account for latency between the client and Cassandra cluster
+    # and models latency as purely happening between the coordinator and the
+    # data-node itself, without including network latency.
+    def run(self, client, task, replicaToServe):
+        yield Simulation.hold, self,
+        yield Simulation.waitevent, self, task.completionEvent
+
+        delay = constants.NW_LATENCY_BASE + \
+            random.normalvariate(constants.NW_LATENCY_MU,
+                                 constants.NW_LATENCY_SIGMA)
+        yield Simulation.hold, self, delay
+
+        # OMG request completed
+        client.pendingRequestsMap[replicaToServe] -= 1
+        client.responseTimesMap[replicaToServe] = \
+            Simulation.now() - client.taskTimeTracker[task]
+        del client.taskTimeTracker[task]
+        yield Simulation.hold, self, delay
+        task.eventExtra.signal(None)
