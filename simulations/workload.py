@@ -36,7 +36,5 @@ class Workload(Simulation.Process):
             client.schedule(taskToSchedule)
 
             # Wait until the task we sent out is complete.
-            # This can probably be avoided if we make a completion event
-            # per YCSB thread
             yield Simulation.waitevent, self, taskToSchedule.eventExtra
             self.latencyMonitor.observe(Simulation.now() - start)

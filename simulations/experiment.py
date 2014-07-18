@@ -19,8 +19,8 @@ if __name__ == '__main__':
     Simulation.initialize()
     servers = []
 
-    for i in range(1):
-        serv = server.Server(i, resourceCapacity=4, serviceTime=5)
+    for i in range(2):
+        serv = server.Server(i, resourceCapacity=4, serviceTime=2)
         servers.append(serv)
 
     client = client.Client(id_="Client1",
@@ -36,7 +36,7 @@ if __name__ == '__main__':
         Simulation.activate(w, w.run([client],
                                      "poisson",
                                      None), at=0.0)
-    Simulation.simulate(until=1000)
+    Simulation.simulate(until=100)
 
     #
     # Print a bunch of timeseries
