@@ -3,14 +3,12 @@ import server
 import client
 import workload
 import argparse
+import constants
 
 
-def printMonitorTimeSeriesToFile(filename, prefix, monitor):
-    outputFile = open(filename, 'w')
+def printMonitorTimeSeriesToFile(fileDesc, prefix, monitor):
     for entry in monitor:
-        outputFile.write("%s %s %s\n" % (prefix, entry[0], entry[1]))
-
-    outputFile.close()
+        fileDesc.write("%s %s %s\n" % (prefix, entry[0], entry[1]))
 
 
 if __name__ == '__main__':
@@ -21,12 +19,10 @@ if __name__ == '__main__':
                         type=int, default=1)
     parser.add_argument('--numWorkload', nargs='?',
                         type=int, default=1)
-    parser.add_argument('--numClients', nargs='?',
-                        type=int, default=1)
     parser.add_argument('--serverQueueCapacity', nargs='?',
                         type=int, default=1)
     parser.add_argument('--serviceTime', nargs='?',
-                        type=int, default=1)
+                        type=float, default=1)
     parser.add_argument('--replicationFactor', nargs='?',
                         type=int, default=1)
     parser.add_argument('--selectionStrategy', nargs='?',
@@ -39,6 +35,8 @@ if __name__ == '__main__':
                         type=float, default=0.040)
     parser.add_argument('--nwLatencySigma', nargs='?',
                         type=float, default=0.0)
+    parser.add_argument('--expPrefix', nargs='?',
+                        type=str, default="")
     args = parser.parse_args()
 
     Simulation.initialize()
@@ -46,9 +44,10 @@ if __name__ == '__main__':
     servers = []
     clients = []
     workloadGens = []
-    NW_LATENCY_BASE = args.nwLatencyBase
-    NW_LATENCY_MU = args.nwLatencyMu
-    NW_LATENCY_SIGMA = args.nwLatencySigma
+
+    constants.NW_LATENCY_BASE = args.nwLatencyBase
+    constants.NW_LATENCY_MU = args.nwLatencyMu
+    constants.NW_LATENCY_SIGMA = args.nwLatencySigma
 
     # Start the servers
     for i in range(args.numServers):
@@ -59,19 +58,19 @@ if __name__ == '__main__':
 
     # Start the clients
     for i in range(args.numClients):
-        client = client.Client(id_="Client1",
-                               serverList=servers,
-                               replicaSelectionStrategy=args.selectionStrategy,
-                               accessPattern=args.accessPattern,
-                               replicationFactor=args.replicationFactor)
-        clients.append(client)
+        c = client.Client(id_="Client1",
+                          serverList=servers,
+                          replicaSelectionStrategy=args.selectionStrategy,
+                          accessPattern=args.accessPattern,
+                          replicationFactor=args.replicationFactor)
+        clients.append(c)
 
     # Start workload generators (analogous to YCSB)
     latencyMonitor = Simulation.Monitor(name="Latency")
 
     for i in range(args.numWorkload):
         w = workload.Workload(i, latencyMonitor)
-        Simulation.activate(w, w.run([client],
+        Simulation.activate(w, w.run(clients,
                                      "poisson",
                                      None), at=0.0)
         workloadGens.append(w)
@@ -82,13 +81,22 @@ if __name__ == '__main__':
     #
     # Print a bunch of timeseries
     #
-    for client in clients:
-        printMonitorTimeSeriesToFile("logs/PendingRequests", client.id,
-                                     client.pendingRequestsMonitor)
+    pendingRequestsFD = open("../logs/%s_PendingRequests" %
+                             (args.expPrefix), 'w')
+    waitMonFD = open("../logs/%s_WaitMon" % (args.expPrefix), 'w')
+    actMonFD = open("../logs/%s_ActMon" % (args.expPrefix), 'w')
+    latencyFD = open("../logs/%s_Latency" % (args.expPrefix), 'w')
+
+    for clientNode in clients:
+        printMonitorTimeSeriesToFile(pendingRequestsFD,
+                                     clientNode.id,
+                                     clientNode.pendingRequestsMonitor)
     for serv in servers:
-        printMonitorTimeSeriesToFile("logs/WaitMon", serv.id,
+        printMonitorTimeSeriesToFile(waitMonFD,
+                                     serv.id,
                                      serv.queueResource.waitMon)
-        printMonitorTimeSeriesToFile("logs/ActMon", serv.id,
+        printMonitorTimeSeriesToFile(actMonFD,
+                                     serv.id,
                                      serv.queueResource.actMon)
         print "------- Server:%s %s ------" % (serv.id, "WaitMon")
         print "Mean:", serv.queueResource.waitMon.mean()
@@ -98,5 +106,5 @@ if __name__ == '__main__':
 
     print "------- Latency ------"
     print "Mean Latency:", latencyMonitor.mean()
-    printMonitorTimeSeriesToFile("logs/Latency", "0",
+    printMonitorTimeSeriesToFile(latencyFD, "0",
                                  latencyMonitor)

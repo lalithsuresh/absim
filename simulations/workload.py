@@ -31,9 +31,9 @@ class Workload(Simulation.Process):
 
             # Push out a task...
             randomClientIndex = random.randint(0, len(clientList) - 1)
-            client = clientList[randomClientIndex]
+            clientNode = clientList[randomClientIndex]
 
-            client.schedule(taskToSchedule)
+            clientNode.schedule(taskToSchedule)
 
             # Wait until the task we sent out is complete.
             yield Simulation.waitevent, self, taskToSchedule.eventExtra

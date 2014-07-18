@@ -24,7 +24,6 @@ class Client():
         firstReplicaIndex = None
 
         # Pick a random node and it's next RF - 1 number of neighbours
-        # to be the replicas represents SimpleSnitch + uniform request access
         if (self.accessPattern == "uniform"):
             firstReplicaIndex = random.randint(0, len(self.serverList) - 1)
         elif(self.accessPattern == "zipfian"):
@@ -96,10 +95,6 @@ class LatencyTracker(Simulation.Process):
     def __init__(self):
         Simulation.Process.__init__(self, name='LatencyTracker')
 
-    # When a task completes, update the CassandraProcess' latency measurements.
-    # This does not account for latency between the client and Cassandra cluster
-    # and models latency as purely happening between the coordinator and the
-    # data-node itself, without including network latency.
     def run(self, client, task, replicaToServe):
         yield Simulation.hold, self,
         yield Simulation.waitevent, self, task.completionEvent

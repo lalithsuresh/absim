@@ -1,0 +1,19 @@
+#!/bin/bash
+
+cd simulations;
+python experiment.py  \
+	--numClients 5 \
+	--numServers 3 \
+	--numWorkload 40 \
+	--serverQueueCapacity 4 \
+	--serviceTime 0.800 \
+	--replicationFactor 3 \
+	--selectionStrategy pending \
+	--accessPattern uniform \
+	--nwLatencyBase 0.500 \
+	--nwLatencySigma 0.01 \
+	--expPrefix test;
+cd ..
+cd plotting;
+Rscript timeseries.r test;
+cd ..
