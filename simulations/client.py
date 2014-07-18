@@ -63,17 +63,17 @@ class Client():
 
         replicaSet = originalReplicaSet[0:]
 
-        if(self.REPLICA_SELECTION_STRATEGY == "RANDOM"):
+        if(self.REPLICA_SELECTION_STRATEGY == "random"):
             # Pick a random node for the request.
             # Represents SimpleSnitch + uniform request access.
             # Ignore scores and everything else.
             random.shuffle(replicaSet)
 
-        elif(self.REPLICA_SELECTION_STRATEGY == "PENDING"):
+        elif(self.REPLICA_SELECTION_STRATEGY == "pending"):
             # Sort by number of pending requests
             replicaSet.sort(key=self.pendingRequestsMap.get)
 
-        elif(self.REPLICA_SELECTION_STRATEGY == "RESPONSE_TIME"):
+        elif(self.REPLICA_SELECTION_STRATEGY == "response_time"):
             # Sort by number of pending requests
             replicaSet.sort(key=self.responseTimesMap.get)
         else:
