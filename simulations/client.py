@@ -7,6 +7,7 @@ import constants
 class Client():
     def __init__(self, id_, serverList, replicaSelectionStrategy,
                  accessPattern, replicationFactor):
+        self.id = id_
         self.serverList = serverList
         self.pendingRequestsMap = {node: 0 for node in serverList}
         self.responseTimesMap = {node: 0 for node in serverList}
