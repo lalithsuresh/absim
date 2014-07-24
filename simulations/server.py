@@ -1,6 +1,6 @@
 import SimPy.Simulation as Simulation
 
-
+# TODO: model service times
 class Server():
     """A representation of a physical server that holds resources"""
     def __init__(self, id_, resourceCapacity, serviceTime):

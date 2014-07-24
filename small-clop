@@ -6,12 +6,12 @@ python experiment.py  \
 	--numServers 3 \
 	--numWorkload 40 \
 	--serverQueueCapacity 4 \
-	--serviceTime 0.800 \
+	--serviceTime 4.00 \
 	--replicationFactor 3 \
-	--selectionStrategy pending \
+	--selectionStrategy response_time \
 	--accessPattern uniform \
-	--nwLatencyBase 0.500 \
-	--nwLatencySigma 0.01 \
+	--nwLatencyBase 0.300 \
+	--nwLatencySigma 0.0 \
 	--expPrefix test;
 cd ..
 cd plotting;

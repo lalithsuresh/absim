@@ -58,7 +58,7 @@ if __name__ == '__main__':
 
     # Start the clients
     for i in range(args.numClients):
-        c = client.Client(id_="Client1",
+        c = client.Client(id_="Client%s" % (i),
                           serverList=servers,
                           replicaSelectionStrategy=args.selectionStrategy,
                           accessPattern=args.accessPattern,
@@ -76,7 +76,7 @@ if __name__ == '__main__':
         workloadGens.append(w)
 
     # Begin simulation
-    Simulation.simulate(until=100)
+    Simulation.simulate(until=500)
 
     #
     # Print a bunch of timeseries

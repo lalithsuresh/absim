@@ -84,7 +84,7 @@ class Client():
 
 class DeliverMessageWithDelay(Simulation.Process):
     def __init__(self):
-        Simulation.Process.__init__(self, name='LatencyTracker')
+        Simulation.Process.__init__(self, name='DeliverMessageWithDelay')
 
     def run(self, task, delay, replicaToServe):
         yield Simulation.hold, self, delay
@@ -109,5 +109,4 @@ class LatencyTracker(Simulation.Process):
         client.responseTimesMap[replicaToServe] = \
             Simulation.now() - client.taskTimeTracker[task]
         del client.taskTimeTracker[task]
-        yield Simulation.hold, self, delay
         task.eventExtra.signal(None)

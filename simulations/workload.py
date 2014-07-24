@@ -11,6 +11,8 @@ class Workload(Simulation.Process):
         self.latencyMonitor = latencyMonitor
         Simulation.Process.__init__(self, name='Workload' + str(id_))
 
+    # TODO: also need non-uniform client access
+    # Need to pin workload to a client
     def run(self, clientList, model, poisson_param):
 
         taskCounter = 0
@@ -20,12 +22,14 @@ class Workload(Simulation.Process):
             # Simulate client delay
             if(model == "poisson"):
                 yield Simulation.hold, self, numpy.random.poisson(poisson_param)
+            # If model is gaussian, add gaussian delay
+            # If model is constant, add fixed delay
 
             start = Simulation.now()
-            delay = constants.NW_LATENCY_BASE + \
-                random.normalvariate(constants.NW_LATENCY_MU,
-                                     constants.NW_LATENCY_SIGMA)
-            yield Simulation.hold, self, delay
+            # delay = constants.NW_LATENCY_BASE + \
+            #     random.normalvariate(constants.NW_LATENCY_MU,
+            #                          constants.NW_LATENCY_SIGMA)
+            # yield Simulation.hold, self, delay
             taskToSchedule = task.Task("Task" + str(taskCounter), None)
             taskCounter += 1
 
