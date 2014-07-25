@@ -5,6 +5,7 @@ import workload
 import argparse
 import random
 import constants
+import numpy
 
 
 def printMonitorTimeSeriesToFile(fileDesc, prefix, monitor):
@@ -48,6 +49,7 @@ if __name__ == '__main__':
 
     # Set the random seed
     random.seed(args.seed)
+    numpy.random.seed(args.seed)
 
     Simulation.initialize()
 
@@ -120,5 +122,6 @@ if __name__ == '__main__':
 
     print "------- Latency ------"
     print "Mean Latency:", latencyMonitor.mean()
+
     printMonitorTimeSeriesToFile(latencyFD, "0",
                                  latencyMonitor)
