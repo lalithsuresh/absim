@@ -16,6 +16,7 @@ class Client():
         self.replicationFactor = replicationFactor
         self.REPLICA_SELECTION_STRATEGY = replicaSelectionStrategy
         self.pendingRequestsMonitor = Simulation.Monitor(name="PendingRequests")
+        self.latencyTrackerMonitor = Simulation.Monitor(name="LatencyTracker")
 
     def schedule(self, task):
 
@@ -33,7 +34,6 @@ class Client():
                       for i in range(firstReplicaIndex,
                                      firstReplicaIndex +
                                      self.replicationFactor)]
-
         sortedReplicaSet = self.sort(replicaSet)
         replicaToServe = sortedReplicaSet[0]
 
@@ -110,5 +110,8 @@ class LatencyTracker(Simulation.Process):
         client.pendingRequestsMap[replicaToServe] -= 1
         client.responseTimesMap[replicaToServe] = \
             Simulation.now() - client.taskTimeTracker[task]
+        client.latencyTrackerMonitor\
+              .observe("%s %s" % (replicaToServe.id,
+                       client.responseTimesMap[replicaToServe]))
         del client.taskTimeTracker[task]
         task.eventExtra.signal(None)

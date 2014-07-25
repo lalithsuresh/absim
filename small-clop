@@ -14,7 +14,7 @@ python experiment.py  \
 	--nwLatencyMu 0.0 \
 	--nwLatencySigma 0.0 \
 	--expPrefix primary\
-	--simulationDuration 1000;
+	--simulationDuration 200;
 
 python experiment.py  \
 	--numClients 1 \
@@ -29,10 +29,27 @@ python experiment.py  \
 	--nwLatencyMu 0.0 \
 	--nwLatencySigma 0.0 \
 	--expPrefix rp\
-	--simulationDuration 1000;
+	--simulationDuration 200;
+
+
+# python experiment.py  \
+# 	--numClients 1 \
+# 	--numServers 3 \
+# 	--numWorkload 10 \
+# 	--serverQueueCapacity 1 \
+# 	--serviceTime 4.00 \
+# 	--replicationFactor 3 \
+# 	--selectionStrategy pending \
+# 	--accessPattern uniform \
+# 	--nwLatencyBase 0.00 \
+# 	--nwLatencyMu 0.0 \
+# 	--nwLatencySigma 0.0 \
+# 	--expPrefix pending\
+# 	--simulationDuration 200;
 
 cd ..
 cd plotting;
 Rscript timeseries.r primary;
 Rscript timeseries.r rp;
+# Rscript timeseries.r pending;
 cd ..

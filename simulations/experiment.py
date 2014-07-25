@@ -94,11 +94,15 @@ if __name__ == '__main__':
     waitMonFD = open("../logs/%s_WaitMon" % (args.expPrefix), 'w')
     actMonFD = open("../logs/%s_ActMon" % (args.expPrefix), 'w')
     latencyFD = open("../logs/%s_Latency" % (args.expPrefix), 'w')
+    latencyTrackerFD = open("../logs/%s_LatencyTracker" % (args.expPrefix), 'w')
 
     for clientNode in clients:
         printMonitorTimeSeriesToFile(pendingRequestsFD,
                                      clientNode.id,
                                      clientNode.pendingRequestsMonitor)
+        printMonitorTimeSeriesToFile(latencyTrackerFD,
+                                     clientNode.id,
+                                     clientNode.latencyTrackerMonitor)
     for serv in servers:
         printMonitorTimeSeriesToFile(waitMonFD,
                                      serv.id,
