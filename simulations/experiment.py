@@ -25,6 +25,8 @@ if __name__ == '__main__':
                         type=int, default=1)
     parser.add_argument('--serviceTime', nargs='?',
                         type=float, default=1)
+    parser.add_argument('--constArrivalTime', nargs='?',
+                        type=float, default=1)
     parser.add_argument('--replicationFactor', nargs='?',
                         type=int, default=1)
     parser.add_argument('--selectionStrategy', nargs='?',
@@ -83,8 +85,8 @@ if __name__ == '__main__':
     for i in range(args.numWorkload):
         w = workload.Workload(i, latencyMonitor)
         Simulation.activate(w, w.run(clients,
-                                     "constant",
-                                     None, args.numRequests/args.numWorkload), at=0.0)
+                                     "poisson",
+                                     args.constArrivalTime, args.numRequests/args.numWorkload), at=0.0)
         workloadGens.append(w)
 
     # Begin simulation

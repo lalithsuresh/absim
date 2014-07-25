@@ -4,9 +4,10 @@ cd simulations;
 python experiment.py  \
 	--numClients 1 \
 	--numServers 3 \
-	--numWorkload 10 \
+	--numWorkload 1 \
 	--serverQueueCapacity 1 \
 	--serviceTime 4.00 \
+	--constArrivalTime 2.1818181818 \
 	--replicationFactor 3 \
 	--selectionStrategy primary \
 	--accessPattern uniform \
@@ -14,15 +15,16 @@ python experiment.py  \
 	--nwLatencyMu 0.0 \
 	--nwLatencySigma 0.0 \
 	--expPrefix primary\
-	--simulationDuration 200\
-	--numRequests 10;
+	--simulationDuration 100000\
+	--numRequests 50;
 
 python experiment.py  \
 	--numClients 1 \
 	--numServers 3 \
-	--numWorkload 10 \
+	--numWorkload 1 \
 	--serverQueueCapacity 1 \
 	--serviceTime 4.00 \
+	--constArrivalTime 2.1818181818 \
 	--replicationFactor 3 \
 	--selectionStrategy response_time \
 	--accessPattern uniform \
@@ -30,16 +32,17 @@ python experiment.py  \
 	--nwLatencyMu 0.0 \
 	--nwLatencySigma 0.0 \
 	--expPrefix rp\
-	--simulationDuration 200\
-	--numRequests 10;
+	--simulationDuration 100000\
+	--numRequests 50;
 
 
 python experiment.py  \
 	--numClients 1 \
 	--numServers 3 \
-	--numWorkload 10 \
+	--numWorkload 1 \
 	--serverQueueCapacity 1 \
 	--serviceTime 4.00 \
+	--constArrivalTime 2.1818181818 \
 	--replicationFactor 3 \
 	--selectionStrategy pending \
 	--accessPattern uniform \
@@ -47,15 +50,16 @@ python experiment.py  \
 	--nwLatencyMu 0.0 \
 	--nwLatencySigma 0.0 \
 	--expPrefix pending\
-	--simulationDuration 200\
-	--numRequests 10;
+	--simulationDuration 100000\
+	--numRequests 50;
 
 python experiment.py  \
 	--numClients 1 \
 	--numServers 3 \
-	--numWorkload 10 \
+	--numWorkload 1 \
 	--serverQueueCapacity 1 \
 	--serviceTime 4.00 \
+	--constArrivalTime 2.1818181818 \
 	--replicationFactor 3 \
 	--selectionStrategy pendingXservice_time \
 	--accessPattern uniform \
@@ -63,8 +67,8 @@ python experiment.py  \
 	--nwLatencyMu 0.0 \
 	--nwLatencySigma 0.0 \
 	--expPrefix pendingXservice_time\
-	--simulationDuration 200\
-	--numRequests 10;
+	--simulationDuration 100000\
+	--numRequests 50;
 
 cd ..
 cd plotting;
