@@ -22,7 +22,8 @@ colnames(wait.mon)[3] <- "WaitingRequests"
 pending.requests <- read.table(paste("../logs/", prefix, "_PendingRequests", sep=""))
 colnames(pending.requests)[1] <- "ClientId"
 colnames(pending.requests)[2] <- "Timestamp"
-colnames(pending.requests)[3] <- "PendingRequests"
+colnames(pending.requests)[3] <- "ServerId"
+colnames(pending.requests)[4] <- "PendingRequests"
 
 latency.samples <- read.table(paste("../logs/", prefix, "_LatencyTracker", sep=""))
 colnames(latency.samples)[1] <- "ClientId"
@@ -56,7 +57,7 @@ ggsave(p1, file=paste(prefix, "_wait.mon.pdf", sep=""), width=15)
 
 p1 <- ggplot(pending.requests) + 
 	  geom_point(aes(y=PendingRequests, x=Timestamp), size=4) + 
-	  facet_grid(ClientId ~ .) +
+	  facet_grid(ServerId ~ ClientId) +
 	  ggtitle(paste(prefix, "Pending")) +
 	  theme(text = element_text(size=15), 
 	  		axis.text = element_text(size=20))
