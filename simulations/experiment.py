@@ -3,6 +3,7 @@ import server
 import client
 import workload
 import argparse
+import random
 import constants
 
 
@@ -37,7 +38,12 @@ if __name__ == '__main__':
                         type=float, default=0.0)
     parser.add_argument('--expPrefix', nargs='?',
                         type=str, default="")
+    parser.add_argument('--seed', nargs='?',
+                        type=int, default=25072014)
     args = parser.parse_args()
+
+    # Set the random seed
+    random.seed(args.seed)
 
     Simulation.initialize()
 
