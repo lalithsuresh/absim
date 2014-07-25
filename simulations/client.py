@@ -10,6 +10,7 @@ class Client():
         self.id = id_
         self.serverList = serverList
         self.pendingRequestsMap = {node: 0 for node in serverList}
+        self.pendingXserviceMap = {node: 0 for node in serverList}
         self.responseTimesMap = {node: 0 for node in serverList}
         self.taskTimeTracker = {}
         self.accessPattern = accessPattern
@@ -55,8 +56,10 @@ class Client():
                             latencyTracker.run(self, task, replicaToServe),
                             at=Simulation.now())
         self.pendingRequestsMap[replicaToServe] += 1
+        self.pendingXserviceMap[replicaToServe] = \
+            self.pendingRequestsMap[replicaToServe] * replicaToServe.serviceTime
         self.pendingRequestsMonitor.observe(
-            (replicaToServe.id, self.pendingRequestsMap[replicaToServe]))
+            "%s %s" % (replicaToServe.id, self.pendingRequestsMap[replicaToServe]))
 
     def sort(self, originalReplicaSet):
 
@@ -71,12 +74,13 @@ class Client():
         elif(self.REPLICA_SELECTION_STRATEGY == "pending"):
             # Sort by number of pending requests
             replicaSet.sort(key=self.pendingRequestsMap.get)
-
         elif(self.REPLICA_SELECTION_STRATEGY == "response_time"):
             # Sort by number of pending requests
             replicaSet.sort(key=self.responseTimesMap.get)
         elif(self.REPLICA_SELECTION_STRATEGY == "primary"):
             pass
+        elif(self.REPLICA_SELECTION_STRATEGY == "pendingXservice_time"):
+            replicaSet.sort(key=self.pendingXserviceMap.get)
         else:
             print self.REPLICA_SELECTION_STRATEGY
             assert False, "REPLICA_SELECTION_STRATEGY isn't set or is invalid"
@@ -108,6 +112,8 @@ class LatencyTracker(Simulation.Process):
 
         # OMG request completed
         client.pendingRequestsMap[replicaToServe] -= 1
+        client.pendingXserviceMap[replicaToServe] = \
+            client.pendingRequestsMap[replicaToServe] * replicaToServe.serviceTime
         client.responseTimesMap[replicaToServe] = \
             Simulation.now() - client.taskTimeTracker[task]
         client.latencyTrackerMonitor\
