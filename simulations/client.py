@@ -57,7 +57,7 @@ class Client():
                             at=Simulation.now())
         self.pendingRequestsMap[replicaToServe] += 1
         self.pendingXserviceMap[replicaToServe] = \
-            self.pendingRequestsMap[replicaToServe] * replicaToServe.serviceTime
+            (1 + self.pendingRequestsMap[replicaToServe]) * replicaToServe.serviceTime
         self.pendingRequestsMonitor.observe(
             "%s %s" % (replicaToServe.id, self.pendingRequestsMap[replicaToServe]))
 
@@ -113,11 +113,11 @@ class LatencyTracker(Simulation.Process):
         # OMG request completed
         client.pendingRequestsMap[replicaToServe] -= 1
         client.pendingXserviceMap[replicaToServe] = \
-            client.pendingRequestsMap[replicaToServe] * replicaToServe.serviceTime
+            (1 + client.pendingRequestsMap[replicaToServe]) * replicaToServe.serviceTime
         client.responseTimesMap[replicaToServe] = \
             Simulation.now() - client.taskTimeTracker[task]
         client.latencyTrackerMonitor\
               .observe("%s %s" % (replicaToServe.id,
                        client.responseTimesMap[replicaToServe]))
         del client.taskTimeTracker[task]
-        task.eventExtra.signal(None)
+        task.latencyMonitor.observe(Simulation.now() - task.start)
