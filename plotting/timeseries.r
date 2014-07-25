@@ -39,7 +39,7 @@ p1 <- ggplot(latency) +
 ggsave(p1, file=paste(prefix, "_latency.pdf", sep=""), width=15)
 
 p1 <- ggplot(act.mon) + 
-	  geom_point(aes(y=ActiveRequests, x=Timestamp), size=4) + 
+	  geom_line(aes(y=ActiveRequests, x=Timestamp), size=2) + 
 	  facet_grid(ServerId ~ .) +
 	  ggtitle(paste(prefix, "Act")) +
 	  theme(text = element_text(size=15), 
@@ -47,7 +47,7 @@ p1 <- ggplot(act.mon) +
 ggsave(p1, file=paste(prefix, "_act.mon.pdf", sep=""), width=15)
 
 p1 <- ggplot(wait.mon) + 
-	  geom_point(aes(y=WaitingRequests, x=Timestamp), size=4) + 
+	  geom_line(aes(y=WaitingRequests, x=Timestamp), size=2) + 
 	  facet_grid(ServerId ~ .) +
 	  ggtitle(paste(prefix, "Wait")) +
 	  theme(text = element_text(size=15), 
