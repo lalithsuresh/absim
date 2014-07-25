@@ -40,6 +40,8 @@ if __name__ == '__main__':
                         type=str, default="")
     parser.add_argument('--seed', nargs='?',
                         type=int, default=25072014)
+    parser.add_argument('--simulationDuration', nargs='?',
+                        type=int, default=500)
     args = parser.parse_args()
 
     # Set the random seed
@@ -82,7 +84,7 @@ if __name__ == '__main__':
         workloadGens.append(w)
 
     # Begin simulation
-    Simulation.simulate(until=500)
+    Simulation.simulate(until=args.simulationDuration)
 
     #
     # Print a bunch of timeseries
