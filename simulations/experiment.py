@@ -77,7 +77,7 @@ if __name__ == '__main__':
     for i in range(args.numWorkload):
         w = workload.Workload(i, latencyMonitor)
         Simulation.activate(w, w.run(clients,
-                                     "poisson",
+                                     "constant",
                                      None), at=0.0)
         workloadGens.append(w)
 

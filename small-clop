@@ -2,18 +2,34 @@
 
 cd simulations;
 python experiment.py  \
-	--numClients 5 \
+	--numClients 1 \
 	--numServers 3 \
-	--numWorkload 40 \
-	--serverQueueCapacity 4 \
+	--numWorkload 10 \
+	--serverQueueCapacity 1 \
+	--serviceTime 4.00 \
+	--replicationFactor 3 \
+	--selectionStrategy primary \
+	--accessPattern uniform \
+	--nwLatencyBase 0.00 \
+	--nwLatencyMu 0.0 \
+	--nwLatencySigma 0.0 \
+	--expPrefix primary;
+
+python experiment.py  \
+	--numClients 1 \
+	--numServers 3 \
+	--numWorkload 10 \
+	--serverQueueCapacity 1 \
 	--serviceTime 4.00 \
 	--replicationFactor 3 \
 	--selectionStrategy response_time \
 	--accessPattern uniform \
-	--nwLatencyBase 0.300 \
+	--nwLatencyBase 0.00 \
+	--nwLatencyMu 0.0 \
 	--nwLatencySigma 0.0 \
-	--expPrefix test;
+	--expPrefix rp;
+
 cd ..
-cd plotting;
-Rscript timeseries.r test;
-cd ..
+#cd plotting;
+#Rscript timeseries.r test;
+#cd ..
