@@ -42,6 +42,8 @@ if __name__ == '__main__':
                         type=int, default=25072014)
     parser.add_argument('--simulationDuration', nargs='?',
                         type=int, default=500)
+    parser.add_argument('--numRequests', nargs='?',
+                        type=int, default=100)
     args = parser.parse_args()
 
     # Set the random seed
@@ -80,7 +82,7 @@ if __name__ == '__main__':
         w = workload.Workload(i, latencyMonitor)
         Simulation.activate(w, w.run(clients,
                                      "constant",
-                                     None), at=0.0)
+                                     None, args.numRequests/args.numWorkload), at=0.0)
         workloadGens.append(w)
 
     # Begin simulation

@@ -4,6 +4,7 @@ import task
 import numpy
 import constants
 
+numRequests = 100
 
 class Workload(Simulation.Process):
 
@@ -13,11 +14,11 @@ class Workload(Simulation.Process):
 
     # TODO: also need non-uniform client access
     # Need to pin workload to a client
-    def run(self, clientList, model, poisson_param):
+    def run(self, clientList, model, poisson_param, numRequests):
 
         taskCounter = 0
 
-        while(1):
+        while(numRequests != 0):
             yield Simulation.hold, self,
             # Simulate client delay
             if(model == "poisson"):
@@ -42,3 +43,4 @@ class Workload(Simulation.Process):
             # Wait until the task we sent out is complete.
             yield Simulation.waitevent, self, taskToSchedule.eventExtra
             self.latencyMonitor.observe(Simulation.now() - start)
+            numRequests -= 1

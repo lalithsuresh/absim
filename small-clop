@@ -14,7 +14,8 @@ python experiment.py  \
 	--nwLatencyMu 0.0 \
 	--nwLatencySigma 0.0 \
 	--expPrefix primary\
-	--simulationDuration 200;
+	--simulationDuration 200\
+	--numRequests 10;
 
 python experiment.py  \
 	--numClients 1 \
@@ -29,7 +30,8 @@ python experiment.py  \
 	--nwLatencyMu 0.0 \
 	--nwLatencySigma 0.0 \
 	--expPrefix rp\
-	--simulationDuration 200;
+	--simulationDuration 200\
+	--numRequests 10;
 
 
 python experiment.py  \
@@ -45,7 +47,8 @@ python experiment.py  \
 	--nwLatencyMu 0.0 \
 	--nwLatencySigma 0.0 \
 	--expPrefix pending\
-	--simulationDuration 200;
+	--simulationDuration 200\
+	--numRequests 10;
 
 python experiment.py  \
 	--numClients 1 \
@@ -60,7 +63,8 @@ python experiment.py  \
 	--nwLatencyMu 0.0 \
 	--nwLatencySigma 0.0 \
 	--expPrefix pendingXservice_time\
-	--simulationDuration 200;
+	--simulationDuration 200\
+	--numRequests 10;
 
 cd ..
 cd plotting;
