@@ -2,7 +2,7 @@
 
 cd simulations;
 python experiment.py  \
-	--numClients 1 \
+	--numClients 20 \
 	--numServers 3 \
 	--numWorkload 1 \
 	--serverQueueCapacity 1 \
@@ -16,10 +16,11 @@ python experiment.py  \
 	--nwLatencySigma 0.0 \
 	--expPrefix primary\
 	--simulationDuration 100000\
+	--seed 434\
 	--numRequests 50;
 
 python experiment.py  \
-	--numClients 1 \
+	--numClients 20 \
 	--numServers 3 \
 	--numWorkload 1 \
 	--serverQueueCapacity 1 \
@@ -33,11 +34,12 @@ python experiment.py  \
 	--nwLatencySigma 0.0 \
 	--expPrefix rp\
 	--simulationDuration 100000\
+	--seed 434\
 	--numRequests 50;
 
 
 python experiment.py  \
-	--numClients 1 \
+	--numClients 20 \
 	--numServers 3 \
 	--numWorkload 1 \
 	--serverQueueCapacity 1 \
@@ -51,10 +53,11 @@ python experiment.py  \
 	--nwLatencySigma 0.0 \
 	--expPrefix pending\
 	--simulationDuration 100000\
+	--seed 434\
 	--numRequests 50;
 
 python experiment.py  \
-	--numClients 1 \
+	--numClients 20 \
 	--numServers 3 \
 	--numWorkload 1 \
 	--serverQueueCapacity 1 \
@@ -68,6 +71,7 @@ python experiment.py  \
 	--nwLatencySigma 0.0 \
 	--expPrefix pendingXservice_time\
 	--simulationDuration 100000\
+	--seed 434\
 	--numRequests 50;
 
 cd ..
