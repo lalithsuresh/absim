@@ -31,7 +31,7 @@ colnames(latency.samples)[3] <- "ServerId"
 colnames(latency.samples)[4] <- "LatencySample"
 
 p1 <- ggplot(latency) + 
-	  geom_line(aes(y=Latency, x=Timestamp), size=2) + 
+	  geom_point(aes(y=Latency, x=Timestamp), size=4) + 
 	  facet_grid(ServerId ~ .) +
 	  ggtitle(paste(prefix, "Latency")) +
 	  theme(text = element_text(size=15), 
@@ -39,7 +39,7 @@ p1 <- ggplot(latency) +
 ggsave(p1, file=paste(prefix, "_latency.pdf", sep=""), width=15)
 
 p1 <- ggplot(act.mon) + 
-	  geom_line(aes(y=ActiveRequests, x=Timestamp), size=2) + 
+	  geom_point(aes(y=ActiveRequests, x=Timestamp), size=4) + 
 	  facet_grid(ServerId ~ .) +
 	  ggtitle(paste(prefix, "Act")) +
 	  theme(text = element_text(size=15), 
@@ -47,7 +47,7 @@ p1 <- ggplot(act.mon) +
 ggsave(p1, file=paste(prefix, "_act.mon.pdf", sep=""), width=15)
 
 p1 <- ggplot(wait.mon) + 
-	  geom_line(aes(y=WaitingRequests, x=Timestamp), size=2) + 
+	  geom_point(aes(y=WaitingRequests, x=Timestamp), size=4) + 
 	  facet_grid(ServerId ~ .) +
 	  ggtitle(paste(prefix, "Wait")) +
 	  theme(text = element_text(size=15), 
@@ -55,7 +55,7 @@ p1 <- ggplot(wait.mon) +
 ggsave(p1, file=paste(prefix, "_wait.mon.pdf", sep=""), width=15)
 
 p1 <- ggplot(pending.requests) + 
-	  geom_line(aes(y=PendingRequests, x=Timestamp), size=2) + 
+	  geom_point(aes(y=PendingRequests, x=Timestamp), size=4) + 
 	  facet_grid(ClientId ~ .) +
 	  ggtitle(paste(prefix, "Pending")) +
 	  theme(text = element_text(size=15), 
@@ -63,7 +63,7 @@ p1 <- ggplot(pending.requests) +
 ggsave(p1, file=paste(prefix, "_pending.requests.pdf", sep=""), width=15)
 
 p1 <- ggplot(latency.samples) + 
-	  geom_line(aes(y=LatencySample, x=Timestamp), size=2) + 
+	  geom_point(aes(y=LatencySample, x=Timestamp), size=4) + 
 	  facet_grid(ServerId ~ ClientId) +
 	  ggtitle(paste(prefix, "Latency Samples")) +
 	  theme(text = element_text(size=15), 
