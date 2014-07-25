@@ -56,7 +56,7 @@ class Client():
                             at=Simulation.now())
         self.pendingRequestsMap[replicaToServe] += 1
         self.pendingRequestsMonitor.observe(
-            self.pendingRequestsMap[replicaToServe])
+            (replicaToServe.id, self.pendingRequestsMap[replicaToServe]))
 
     def sort(self, originalReplicaSet):
 
@@ -75,6 +75,8 @@ class Client():
         elif(self.REPLICA_SELECTION_STRATEGY == "response_time"):
             # Sort by number of pending requests
             replicaSet.sort(key=self.responseTimesMap.get)
+        elif(self.REPLICA_SELECTION_STRATEGY == "primary"):
+            pass
         else:
             print self.REPLICA_SELECTION_STRATEGY
             assert False, "REPLICA_SELECTION_STRATEGY isn't set or is invalid"
