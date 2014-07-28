@@ -77,11 +77,12 @@ class Client():
             # Sort by number of pending requests
             replicaSet.sort(key=self.pendingRequestsMap.get)
         elif(self.REPLICA_SELECTION_STRATEGY == "response_time"):
-            # Sort by number of pending requests
+            # Sort by response times
             replicaSet.sort(key=self.responseTimesMap.get)
         elif(self.REPLICA_SELECTION_STRATEGY == "primary"):
             pass
         elif(self.REPLICA_SELECTION_STRATEGY == "pendingXservice_time"):
+            # Sort by response times * pending-requests
             replicaSet.sort(key=self.pendingXserviceMap.get)
         else:
             print self.REPLICA_SELECTION_STRATEGY
