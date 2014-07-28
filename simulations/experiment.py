@@ -69,7 +69,7 @@ if __name__ == '__main__':
     for i in range(args.numServers):
         serv = server.Server(i,
                              resourceCapacity=args.serverQueueCapacity,
-                             serviceTime=(args.serviceTime),
+                             serviceTime=((i+1) * args.serviceTime),
                              serviceTimeModel=args.serviceTimeModel)
         servers.append(serv)
 

@@ -8,7 +8,7 @@ python experiment.py  \
 	--serverQueueCapacity 1 \
 	--serviceTime 4.00 \
 	--constArrivalTime 2.1818181818 \
-	--serviceTimeModel random.expovariate \
+	--serviceTimeModel constant \
 	--replicationFactor 3 \
 	--selectionStrategy primary \
 	--accessPattern uniform \
@@ -27,7 +27,7 @@ python experiment.py  \
 	--serverQueueCapacity 1 \
 	--serviceTime 4.00 \
 	--constArrivalTime 2.1818181818 \
-	--serviceTimeModel random.expovariate \
+	--serviceTimeModel constant \
 	--replicationFactor 3 \
 	--selectionStrategy response_time \
 	--accessPattern uniform \
@@ -47,7 +47,7 @@ python experiment.py  \
 	--serverQueueCapacity 1 \
 	--serviceTime 4.00 \
 	--constArrivalTime 2.1818181818 \
-	--serviceTimeModel random.expovariate \
+	--serviceTimeModel constant \
 	--replicationFactor 3 \
 	--selectionStrategy pending \
 	--accessPattern uniform \
@@ -66,22 +66,43 @@ python experiment.py  \
 	--serverQueueCapacity 1 \
 	--serviceTime 4.00 \
 	--constArrivalTime 2.1818181818 \
-	--serviceTimeModel random.expovariate \
+	--serviceTimeModel constant \
 	--replicationFactor 3 \
-	--selectionStrategy pendingXservice_time \
+	--selectionStrategy pendingXserviceTime \
 	--accessPattern uniform \
 	--nwLatencyBase 0.00 \
 	--nwLatencyMu 0.0 \
 	--nwLatencySigma 0.0 \
-	--expPrefix pendingXservice_time\
+	--expPrefix pendingXserviceTime\
 	--simulationDuration 100000\
 	--seed 434\
 	--numRequests 50;
 
+python experiment.py  \
+	--numClients 20 \
+	--numServers 3 \
+	--numWorkload 1 \
+	--serverQueueCapacity 1 \
+	--serviceTime 4.00 \
+	--constArrivalTime 2.1818181818 \
+	--serviceTimeModel constant \
+	--replicationFactor 3 \
+	--selectionStrategy pendingXserviceTimeOracle \
+	--accessPattern uniform \
+	--nwLatencyBase 0.00 \
+	--nwLatencyMu 0.0 \
+	--nwLatencySigma 0.0 \
+	--expPrefix oracle\
+	--simulationDuration 100000\
+	--seed 434\
+	--numRequests 50;
+
+
 cd ..
 cd plotting;
-Rscript timeseries.r primary;
-Rscript timeseries.r rp;
-Rscript timeseries.r pending;
-Rscript timeseries.r pendingXservice_time;
+# Rscript timeseries.r primary;
+# Rscript timeseries.r rp;
+# Rscript timeseries.r pending;
+Rscript timeseries.r pendingXserviceTime;
+Rscript timeseries.r oracle;
 cd ..

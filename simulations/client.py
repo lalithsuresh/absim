@@ -81,9 +81,14 @@ class Client():
             replicaSet.sort(key=self.responseTimesMap.get)
         elif(self.REPLICA_SELECTION_STRATEGY == "primary"):
             pass
-        elif(self.REPLICA_SELECTION_STRATEGY == "pendingXservice_time"):
-            # Sort by response times * pending-requests
+        elif(self.REPLICA_SELECTION_STRATEGY == "pendingXserviceTime"):
+            # Sort by response times * client-local-pending-requests
             replicaSet.sort(key=self.pendingXserviceMap.get)
+        elif(self.REPLICA_SELECTION_STRATEGY == "pendingXserviceTimeOracle"):
+            # Sort by response times * pending-requests
+            oracleMap = {replica: (1 + len(replica.queueResource.waitQ)) * replica.serviceTime
+                         for replica in originalReplicaSet}
+            replicaSet.sort(key=oracleMap.get)
         else:
             print self.REPLICA_SELECTION_STRATEGY
             assert False, "REPLICA_SELECTION_STRATEGY isn't set or is invalid"
