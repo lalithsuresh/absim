@@ -8,6 +8,7 @@ python experiment.py  \
 	--serverQueueCapacity 1 \
 	--serviceTime 4.00 \
 	--constArrivalTime 2.1818181818 \
+	--serviceTimeModel random.expovariate \
 	--replicationFactor 3 \
 	--selectionStrategy primary \
 	--accessPattern uniform \
@@ -26,6 +27,7 @@ python experiment.py  \
 	--serverQueueCapacity 1 \
 	--serviceTime 4.00 \
 	--constArrivalTime 2.1818181818 \
+	--serviceTimeModel random.expovariate \
 	--replicationFactor 3 \
 	--selectionStrategy response_time \
 	--accessPattern uniform \
@@ -45,6 +47,7 @@ python experiment.py  \
 	--serverQueueCapacity 1 \
 	--serviceTime 4.00 \
 	--constArrivalTime 2.1818181818 \
+	--serviceTimeModel random.expovariate \
 	--replicationFactor 3 \
 	--selectionStrategy pending \
 	--accessPattern uniform \
@@ -63,6 +66,7 @@ python experiment.py  \
 	--serverQueueCapacity 1 \
 	--serviceTime 4.00 \
 	--constArrivalTime 2.1818181818 \
+	--serviceTimeModel random.expovariate \
 	--replicationFactor 3 \
 	--selectionStrategy pendingXservice_time \
 	--accessPattern uniform \

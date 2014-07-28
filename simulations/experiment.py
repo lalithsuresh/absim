@@ -27,6 +27,8 @@ if __name__ == '__main__':
                         type=float, default=1)
     parser.add_argument('--constArrivalTime', nargs='?',
                         type=float, default=1)
+    parser.add_argument('--serviceTimeModel', nargs='?',
+                        type=str, default="constant")
     parser.add_argument('--replicationFactor', nargs='?',
                         type=int, default=1)
     parser.add_argument('--selectionStrategy', nargs='?',
@@ -67,7 +69,8 @@ if __name__ == '__main__':
     for i in range(args.numServers):
         serv = server.Server(i,
                              resourceCapacity=args.serverQueueCapacity,
-                             serviceTime=(args.serviceTime))
+                             serviceTime=(args.serviceTime),
+                             serviceTimeModel=args.serviceTimeModel)
         servers.append(serv)
 
     # Start the clients
@@ -85,8 +88,10 @@ if __name__ == '__main__':
     for i in range(args.numWorkload):
         w = workload.Workload(i, latencyMonitor)
         Simulation.activate(w, w.run(clients,
-                                     "poisson",
-                                     args.constArrivalTime, args.numRequests/args.numWorkload), at=0.0)
+                                     "constant",
+                                     args.constArrivalTime,
+                                     args.numRequests/args.numWorkload),
+                            at=0.0),
         workloadGens.append(w)
 
     # Begin simulation

@@ -57,9 +57,11 @@ class Client():
                             at=Simulation.now())
         self.pendingRequestsMap[replicaToServe] += 1
         self.pendingXserviceMap[replicaToServe] = \
-            (1 + self.pendingRequestsMap[replicaToServe]) * replicaToServe.serviceTime
+            (1 + self.pendingRequestsMap[replicaToServe]) \
+            * replicaToServe.serviceTime
         self.pendingRequestsMonitor.observe(
-            "%s %s" % (replicaToServe.id, self.pendingRequestsMap[replicaToServe]))
+            "%s %s" % (replicaToServe.id,
+                       self.pendingRequestsMap[replicaToServe]))
 
     def sort(self, originalReplicaSet):
 
@@ -94,7 +96,7 @@ class DeliverMessageWithDelay(Simulation.Process):
 
     def run(self, task, delay, replicaToServe):
         yield Simulation.hold, self, delay
-        replicaToServe.enqueue_task(task)
+        replicaToServe.enqueueTask(task)
 
 
 class LatencyTracker(Simulation.Process):
@@ -113,7 +115,8 @@ class LatencyTracker(Simulation.Process):
         # OMG request completed
         client.pendingRequestsMap[replicaToServe] -= 1
         client.pendingXserviceMap[replicaToServe] = \
-            (1 + client.pendingRequestsMap[replicaToServe]) * replicaToServe.serviceTime
+            (1 + client.pendingRequestsMap[replicaToServe]) \
+            * replicaToServe.serviceTime
         client.responseTimesMap[replicaToServe] = \
             Simulation.now() - client.taskTimeTracker[task]
         client.latencyTrackerMonitor\

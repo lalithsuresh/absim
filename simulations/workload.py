@@ -2,9 +2,7 @@ import SimPy.Simulation as Simulation
 import random
 import task
 import numpy
-import constants
 
-numRequests = 100
 
 class Workload(Simulation.Process):
 
@@ -21,12 +19,12 @@ class Workload(Simulation.Process):
         while(numRequests != 0):
             yield Simulation.hold, self,
 
-            
             # delay = constants.NW_LATENCY_BASE + \
             #     random.normalvariate(constants.NW_LATENCY_MU,
             #                          constants.NW_LATENCY_SIGMA)
             # yield Simulation.hold, self, delay
-            taskToSchedule = task.Task("Task" + str(taskCounter), self.latencyMonitor)
+            taskToSchedule = task.Task("Task" + str(taskCounter),
+                                       self.latencyMonitor)
             taskCounter += 1
 
             # Push out a task...
