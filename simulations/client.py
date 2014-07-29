@@ -86,7 +86,8 @@ class Client():
             replicaSet.sort(key=self.pendingXserviceMap.get)
         elif(self.REPLICA_SELECTION_STRATEGY == "pendingXserviceTimeOracle"):
             # Sort by response times * pending-requests
-            oracleMap = {replica: (1 + len(replica.queueResource.waitQ)) * replica.serviceTime
+            oracleMap = {replica: (1 + len(replica.queueResource.waitQ))
+                         * replica.serviceTime
                          for replica in originalReplicaSet}
             replicaSet.sort(key=oracleMap.get)
         else:
