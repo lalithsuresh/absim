@@ -44,9 +44,17 @@ class Executor(Simulation.Process):
         Simulation.Process.__init__(self, name='Executor')
 
     def run(self):
+        start = Simulation.now()
+        queueSizeBefore = len(self.server.queueResource.waitQ)
         yield Simulation.hold, self
         yield Simulation.request, self, self.server.queueResource
-        yield Simulation.hold, self, self.server.getServiceTime()
+        waitTime = Simulation.now() - start         # W_i
+        serviceTime = self.server.getServiceTime()  # Mu_i
+        yield Simulation.hold, self, serviceTime
         yield Simulation.release, self, self.server.queueResource
 
-        self.task.sigTaskComplete()
+        queueSizeAfter = len(self.server.queueResource.waitQ)
+        self.task.sigTaskComplete({"waitTime": waitTime,
+                                   "serviceTime": serviceTime,
+                                   "queueSizeBefore": queueSizeBefore,
+                                   "queueSizeAfter": queueSizeAfter})

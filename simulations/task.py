@@ -11,6 +11,6 @@ class Task():
         self.latencyMonitor = latencyMonitor
 
     # Used as a notifier mechanism
-    def sigTaskComplete(self):
+    def sigTaskComplete(self, piggyBack=None):
         if (self.completionEvent is not None):
-            self.completionEvent.signal(self)
+            self.completionEvent.signal(piggyBack)

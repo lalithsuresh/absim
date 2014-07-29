@@ -9,15 +9,29 @@ class Client():
                  accessPattern, replicationFactor):
         self.id = id_
         self.serverList = serverList
-        self.pendingRequestsMap = {node: 0 for node in serverList}
-        self.pendingXserviceMap = {node: 0 for node in serverList}
-        self.responseTimesMap = {node: 0 for node in serverList}
-        self.taskTimeTracker = {}
         self.accessPattern = accessPattern
         self.replicationFactor = replicationFactor
         self.REPLICA_SELECTION_STRATEGY = replicaSelectionStrategy
         self.pendingRequestsMonitor = Simulation.Monitor(name="PendingRequests")
         self.latencyTrackerMonitor = Simulation.Monitor(name="LatencyTracker")
+        self.movingAverageWindow = 1
+
+        # Book-keeping and metrics to be recoreded follow...
+
+        # Number of outstanding requests at the client
+        self.pendingRequestsMap = {node: 0 for node in serverList}
+
+        # Number of outstanding requests times oracle-service time of replica
+        self.pendingXserviceMap = {node: 0 for node in serverList}
+
+        # Last-received response time of server
+        self.responseTimesMap = {node: 0 for node in serverList}
+
+        # Used to track response time from the perspective of the client
+        self.taskTimeTracker = {}
+
+        # Record waiting and service times as relayed by the server
+        self.expectedDelayMap = {node: [] for node in serverList}
 
     def schedule(self, task):
 
@@ -55,6 +69,8 @@ class Client():
         Simulation.activate(latencyTracker,
                             latencyTracker.run(self, task, replicaToServe),
                             at=Simulation.now())
+
+        # Book-keeping for metrics
         self.pendingRequestsMap[replicaToServe] += 1
         self.pendingXserviceMap[replicaToServe] = \
             (1 + self.pendingRequestsMap[replicaToServe]) \
@@ -86,10 +102,24 @@ class Client():
             replicaSet.sort(key=self.pendingXserviceMap.get)
         elif(self.REPLICA_SELECTION_STRATEGY == "pendingXserviceTimeOracle"):
             # Sort by response times * pending-requests
-            oracleMap = {replica: (1 + len(replica.queueResource.waitQ))
+            oracleMap = {replica: (1 + len(replica.queueResource.activeQ
+                                   + replica.queueResource.waitQ))
                          * replica.serviceTime
                          for replica in originalReplicaSet}
             replicaSet.sort(key=oracleMap.get)
+        elif(self.REPLICA_SELECTION_STRATEGY == "expDelay"):
+            sortMap = {}
+            for replica in originalReplicaSet:
+                total = 0
+                for entry in self.expectedDelayMap[replica]:
+                    twiceNetworkLatency = entry["responseTime"]\
+                        - (entry["serviceTime"] + entry["waitTime"])
+                    total += (twiceNetworkLatency +
+                              (1 + entry["queueSizeAfter"]
+                               + self.pendingRequestsMap[replica])
+                              * entry["serviceTime"])
+                sortMap[replica] = total
+            replicaSet.sort(key=sortMap.get)
         else:
             print self.REPLICA_SELECTION_STRATEGY
             assert False, "REPLICA_SELECTION_STRATEGY isn't set or is invalid"
@@ -119,7 +149,7 @@ class LatencyTracker(Simulation.Process):
                                  constants.NW_LATENCY_SIGMA)
         yield Simulation.hold, self, delay
 
-        # OMG request completed
+        # OMG request completed. Time for some book-keeping
         client.pendingRequestsMap[replicaToServe] -= 1
         client.pendingXserviceMap[replicaToServe] = \
             (1 + client.pendingRequestsMap[replicaToServe]) \
@@ -129,5 +159,15 @@ class LatencyTracker(Simulation.Process):
         client.latencyTrackerMonitor\
               .observe("%s %s" % (replicaToServe.id,
                        client.responseTimesMap[replicaToServe]))
+        expDelayMap = task.completionEvent.signalparam
+        expDelayMap["responseTime"] = client.responseTimesMap[replicaToServe]
+        client.expectedDelayMap[replicaToServe]\
+            .append(expDelayMap)
+
+        # TODO: Threshold
+        if (len(client.expectedDelayMap[replicaToServe])
+           > client.movingAverageWindow):
+            client.expectedDelayMap[replicaToServe].pop(0)
+
         del client.taskTimeTracker[task]
         task.latencyMonitor.observe(Simulation.now() - task.start)

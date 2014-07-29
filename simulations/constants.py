@@ -1,3 +1,4 @@
+# These are defaults.
 NW_LATENCY_BASE = 0.960
 NW_LATENCY_MU = 0.040
 NW_LATENCY_SIGMA = 0.0
