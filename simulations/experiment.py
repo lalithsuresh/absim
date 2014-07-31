@@ -21,11 +21,11 @@ if __name__ == '__main__':
                         type=int, default=1)
     parser.add_argument('--numWorkload', nargs='?',
                         type=int, default=1)
-    parser.add_argument('--serverQueueCapacity', nargs='?',
+    parser.add_argument('--serverConcurrency', nargs='?',
                         type=int, default=1)
     parser.add_argument('--serviceTime', nargs='?',
                         type=float, default=1)
-    parser.add_argument('--constArrivalTime', nargs='?',
+    parser.add_argument('--workloadParam', nargs='?',
                         type=float, default=1)
     parser.add_argument('--serviceTimeModel', nargs='?',
                         type=str, default="constant")
@@ -33,6 +33,10 @@ if __name__ == '__main__':
                         type=int, default=1)
     parser.add_argument('--selectionStrategy', nargs='?',
                         type=str, default="pending")
+    parser.add_argument('--shadowReadRatio', nargs='?',
+                        type=float, default=0.10)
+    parser.add_argument('--backpressure', action='store_true',
+                        default=False)
     parser.add_argument('--accessPattern', nargs='?',
                         type=str, default="uniform")
     parser.add_argument('--nwLatencyBase', nargs='?',
@@ -68,7 +72,7 @@ if __name__ == '__main__':
     # Start the servers
     for i in range(args.numServers):
         serv = server.Server(i,
-                             resourceCapacity=args.serverQueueCapacity,
+                             resourceCapacity=args.serverConcurrency,
                              serviceTime=((i+1) * args.serviceTime),
                              serviceTimeModel=args.serviceTimeModel)
         servers.append(serv)
@@ -79,7 +83,9 @@ if __name__ == '__main__':
                           serverList=servers,
                           replicaSelectionStrategy=args.selectionStrategy,
                           accessPattern=args.accessPattern,
-                          replicationFactor=args.replicationFactor)
+                          replicationFactor=args.replicationFactor,
+                          backpressure=args.backpressure,
+                          shadowReadRatio=args.shadowReadRatio)
         clients.append(c)
 
     # Start workload generators (analogous to YCSB)
@@ -89,7 +95,7 @@ if __name__ == '__main__':
         w = workload.Workload(i, latencyMonitor)
         Simulation.activate(w, w.run(clients,
                                      "constant",
-                                     args.constArrivalTime,
+                                     args.workloadParam,
                                      args.numRequests/args.numWorkload),
                             at=0.0),
         workloadGens.append(w)

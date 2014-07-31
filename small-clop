@@ -1,93 +1,98 @@
 #!/bin/bash
 
 cd simulations;
-python experiment.py  \
-	--numClients 10 \
-	--numServers 3 \
-	--numWorkload 1 \
-	--serverQueueCapacity 1 \
-	--serviceTime 4.00 \
-	--constArrivalTime 2.1818181818 \
-	--serviceTimeModel constant \
-	--replicationFactor 3 \
-	--selectionStrategy primary \
-	--accessPattern uniform \
-	--nwLatencyBase 10.00 \
-	--nwLatencyMu 0.0 \
-	--nwLatencySigma 0.0 \
-	--expPrefix primary\
-	--simulationDuration 100000\
-	--seed 434\
-	--numRequests 5000;
+# python experiment.py  \
+# 	--numClients 10 \
+# 	--numServers 3 \
+# 	--numWorkload 1 \
+# 	--serverConcurrency 1 \
+# 	--serviceTime 4.00 \
+# 	--workloadParam 3.1818181818 \
+# 	--serviceTimeModel constant \
+# 	--replicationFactor 3 \
+# 	--selectionStrategy primary \
+#	--shadowReadRatio 0.10 \
+# 	--backpressure \
+# 	--accessPattern uniform \
+# 	--nwLatencyBase 10.00 \
+# 	--nwLatencyMu 0.0 \
+# 	--nwLatencySigma 0.0 \
+# 	--expPrefix primary\
+# 	--simulationDuration 100000\
+# 	--seed 434\
+# 	--numRequests 50;
+
+# python experiment.py  \
+# 	--numClients 10 \
+# 	--numServers 3 \
+# 	--numWorkload 1 \
+# 	--serverConcurrency 1 \
+# 	--serviceTime 4.00 \
+# 	--workloadParam 3.1818181818 \
+# 	--serviceTimeModel constant \
+# 	--replicationFactor 3 \
+# 	--selectionStrategy response_time \
+#	--shadowReadRatio 0.10 \
+# 	--accessPattern uniform \
+# 	--nwLatencyBase 10.00 \
+# 	--nwLatencyMu 0.0 \
+# 	--nwLatencySigma 0.0 \
+# 	--expPrefix rp\
+# 	--simulationDuration 100000\
+# 	--seed 434\
+# 	--numRequests 50;
+
+
+# python experiment.py  \
+# 	--numClients 10 \
+# 	--numServers 3 \
+# 	--numWorkload 1 \
+# 	--serverConcurrency 1 \
+# 	--serviceTime 4.00 \
+# 	--workloadParam 3.1818181818 \
+# 	--serviceTimeModel constant \
+# 	--replicationFactor 3 \
+# 	--backpressure \
+# 	--accessPattern uniform \
+# 	--nwLatencyBase 10.00 \
+# 	--nwLatencyMu 0.0 \
+# 	--nwLatencySigma 0.0 \
+# 	--expPrefix pending\
+# 	--simulationDuration 100000\
+# 	-1000eed 41000\
+# 	--numRequests 50;
+
+# python experiment.py  \
+# 	--numClients 10 \
+# 	--numServers 3 \
+# 	--numWorkload 1 \
+# 	--serverConcurrency 1 \
+# 	--serviceTime 4.00 \
+# 	--workloadParam 3.1818181818 \
+# 	--serviceTimeModel constant \
+# 	--replicationFactor 3 \
+# 	--selectionStrategy pendingXserviceTime \
+#	--shadowReadRatio 0.10 \
+# 	--accessPattern uniform \
+# 	--nwLatencyBase 10.00 \
+# 	--nwLatencyMu 0.0 \
+# 	--nwLatencySigma 0.0 \
+# 	--expPrefix pendingXserviceTime\
+# 	--simulationDuration 100000\
+# 	--seed 434\
+# 	--numRequests 10000;
 
 python experiment.py  \
 	--numClients 10 \
 	--numServers 3 \
 	--numWorkload 1 \
-	--serverQueueCapacity 1 \
+	--serverConcurrency 1 \
 	--serviceTime 4.00 \
-	--constArrivalTime 2.1818181818 \
-	--serviceTimeModel constant \
-	--replicationFactor 3 \
-	--selectionStrategy response_time \
-	--accessPattern uniform \
-	--nwLatencyBase 10.00 \
-	--nwLatencyMu 0.0 \
-	--nwLatencySigma 0.0 \
-	--expPrefix rp\
-	--simulationDuration 100000\
-	--seed 434\
-	--numRequests 5000;
-
-
-python experiment.py  \
-	--numClients 10 \
-	--numServers 3 \
-	--numWorkload 1 \
-	--serverQueueCapacity 1 \
-	--serviceTime 4.00 \
-	--constArrivalTime 2.1818181818 \
-	--serviceTimeModel constant \
-	--replicationFactor 3 \
-	--selectionStrategy pending \
-	--accessPattern uniform \
-	--nwLatencyBase 10.00 \
-	--nwLatencyMu 0.0 \
-	--nwLatencySigma 0.0 \
-	--expPrefix pending\
-	--simulationDuration 100000\
-	--seed 434\
-	--numRequests 5000;
-
-python experiment.py  \
-	--numClients 10 \
-	--numServers 3 \
-	--numWorkload 1 \
-	--serverQueueCapacity 1 \
-	--serviceTime 4.00 \
-	--constArrivalTime 2.1818181818 \
-	--serviceTimeModel constant \
-	--replicationFactor 3 \
-	--selectionStrategy pendingXserviceTime \
-	--accessPattern uniform \
-	--nwLatencyBase 10.00 \
-	--nwLatencyMu 0.0 \
-	--nwLatencySigma 0.0 \
-	--expPrefix pendingXserviceTime\
-	--simulationDuration 100000\
-	--seed 434\
-	--numRequests 5000;
-
-python experiment.py  \
-	--numClients 10 \
-	--numServers 3 \
-	--numWorkload 1 \
-	--serverQueueCapacity 1 \
-	--serviceTime 4.00 \
-	--constArrivalTime 2.1818181818 \
+	--workloadParam 3.1818181818 \
 	--serviceTimeModel constant \
 	--replicationFactor 3 \
 	--selectionStrategy pendingXserviceTimeOracle \
+	--shadowReadRatio 0.10 \
 	--accessPattern uniform \
 	--nwLatencyBase 10.00 \
 	--nwLatencyMu 0.0 \
@@ -95,18 +100,20 @@ python experiment.py  \
 	--expPrefix oracle\
 	--simulationDuration 100000\
 	--seed 434\
-	--numRequests 5000;
+	--numRequests 10000;
 
 python experiment.py  \
 	--numClients 10 \
 	--numServers 3 \
 	--numWorkload 1 \
-	--serverQueueCapacity 1 \
+	--serverConcurrency 1 \
 	--serviceTime 4.00 \
-	--constArrivalTime 2.1818181818 \
+	--workloadParam 3.1818181818 \
 	--serviceTimeModel constant \
 	--replicationFactor 3 \
 	--selectionStrategy expDelay \
+	--shadowReadRatio 0.10 \
+	--backpressure \
 	--accessPattern uniform \
 	--nwLatencyBase 10.00 \
 	--nwLatencyMu 0.0 \
@@ -114,15 +121,15 @@ python experiment.py  \
 	--expPrefix expDelay\
 	--simulationDuration 100000\
 	--seed 434\
-	--numRequests 5000;
+	--numRequests 10000;
 
 
 cd ..
 cd plotting;
-Rscript timeseries.r primary;
-Rscript timeseries.r rp;
-Rscript timeseries.r pending;
-Rscript timeseries.r pendingXserviceTime;
+# Rscript timeseries.r primary;
+# Rscript timeseries.r rp;
+# Rscript timeseries.r pending;
+# Rscript timeseries.r pendingXserviceTime;
 Rscript timeseries.r oracle;
 Rscript timeseries.r expDelay;
 cd ..
