@@ -16,7 +16,7 @@ class Client():
         self.REPLICA_SELECTION_STRATEGY = replicaSelectionStrategy
         self.pendingRequestsMonitor = Simulation.Monitor(name="PendingRequests")
         self.latencyTrackerMonitor = Simulation.Monitor(name="LatencyTracker")
-        self.movingAverageWindow = 3
+        self.movingAverageWindow = 1
         self.backpressure = backpressure    # True/Flase
         self.shadowReadRatio = shadowReadRatio
 
@@ -156,7 +156,7 @@ class Client():
         return total
 
     def maybeSendShadowReads(self, replicaToServe, replicaSet):
-        if (random.uniform(0, 1.0) <= self.shadowReadRatio):
+        if (random.uniform(0, 1.0) < self.shadowReadRatio):
             for replica in replicaSet:
                 if (replica is not replicaToServe):
                     shadowReadTask = task.Task("ShadowRead", None)
@@ -212,14 +212,14 @@ class LatencyTracker(Simulation.Process):
             expDelay = client.computeExpectedDelay(replicaToServe)
             mus = []
             for replica in client.serverList:
-                mus.append(sum([entry.get("responseTime")
+                mus.append(sum([entry.get("serviceTime")
                                 for entry in client.expectedDelayMap[replica]]))
             client.muMax = max(mus)
 
             if (client.muMax >= expDelay):
                 for node in client.backpressureSchedulers:
                     client.backpressureSchedulers[node].congestionEvent.signal()
-            # print client.muMax, expDelay
+            print client.muMax, expDelay
         del client.taskTimeTracker[task]
 
         # Does not make sense to record shadow read latencies
