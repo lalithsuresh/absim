@@ -111,7 +111,7 @@ python experiment.py  \
 	--workloadParam 2.1818181818 \
 	--serviceTimeModel constant \
 	--replicationFactor 3 \
-	--selectionStrategy expDelay \
+	--selectionStrategy expDelay2Choices \
 	--shadowReadRatio 0.1 \
 	--backpressure \
 	--accessPattern uniform \

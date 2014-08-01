@@ -138,6 +138,12 @@ class Client():
             for replica in originalReplicaSet:
                 sortMap[replica] = self.computeExpectedDelay(replica)
             replicaSet.sort(key=sortMap.get)
+        elif(self.REPLICA_SELECTION_STRATEGY == "expDelay2Choices"):
+            sortMap = {}
+            for replica in originalReplicaSet:
+                sortMap[replica] = self.computeExpectedDelay(replica)
+            replicaSet.sort(key=sortMap.get)
+            replicaSet = random.sample(replicaSet, 2)
         else:
             print self.REPLICA_SELECTION_STRATEGY
             assert False, "REPLICA_SELECTION_STRATEGY isn't set or is invalid"
