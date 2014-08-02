@@ -32,7 +32,8 @@ class Client():
         self.responseTimesMap = {node: 0 for node in serverList}
 
         # Used to track response time from the perspective of the client
-        self.taskTimeTracker = {}
+        self.taskSentTimeTracker = {}
+        self.taskArrivalTimeTracker = {}
 
         # Record waiting and service times as relayed by the server
         self.expectedDelayMap = {node: [] for node in serverList}
@@ -66,7 +67,7 @@ class Client():
                                      firstReplicaIndex +
                                      self.replicationFactor)]
         startTime = Simulation.now()
-        self.taskTimeTracker[task] = startTime
+        self.taskArrivalTimeTracker[task] = startTime
 
         if(self.backpressure is False):
             sortedReplicaSet = self.sort(replicaSet)
@@ -103,6 +104,7 @@ class Client():
         self.pendingRequestsMonitor.observe(
             "%s %s" % (replicaToServe.id,
                        self.pendingRequestsMap[replicaToServe]))
+        self.taskSentTimeTracker[task] = Simulation.now()
 
     def sort(self, originalReplicaSet):
 
@@ -136,7 +138,6 @@ class Client():
             sortMap = {}
             for replica in originalReplicaSet:
                 sortMap[replica] = self.computeExpectedDelay(replica)
-            print sortMap
             replicaSet.sort(key=sortMap.get)
         else:
             print self.REPLICA_SELECTION_STRATEGY
@@ -150,7 +151,8 @@ class Client():
             twiceNetworkLatency = entry["responseTime"]\
                 - (entry["serviceTime"] + entry["waitTime"])
             total += (twiceNetworkLatency +
-                      (1 + self.pendingRequestsMap[replica])
+                      (1 + entry["queueSizeAfter"]
+                      + self.pendingRequestsMap[replica])
                       * entry["serviceTime"])
         return total
 
@@ -159,7 +161,7 @@ class Client():
             for replica in replicaSet:
                 if (replica is not replicaToServe):
                     shadowReadTask = task.Task("ShadowRead", None)
-                    self.taskTimeTracker[shadowReadTask] = Simulation.now()
+                    self.taskTimeSentTracker[shadowReadTask] = Simulation.now()
                     self.sendRequest(shadowReadTask, replica)
 
 
@@ -191,11 +193,15 @@ class LatencyTracker(Simulation.Process):
             (1 + client.pendingRequestsMap[replicaToServe]) \
             * replicaToServe.serviceTime
 
+        client.pendingRequestsMonitor.observe(
+            "%s %s" % (replicaToServe.id,
+                       client.pendingRequestsMap[replicaToServe]))
+
         client.responseTimesMap[replicaToServe] = \
-            Simulation.now() - client.taskTimeTracker[task]
+            Simulation.now() - client.taskSentTimeTracker[task]
         client.latencyTrackerMonitor\
               .observe("%s %s" % (replicaToServe.id,
-                       client.responseTimesMap[replicaToServe]))
+                       Simulation.now() - client.taskSentTimeTracker[task]))
         expDelayMap = task.completionEvent.signalparam
         expDelayMap["responseTime"] = client.responseTimesMap[replicaToServe]
         client.expectedDelayMap[replicaToServe]\
@@ -208,18 +214,29 @@ class LatencyTracker(Simulation.Process):
 
         # Backpressure related book-keeping
         if (client.backpressure):
-            expDelay = client.computeExpectedDelay(replicaToServe)
             mus = []
             for replica in client.serverList:
                 mus.append(sum([entry.get("serviceTime")
                                 for entry in client.expectedDelayMap[replica]]))
             client.muMax = max(mus)
 
-            # if (client.muMax >= expDelay):
             for node in client.backpressureSchedulers:
                 client.backpressureSchedulers[node].congestionEvent.signal()
-            print client.muMax, expDelay
-        del client.taskTimeTracker[task]
+
+            expDelay = client.computeExpectedDelay(replicaToServe)
+            if (client.muMax > expDelay * 2):
+                client.queueSizeThresholds[replicaToServe] += 1
+            elif (client.muMax < expDelay):
+                client.queueSizeThresholds[replicaToServe] /= 2
+
+            if (client.queueSizeThresholds[replicaToServe] < 1
+               and client.pendingRequestsMap[replicaToServe] == 0):
+                client.queueSizeThresholds[replicaToServe] = 1
+
+            print replicaToServe.id, client.muMax, expDelay
+
+        del client.taskSentTimeTracker[task]
+        del client.taskArrivalTimeTracker[task]
 
         # Does not make sense to record shadow read latencies
         # as a latency measurement
@@ -244,24 +261,23 @@ class BackpressureScheduler(Simulation.Process):
 
                 sortedReplicaSet = self.client.sort(replicaSet)
                 replicaToServe = sortedReplicaSet[0]
-                expectedDelay = self.client.computeExpectedDelay(replicaToServe)
 
-                print self.id, "checking", self.client.muMax, expectedDelay
-                if (self.client.muMax == 0.0
-                   or self.client.muMax >= expectedDelay):
+                if (self.client.queueSizeThresholds[replicaToServe] >
+                   self.client.pendingRequestsMap[replicaToServe]):
+                    print self.id, replicaToServe, self.client.queueSizeThresholds[replicaToServe]
                     self.backlogQueue.pop(0)
                     self.client.sendRequest(task, replicaToServe)
                     self.client.maybeSendShadowReads(replicaToServe, replicaSet)
                 else:
                     # Enter congestion state
-                    self.congestionEvent = Simulation.SimEvent("Congestion")
-                    print self.id, "CONG"
+                    print self.id, 'conge'
                     yield Simulation.waitevent, self, self.congestionEvent
-                    print self.id, "DECONG"
+                    print self.id, 'deconge'
+                    self.congestionEvent = Simulation.SimEvent("Congestion")
                     continue
             else:
-                self.backlogReadyEvent = Simulation.SimEvent("BacklogReady")
                 yield Simulation.waitevent, self, self.backlogReadyEvent
+                self.backlogReadyEvent = Simulation.SimEvent("BacklogReady")
 
     def enqueue(self, task, replicaSet):
         self.backlogQueue.append((task, replicaSet))

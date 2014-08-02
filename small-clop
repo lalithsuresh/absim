@@ -20,7 +20,7 @@ cd simulations;
 # 	--expPrefix primary\
 # 	--simulationDuration 100000\
 # 	--seed 434\
-# 	--numRequests 50;
+# 	--numRequests 1000;
 
 # python experiment.py  \
 # 	--numClients 1 \
@@ -40,7 +40,7 @@ cd simulations;
 # 	--expPrefix rp\
 # 	--simulationDuration 100000\
 # 	--seed 434\
-# 	--numRequests 50;
+# 	--numRequests 1000;
 
 
 # python experiment.py  \
@@ -60,7 +60,7 @@ cd simulations;
 # 	--expPrefix pending\
 # 	--simulationDuration 100000\
 # 	-1000eed 41000\
-# 	--numRequests 50;
+# 	--numRequests 1000;
 
 # python experiment.py  \
 # 	--numClients 1 \
@@ -80,30 +80,30 @@ cd simulations;
 # 	--expPrefix pendingXserviceTime\
 # 	--simulationDuration 100000\
 # 	--seed 434\
-# 	--numRequests 50;
-
-# python experiment.py  \
-# 	--numClients 1 \
-# 	--numServers 3 \
-# 	--numWorkload 1 \
-# 	--serverConcurrency 1 \
-# 	--serviceTime 4.00 \
-# 	--workloadParam 2.1818181818 \
-# 	--serviceTimeModel constant \
-# 	--replicationFactor 3 \
-# 	--selectionStrategy pendingXserviceTimeOracle \
-# 	--shadowReadRatio 0.0 \
-# 	--accessPattern uniform \
-# 	--nwLatencyBase 0.00 \
-# 	--nwLatencyMu 0.0 \
-# 	--nwLatencySigma 0.0 \
-# 	--expPrefix oracle\
-# 	--simulationDuration 100000\
-# 	--seed 434\
-# 	--numRequests 50;
+# 	--numRequests 1000;
 
 python experiment.py  \
-	--numClients 1 \
+	--numClients 2 \
+	--numServers 3 \
+	--numWorkload 1 \
+	--serverConcurrency 1 \
+	--serviceTime 4.00 \
+	--workloadParam 2.1818181818 \
+	--serviceTimeModel constant \
+	--replicationFactor 3 \
+	--selectionStrategy pendingXserviceTimeOracle \
+	--shadowReadRatio 0.0 \
+	--accessPattern uniform \
+	--nwLatencyBase 0.00 \
+	--nwLatencyMu 0.0 \
+	--nwLatencySigma 0.0 \
+	--expPrefix oracle\
+	--simulationDuration 100000\
+	--seed 434\
+	--numRequests 1000;
+
+python experiment.py  \
+	--numClients 2 \
 	--numServers 3 \
 	--numWorkload 1 \
 	--serverConcurrency 1 \
@@ -121,7 +121,7 @@ python experiment.py  \
 	--expPrefix expDelay \
 	--simulationDuration 100000 \
 	--seed 434 \
-	--numRequests 50;
+	--numRequests 1000;
 
 
 cd ..
