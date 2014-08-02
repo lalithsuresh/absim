@@ -51,7 +51,6 @@ class Client():
             Simulation.activate(sched, sched.run(), at=Simulation.now())
 
     def schedule(self, task):
-
         replicaSet = None
         replicaToServe = None
         firstReplicaIndex = None
@@ -137,13 +136,8 @@ class Client():
             sortMap = {}
             for replica in originalReplicaSet:
                 sortMap[replica] = self.computeExpectedDelay(replica)
+            print sortMap
             replicaSet.sort(key=sortMap.get)
-        elif(self.REPLICA_SELECTION_STRATEGY == "expDelay2Choices"):
-            sortMap = {}
-            for replica in originalReplicaSet:
-                sortMap[replica] = self.computeExpectedDelay(replica)
-            replicaSet.sort(key=sortMap.get)
-            replicaSet = random.sample(replicaSet, 2)
         else:
             print self.REPLICA_SELECTION_STRATEGY
             assert False, "REPLICA_SELECTION_STRATEGY isn't set or is invalid"
@@ -156,8 +150,7 @@ class Client():
             twiceNetworkLatency = entry["responseTime"]\
                 - (entry["serviceTime"] + entry["waitTime"])
             total += (twiceNetworkLatency +
-                      (1 + entry["queueSizeAfter"]
-                       + self.pendingRequestsMap[replica])
+                      (1 + self.pendingRequestsMap[replica])
                       * entry["serviceTime"])
         return total
 
@@ -222,9 +215,9 @@ class LatencyTracker(Simulation.Process):
                                 for entry in client.expectedDelayMap[replica]]))
             client.muMax = max(mus)
 
-            if (client.muMax >= expDelay):
-                for node in client.backpressureSchedulers:
-                    client.backpressureSchedulers[node].congestionEvent.signal()
+            # if (client.muMax >= expDelay):
+            for node in client.backpressureSchedulers:
+                client.backpressureSchedulers[node].congestionEvent.signal()
             print client.muMax, expDelay
         del client.taskTimeTracker[task]
 
@@ -253,6 +246,7 @@ class BackpressureScheduler(Simulation.Process):
                 replicaToServe = sortedReplicaSet[0]
                 expectedDelay = self.client.computeExpectedDelay(replicaToServe)
 
+                print self.id, "checking", self.client.muMax, expectedDelay
                 if (self.client.muMax == 0.0
                    or self.client.muMax >= expectedDelay):
                     self.backlogQueue.pop(0)
@@ -260,12 +254,14 @@ class BackpressureScheduler(Simulation.Process):
                     self.client.maybeSendShadowReads(replicaToServe, replicaSet)
                 else:
                     # Enter congestion state
-                    yield Simulation.waitevent, self, self.congestionEvent
                     self.congestionEvent = Simulation.SimEvent("Congestion")
+                    print self.id, "CONG"
+                    yield Simulation.waitevent, self, self.congestionEvent
+                    print self.id, "DECONG"
                     continue
             else:
-                yield Simulation.waitevent, self, self.backlogReadyEvent
                 self.backlogReadyEvent = Simulation.SimEvent("BacklogReady")
+                yield Simulation.waitevent, self, self.backlogReadyEvent
 
     def enqueue(self, task, replicaSet):
         self.backlogQueue.append((task, replicaSet))
