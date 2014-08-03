@@ -2,7 +2,7 @@
 
 cd simulations;
 # python experiment.py  \
-# 	--numClients 1 \
+# 	--numClients 5 \
 # 	--numServers 3 \
 # 	--numWorkload 1 \
 # 	--serverConcurrency 1 \
@@ -20,10 +20,10 @@ cd simulations;
 # 	--expPrefix primary\
 # 	--simulationDuration 100000\
 # 	--seed 434\
-# 	--numRequests 1000;
+# 	--numRequests 50;
 
 # python experiment.py  \
-# 	--numClients 1 \
+# 	--numClients 5 \
 # 	--numServers 3 \
 # 	--numWorkload 1 \
 # 	--serverConcurrency 1 \
@@ -40,11 +40,11 @@ cd simulations;
 # 	--expPrefix rp\
 # 	--simulationDuration 100000\
 # 	--seed 434\
-# 	--numRequests 1000;
+# 	--numRequests 50;
 
 
 # python experiment.py  \
-# 	--numClients 1 \
+# 	--numClients 5 \
 # 	--numServers 3 \
 # 	--numWorkload 1 \
 # 	--serverConcurrency 1 \
@@ -60,10 +60,10 @@ cd simulations;
 # 	--expPrefix pending\
 # 	--simulationDuration 100000\
 # 	-1000eed 41000\
-# 	--numRequests 1000;
+# 	--numRequests 50;
 
 # python experiment.py  \
-# 	--numClients 1 \
+# 	--numClients 5 \
 # 	--numServers 3 \
 # 	--numWorkload 1 \
 # 	--serverConcurrency 1 \
@@ -80,10 +80,10 @@ cd simulations;
 # 	--expPrefix pendingXserviceTime\
 # 	--simulationDuration 100000\
 # 	--seed 434\
-# 	--numRequests 1000;
+# 	--numRequests 50;
 
 python experiment.py  \
-	--numClients 2 \
+	--numClients 5 \
 	--numServers 3 \
 	--numWorkload 1 \
 	--serverConcurrency 1 \
@@ -100,10 +100,10 @@ python experiment.py  \
 	--expPrefix oracle\
 	--simulationDuration 100000\
 	--seed 434\
-	--numRequests 1000;
+	--numRequests 50;
 
 python experiment.py  \
-	--numClients 2 \
+	--numClients 5 \
 	--numServers 3 \
 	--numWorkload 1 \
 	--serverConcurrency 1 \
@@ -121,7 +121,7 @@ python experiment.py  \
 	--expPrefix expDelay \
 	--simulationDuration 100000 \
 	--seed 434 \
-	--numRequests 1000;
+	--numRequests 50;
 
 
 cd ..
@@ -129,7 +129,7 @@ cd plotting;
 # Rscript timeseries.r primary;
 # Rscript timeseries.r rp;
 # Rscript timeseries.r pending;
-Rscript timeseries.r pendingXserviceTime;
+# Rscript timeseries.r pendingXserviceTime;
 Rscript timeseries.r oracle;
 Rscript timeseries.r expDelay;
 cd ..

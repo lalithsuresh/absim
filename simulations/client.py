@@ -220,11 +220,13 @@ class LatencyTracker(Simulation.Process):
                                 for entry in client.expectedDelayMap[replica]]))
             client.muMax = max(mus)
 
-            for node in client.backpressureSchedulers:
+            shuffledNodeList = client.serverList[0:]
+            random.shuffle(shuffledNodeList)
+            for node in shuffledNodeList:
                 client.backpressureSchedulers[node].congestionEvent.signal()
 
             expDelay = client.computeExpectedDelay(replicaToServe)
-            if (client.muMax > expDelay * 2):
+            if (client.muMax > expDelay):
                 client.queueSizeThresholds[replicaToServe] += 1
             elif (client.muMax < expDelay):
                 client.queueSizeThresholds[replicaToServe] /= 2
@@ -232,8 +234,6 @@ class LatencyTracker(Simulation.Process):
             if (client.queueSizeThresholds[replicaToServe] < 1
                and client.pendingRequestsMap[replicaToServe] == 0):
                 client.queueSizeThresholds[replicaToServe] = 1
-
-            print replicaToServe.id, client.muMax, expDelay
 
         del client.taskSentTimeTracker[task]
         del client.taskArrivalTimeTracker[task]
@@ -264,15 +264,14 @@ class BackpressureScheduler(Simulation.Process):
 
                 if (self.client.queueSizeThresholds[replicaToServe] >
                    self.client.pendingRequestsMap[replicaToServe]):
-                    print self.id, replicaToServe, self.client.queueSizeThresholds[replicaToServe]
                     self.backlogQueue.pop(0)
                     self.client.sendRequest(task, replicaToServe)
                     self.client.maybeSendShadowReads(replicaToServe, replicaSet)
                 else:
                     # Enter congestion state
-                    print self.id, 'conge'
+                    # print self.id, 'conge'
                     yield Simulation.waitevent, self, self.congestionEvent
-                    print self.id, 'deconge'
+                    # print self.id, 'deconge'
                     self.congestionEvent = Simulation.SimEvent("Congestion")
                     continue
             else:
