@@ -16,7 +16,7 @@ class Client():
         self.REPLICA_SELECTION_STRATEGY = replicaSelectionStrategy
         self.pendingRequestsMonitor = Simulation.Monitor(name="PendingRequests")
         self.latencyTrackerMonitor = Simulation.Monitor(name="LatencyTracker")
-        self.movingAverageWindow = 1
+        self.movingAverageWindow = 10
         self.backpressure = backpressure    # True/Flase
         self.shadowReadRatio = shadowReadRatio
 

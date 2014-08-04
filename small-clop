@@ -2,7 +2,7 @@
 
 cd simulations;
 # python experiment.py  \
-# 	--numClients 5 \
+# 	--numClients 2 \
 # 	--numServers 3 \
 # 	--numWorkload 1 \
 # 	--serverConcurrency 1 \
@@ -20,10 +20,10 @@ cd simulations;
 # 	--expPrefix primary\
 # 	--simulationDuration 100000\
 # 	--seed 434\
-# 	--numRequests 50;
+# 	--numRequests 1000;
 
 # python experiment.py  \
-# 	--numClients 5 \
+# 	--numClients 2 \
 # 	--numServers 3 \
 # 	--numWorkload 1 \
 # 	--serverConcurrency 1 \
@@ -40,11 +40,11 @@ cd simulations;
 # 	--expPrefix rp\
 # 	--simulationDuration 100000\
 # 	--seed 434\
-# 	--numRequests 50;
+# 	--numRequests 1000;
 
 
 # python experiment.py  \
-# 	--numClients 5 \
+# 	--numClients 2 \
 # 	--numServers 3 \
 # 	--numWorkload 1 \
 # 	--serverConcurrency 1 \
@@ -60,10 +60,10 @@ cd simulations;
 # 	--expPrefix pending\
 # 	--simulationDuration 100000\
 # 	-1000eed 41000\
-# 	--numRequests 50;
+# 	--numRequests 1000;
 
 # python experiment.py  \
-# 	--numClients 5 \
+# 	--numClients 2 \
 # 	--numServers 3 \
 # 	--numWorkload 1 \
 # 	--serverConcurrency 1 \
@@ -80,10 +80,10 @@ cd simulations;
 # 	--expPrefix pendingXserviceTime\
 # 	--simulationDuration 100000\
 # 	--seed 434\
-# 	--numRequests 50;
+# 	--numRequests 1000;
 
 python experiment.py  \
-	--numClients 5 \
+	--numClients 2 \
 	--numServers 3 \
 	--numWorkload 1 \
 	--serverConcurrency 1 \
@@ -100,10 +100,10 @@ python experiment.py  \
 	--expPrefix oracle\
 	--simulationDuration 100000\
 	--seed 434\
-	--numRequests 50;
+	--numRequests 1000;
 
 python experiment.py  \
-	--numClients 5 \
+	--numClients 2 \
 	--numServers 3 \
 	--numWorkload 1 \
 	--serverConcurrency 1 \
@@ -111,9 +111,9 @@ python experiment.py  \
 	--workloadParam 2.1818181818 \
 	--serviceTimeModel constant \
 	--replicationFactor 3 \
+	--backpressure \
 	--selectionStrategy expDelay \
 	--shadowReadRatio 0.0 \
-	--backpressure \
 	--accessPattern uniform \
 	--nwLatencyBase 0.00 \
 	--nwLatencyMu 0.0 \
@@ -121,7 +121,7 @@ python experiment.py  \
 	--expPrefix expDelay \
 	--simulationDuration 100000 \
 	--seed 434 \
-	--numRequests 50;
+	--numRequests 1000;
 
 
 cd ..
