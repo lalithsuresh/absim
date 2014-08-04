@@ -25,6 +25,8 @@ if __name__ == '__main__':
                         type=int, default=1)
     parser.add_argument('--serviceTime', nargs='?',
                         type=float, default=1)
+    parser.add_argument('--workloadModel', nargs='?',
+                        type=str, default="constant")
     parser.add_argument('--workloadParam', nargs='?',
                         type=float, default=1)
     parser.add_argument('--serviceTimeModel', nargs='?',
@@ -94,7 +96,7 @@ if __name__ == '__main__':
     for i in range(args.numWorkload):
         w = workload.Workload(i, latencyMonitor)
         Simulation.activate(w, w.run(clients,
-                                     "constant",
+                                     args.workloadModel,
                                      args.workloadParam,
                                      args.numRequests/args.numWorkload),
                             at=0.0),

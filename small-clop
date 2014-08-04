@@ -2,9 +2,10 @@
 
 cd simulations;
 # python experiment.py  \
-# 	--numClients 2 \
+# 	--numClients 1 \
 # 	--numServers 3 \
 # 	--numWorkload 1 \
+#	--workloadModel constant \
 # 	--serverConcurrency 1 \
 # 	--serviceTime 4.00 \
 # 	--workloadParam 2.1818181818 \
@@ -20,12 +21,13 @@ cd simulations;
 # 	--expPrefix primary\
 # 	--simulationDuration 100000\
 # 	--seed 434\
-# 	--numRequests 1000;
+# 	--numRequests 50;
 
 # python experiment.py  \
-# 	--numClients 2 \
+# 	--numClients 1 \
 # 	--numServers 3 \
 # 	--numWorkload 1 \
+#	--workloadModel constant \
 # 	--serverConcurrency 1 \
 # 	--serviceTime 4.00 \
 # 	--workloadParam 2.1818181818 \
@@ -40,13 +42,14 @@ cd simulations;
 # 	--expPrefix rp\
 # 	--simulationDuration 100000\
 # 	--seed 434\
-# 	--numRequests 1000;
+# 	--numRequests 50;
 
 
 # python experiment.py  \
-# 	--numClients 2 \
+# 	--numClients 1 \
 # 	--numServers 3 \
 # 	--numWorkload 1 \
+#	--workloadModel constant \
 # 	--serverConcurrency 1 \
 # 	--serviceTime 4.00 \
 # 	--workloadParam 2.1818181818 \
@@ -60,12 +63,13 @@ cd simulations;
 # 	--expPrefix pending\
 # 	--simulationDuration 100000\
 # 	-1000eed 41000\
-# 	--numRequests 1000;
+# 	--numRequests 50;
 
 # python experiment.py  \
-# 	--numClients 2 \
+# 	--numClients 1 \
 # 	--numServers 3 \
 # 	--numWorkload 1 \
+#	--workloadModel constant \
 # 	--serverConcurrency 1 \
 # 	--serviceTime 4.00 \
 # 	--workloadParam 2.1818181818 \
@@ -80,12 +84,13 @@ cd simulations;
 # 	--expPrefix pendingXserviceTime\
 # 	--simulationDuration 100000\
 # 	--seed 434\
-# 	--numRequests 1000;
+# 	--numRequests 50;
 
 python experiment.py  \
-	--numClients 2 \
+	--numClients 1 \
 	--numServers 3 \
 	--numWorkload 1 \
+	--workloadModel constant \
 	--serverConcurrency 1 \
 	--serviceTime 4.00 \
 	--workloadParam 2.1818181818 \
@@ -100,12 +105,13 @@ python experiment.py  \
 	--expPrefix oracle\
 	--simulationDuration 100000\
 	--seed 434\
-	--numRequests 1000;
+	--numRequests 50;
 
 python experiment.py  \
-	--numClients 2 \
+	--numClients 1 \
 	--numServers 3 \
 	--numWorkload 1 \
+	--workloadModel constant \
 	--serverConcurrency 1 \
 	--serviceTime 4.00 \
 	--workloadParam 2.1818181818 \
@@ -121,7 +127,7 @@ python experiment.py  \
 	--expPrefix expDelay \
 	--simulationDuration 100000 \
 	--seed 434 \
-	--numRequests 1000;
+	--numRequests 50;
 
 
 cd ..

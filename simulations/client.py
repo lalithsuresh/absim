@@ -178,7 +178,7 @@ class LatencyTracker(Simulation.Process):
     def __init__(self):
         Simulation.Process.__init__(self, name='LatencyTracker')
 
-    def run(self, client, task, replicaToServe):
+    def run(self, client, task, replicaThatServed):
         yield Simulation.hold, self,
         yield Simulation.waitevent, self, task.completionEvent
 
@@ -188,29 +188,29 @@ class LatencyTracker(Simulation.Process):
         yield Simulation.hold, self, delay
 
         # OMG request completed. Time for some book-keeping
-        client.pendingRequestsMap[replicaToServe] -= 1
-        client.pendingXserviceMap[replicaToServe] = \
-            (1 + client.pendingRequestsMap[replicaToServe]) \
-            * replicaToServe.serviceTime
+        client.pendingRequestsMap[replicaThatServed] -= 1
+        client.pendingXserviceMap[replicaThatServed] = \
+            (1 + client.pendingRequestsMap[replicaThatServed]) \
+            * replicaThatServed.serviceTime
 
         client.pendingRequestsMonitor.observe(
-            "%s %s" % (replicaToServe.id,
-                       client.pendingRequestsMap[replicaToServe]))
+            "%s %s" % (replicaThatServed.id,
+                       client.pendingRequestsMap[replicaThatServed]))
 
-        client.responseTimesMap[replicaToServe] = \
+        client.responseTimesMap[replicaThatServed] = \
             Simulation.now() - client.taskSentTimeTracker[task]
         client.latencyTrackerMonitor\
-              .observe("%s %s" % (replicaToServe.id,
+              .observe("%s %s" % (replicaThatServed.id,
                        Simulation.now() - client.taskSentTimeTracker[task]))
         expDelayMap = task.completionEvent.signalparam
-        expDelayMap["responseTime"] = client.responseTimesMap[replicaToServe]
-        client.expectedDelayMap[replicaToServe]\
+        expDelayMap["responseTime"] = client.responseTimesMap[replicaThatServed]
+        client.expectedDelayMap[replicaThatServed]\
             .append(expDelayMap)
 
         # TODO: Threshold
-        if (len(client.expectedDelayMap[replicaToServe])
+        if (len(client.expectedDelayMap[replicaThatServed])
            > client.movingAverageWindow):
-            client.expectedDelayMap[replicaToServe].pop(0)
+            client.expectedDelayMap[replicaThatServed].pop(0)
 
         # Backpressure related book-keeping
         if (client.backpressure):
@@ -225,15 +225,14 @@ class LatencyTracker(Simulation.Process):
             for node in shuffledNodeList:
                 client.backpressureSchedulers[node].congestionEvent.signal()
 
-            expDelay = client.computeExpectedDelay(replicaToServe)
+            expDelay = client.computeExpectedDelay(replicaThatServed)
             if (client.muMax > expDelay):
-                client.queueSizeThresholds[replicaToServe] += 1
+                client.queueSizeThresholds[replicaThatServed] += 1
             elif (client.muMax < expDelay):
-                client.queueSizeThresholds[replicaToServe] /= 2
+                client.queueSizeThresholds[replicaThatServed] /= 2
 
-            if (client.queueSizeThresholds[replicaToServe] < 1
-               and client.pendingRequestsMap[replicaToServe] == 0):
-                client.queueSizeThresholds[replicaToServe] = 1
+            if (client.queueSizeThresholds[replicaThatServed] < 1):
+                client.queueSizeThresholds[replicaThatServed] = 1
 
         del client.taskSentTimeTracker[task]
         del client.taskArrivalTimeTracker[task]
