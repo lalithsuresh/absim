@@ -108,13 +108,13 @@ cd simulations;
 # 	--numRequests 1000;
 
 python experiment.py  \
-	--numClients 2 \
+ 	--numClients 5 \
 	--numServers 3 \
 	--numWorkload 1 \
-	--workloadModel constant \
+	--workloadModel poisson \
 	--serverConcurrency 1 \
 	--serviceTime 4.00 \
-	--workloadParam 2.1818181818 \
+	--workloadParam 2.2818181818 \
 	--serviceTimeModel constant \
 	--replicationFactor 3 \
 	--backpressure \
@@ -125,7 +125,7 @@ python experiment.py  \
 	--nwLatencyMu 0.0 \
 	--nwLatencySigma 0.0 \
 	--expPrefix expDelay \
-	--simulationDuration 1000 \
+	--simulationDuration 100000 \
 	--seed 434 \
 	--numRequests 1000;
 
