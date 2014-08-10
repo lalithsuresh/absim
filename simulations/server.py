@@ -54,7 +54,7 @@ class Executor(Simulation.Process):
         yield Simulation.release, self, self.server.queueResource
 
         queueSizeAfter = len(self.server.queueResource.waitQ)
-        self.task.sigTaskComplete({"waitTime": waitTime,
+        self.task.sigTaskComplete({"waitingTime": waitTime,
                                    "serviceTime": serviceTime,
                                    "queueSizeBefore": queueSizeBefore,
                                    "queueSizeAfter": queueSizeAfter})
