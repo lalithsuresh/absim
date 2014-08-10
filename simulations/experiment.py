@@ -70,6 +70,7 @@ if __name__ == '__main__':
     constants.NW_LATENCY_BASE = args.nwLatencyBase
     constants.NW_LATENCY_MU = args.nwLatencyMu
     constants.NW_LATENCY_SIGMA = args.nwLatencySigma
+    constants.NUMBER_OF_CLIENTS = args.numClients
 
     # Start the servers
     for i in range(args.numServers):

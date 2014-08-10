@@ -10,7 +10,7 @@ colnames(latency)[2] <- "Timestamp"
 colnames(latency)[3] <- "Latency"
 
 # latency <- latency[10:NROW(latency),]
-print(summary(latency))
+print(summary(latency[latency$Timestamp > 200,]))
 
 act.mon <- read.table(paste("../logs/", prefix, "_ActMon", sep=""))
 colnames(act.mon)[1] <- "ServerId"

@@ -16,7 +16,7 @@ class Client():
         self.REPLICA_SELECTION_STRATEGY = replicaSelectionStrategy
         self.pendingRequestsMonitor = Simulation.Monitor(name="PendingRequests")
         self.latencyTrackerMonitor = Simulation.Monitor(name="ResponseHandler")
-        self.movingAverageWindow = 10
+        self.movingAverageWindow = 50
         self.backpressure = backpressure    # True/Flase
         self.shadowReadRatio = shadowReadRatio
 
@@ -35,13 +35,16 @@ class Client():
         self.taskSentTimeTracker = {}
         self.taskArrivalTimeTracker = {}
 
+        # This is needed to prevent the initial state from blowing up
+        # Probably not needed on an actual implementation
+        self.outstandingRequests = []
+
         # Record waiting and service times as relayed by the server
         self.expectedDelayMap = {node: [] for node in serverList}
 
         # Rate limiters per replica
-        self.rateLimiters = {node: RateLimiter("RL-%s" % node.id, self, 100)
+        self.rateLimiters = {node: RateLimiter("RL-%s" % node.id, self, 10)
                              for node in serverList}
-
         self.lastRateDecrease = {node: 0 for node in serverList}
 
         # Backpressure related initialization
@@ -112,6 +115,7 @@ class Client():
             "%s %s" % (replicaToServe.id,
                        self.pendingRequestsMap[replicaToServe]))
         self.taskSentTimeTracker[task] = Simulation.now()
+        self.outstandingRequests.append(task)
 
     def sort(self, originalReplicaSet):
 
@@ -158,12 +162,18 @@ class Client():
             twiceNetworkLatency = entry["responseTime"]\
                 - (entry["serviceTime"] + entry["waitingTime"])
             total += (twiceNetworkLatency +
-                      (1 + self.pendingRequestsMap[replica] * 10)
+                      (1 + self.pendingRequestsMap[replica]
+                      * constants.NUMBER_OF_CLIENTS)
                       * entry["serviceTime"])
             # total += entry["waitingTime"]
         numberOfEntries = float(len(self.expectedDelayMap[replica]))
-
-        return 0 if numberOfEntries == 0 else total/numberOfEntries
+        if (numberOfEntries == 0):
+            if (len(self.outstandingRequests) != 0):
+                sentTime = self.taskSentTimeTracker[self.outstandingRequests[0]]
+                return sentTime
+            else:
+                return 0
+        return total/numberOfEntries
 
     def maybeSendShadowReads(self, replicaToServe, replicaSet):
         if (random.uniform(0, 1.0) < self.shadowReadRatio):
@@ -197,6 +207,7 @@ class ResponseHandler(Simulation.Process):
         yield Simulation.hold, self, delay
 
         # OMG request completed. Time for some book-keeping
+        client.outstandingRequests.remove(task)
         client.pendingRequestsMap[replicaThatServed] -= 1
         client.pendingXserviceMap[replicaThatServed] = \
             (1 + client.pendingRequestsMap[replicaThatServed]) \
@@ -252,7 +263,7 @@ class ResponseHandler(Simulation.Process):
                     client.lastRateDecrease[replicaThatServed]
                 Wmax = client.rateLimiters[replicaThatServed].alpha
                 client.rateLimiters[replicaThatServed].alpha = \
-                    0.4 * (T - (Wmax * beta/C)**(1.0/3.0))**3 + Wmax
+                    C * (T - (Wmax * beta/C)**(1.0/3.0))**3 + Wmax
 
             if (client.rateLimiters[replicaThatServed].alpha < 0):
                 client.rateLimiters[replicaThatServed].alpha = 0
@@ -309,7 +320,7 @@ class BackpressureScheduler(Simulation.Process):
 class RateLimiter(Simulation.Process):
     def __init__(self, id_, client, maxTokens):
         self.id = id_
-        self.alpha = 1
+        self.alpha = 10
         self.lastSent = 0
         self.client = client
         self.tokens = 0
@@ -340,9 +351,11 @@ class RateLimiter(Simulation.Process):
             self.waitIfZeroTokens.signal()
 
     def tryAcquire(self):
-        rate = 1/float(self.alpha + 0.0001)
+        rate = 1/float(self.alpha)
         self.tokens = self.tokens + rate * (Simulation.now() - self.lastSent)
-        if (self.tokens != 0):
+        self.tokens = self.maxTokens if self.tokens >= self.maxTokens \
+            else self.tokens
+        if (self.tokens >= 1):
             return True
         else:
             return False
