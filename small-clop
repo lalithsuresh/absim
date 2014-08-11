@@ -5,11 +5,11 @@ cd simulations;
 # 	--numClients 4 \
 # 	--numServers 3 \
 # 	--numWorkload 1 \
-#	--workloadModel constant \
+#	--workloadModel poisson \
 # 	--serverConcurrency 1 \
 # 	--serviceTime 4.00 \
 # 	--workloadParam 2.1818181818 \
-# 	--serviceTimeModel random.expovariate \
+# 	--serviceTimeModel poisson \
 # 	--replicationFactor 3 \
 # 	--selectionStrategy primary \
 #	--shadowReadRatio 0.0 \
@@ -27,11 +27,11 @@ cd simulations;
 # 	--numClients 4 \
 # 	--numServers 3 \
 # 	--numWorkload 1 \
-#	--workloadModel constant \
+#	--workloadModel poisson \
 # 	--serverConcurrency 1 \
 # 	--serviceTime 4.00 \
 # 	--workloadParam 2.1818181818 \
-# 	--serviceTimeModel random.expovariate \
+# 	--serviceTimeModel poisson \
 # 	--replicationFactor 3 \
 # 	--selectionStrategy response_time \
 #	--shadowReadRatio 0.0 \
@@ -49,11 +49,11 @@ cd simulations;
 # 	--numClients 4 \
 # 	--numServers 3 \
 # 	--numWorkload 1 \
-#	--workloadModel constant \
+#	--workloadModel poisson \
 # 	--serverConcurrency 1 \
 # 	--serviceTime 4.00 \
 # 	--workloadParam 2.1818181818 \
-# 	--serviceTimeModel random.expovariate \
+# 	--serviceTimeModel poisson \
 # 	--replicationFactor 3 \
 # 	--backpressure \
 # 	--accessPattern uniform \
@@ -69,11 +69,11 @@ cd simulations;
 # 	--numClients 4 \
 # 	--numServers 3 \
 # 	--numWorkload 1 \
-#	--workloadModel constant \
+#	--workloadModel poisson \
 # 	--serverConcurrency 1 \
 # 	--serviceTime 4.00 \
 # 	--workloadParam 2.1818181818 \
-# 	--serviceTimeModel random.expovariate \
+# 	--serviceTimeModel poisson \
 # 	--replicationFactor 3 \
 # 	--selectionStrategy pendingXserviceTime \
 # 	--shadowReadRatio 0.0 \
@@ -87,14 +87,14 @@ cd simulations;
 # 	--numRequests 4000;
 
 python experiment.py  \
-	--numClients 10 \
+	--numClients 5 \
 	--numServers 3 \
 	--numWorkload 1 \
 	--workloadModel poisson \
 	--serverConcurrency 1 \
 	--serviceTime 4.00 \
 	--workloadParam 2.2818181818 \
-	--serviceTimeModel random.expovariate \
+	--serviceTimeModel poisson \
 	--replicationFactor 3 \
 	--selectionStrategy pendingXserviceTimeOracle \
 	--shadowReadRatio 0.0 \
@@ -108,14 +108,14 @@ python experiment.py  \
 	--numRequests 10000;
 
 python experiment.py  \
- 	--numClients 10 \
+ 	--numClients 5 \
 	--numServers 3 \
 	--numWorkload 1 \
 	--workloadModel poisson \
 	--serverConcurrency 1 \
 	--serviceTime 4.00 \
 	--workloadParam 2.2818181818 \
-	--serviceTimeModel random.expovariate \
+	--serviceTimeModel poisson \
 	--replicationFactor 3 \
 	--backpressure \
 	--selectionStrategy expDelay \

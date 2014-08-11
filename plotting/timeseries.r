@@ -34,6 +34,7 @@ colnames(latency.samples)[2] <- "Timestamp"
 colnames(latency.samples)[3] <- "ServerId"
 colnames(latency.samples)[4] <- "LatencySample"
 
+
 p1 <- ggplot(latency) + 
 	  geom_point(aes(y=Latency, x=Timestamp), size=4) + 
 	  facet_grid(ServerId ~ .) +
@@ -75,3 +76,19 @@ p1 <- ggplot(latency.samples) +
 	  theme(text = element_text(size=15), 
 	  		axis.text = element_text(size=20))
 ggsave(p1, file=paste(prefix, "_latency.samples.pdf", sep=""), width=15)
+
+
+alpha <- read.table(paste("../logs/", prefix, "_Alpha", sep=""))
+colnames(alpha)[1] <- "ClientId"
+colnames(alpha)[2] <- "Timestamp"
+colnames(alpha)[3] <- "ServerId"
+colnames(alpha)[4] <- "Alpha"
+
+
+p1 <- ggplot(alpha[alpha$Timestamp > 1000,]) + 
+	  geom_point(aes(y=Alpha, x=Timestamp), size=4) + 
+	  facet_grid(ServerId ~ ClientId) +
+	  ggtitle(paste(prefix, "Alpha")) +
+	  theme(text = element_text(size=15), 
+	  		axis.text = element_text(size=20))
+ggsave(p1, file=paste(prefix, "_alpha.pdf", sep=""), height=20, width=15)
