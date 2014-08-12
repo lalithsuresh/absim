@@ -258,7 +258,7 @@ class ResponseHandler(Simulation.Process):
             if (client.muMax > expDelay):
                 client.valueOfLastDecrease[replicaThatServed] = \
                     client.rateLimiters[replicaThatServed].alpha
-                client.rateLimiters[replicaThatServed].alpha /= 5.0
+                client.rateLimiters[replicaThatServed].alpha *= 0.2
                 client.rateLimiters[replicaThatServed].alpha = \
                     max(client.rateLimiters[replicaThatServed].alpha, 0.0001)
                 client.lastRateDecrease[replicaThatServed] = Simulation.now()
@@ -309,6 +309,10 @@ class BackpressureScheduler(Simulation.Process):
                 sortedReplicaSet = self.client.sort(replicaSet)
                 sent = False
 
+                if(random.uniform(0, 1) < 0.10):
+                    sortedReplicaSet[0], sortedReplicaSet[1] = \
+                        sortedReplicaSet[1], sortedReplicaSet[0]
+
                 for replica in sortedReplicaSet:
                     if (self.client.rateLimiters[replica].tryAcquire()
                        is True):
@@ -335,7 +339,7 @@ class BackpressureScheduler(Simulation.Process):
 class RateLimiter(Simulation.Process):
     def __init__(self, id_, client, maxTokens):
         self.id = id_
-        self.alpha = 1000.0
+        self.alpha = 10
         self.lastSent = 0
         self.client = client
         self.tokens = 0
@@ -366,7 +370,7 @@ class RateLimiter(Simulation.Process):
             self.waitIfZeroTokens.signal()
 
     def tryAcquire(self):
-        rate = 1/float(self.alpha/100.0)
+        rate = 1/float((self.alpha)/100.0)
         self.tokens = self.tokens + rate * (Simulation.now() - self.lastSent)
         self.tokens = self.maxTokens if self.tokens >= self.maxTokens \
             else self.tokens

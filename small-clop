@@ -9,7 +9,7 @@ cd simulations;
 # 	--serverConcurrency 1 \
 # 	--serviceTime 4.00 \
 # 	--workloadParam 2.1818181818 \
-# 	--serviceTimeModel poisson \
+# 	--serviceTimeModel random.expovariate \
 # 	--replicationFactor 3 \
 # 	--selectionStrategy primary \
 #	--shadowReadRatio 0.0 \
@@ -31,7 +31,7 @@ cd simulations;
 # 	--serverConcurrency 1 \
 # 	--serviceTime 4.00 \
 # 	--workloadParam 2.1818181818 \
-# 	--serviceTimeModel poisson \
+# 	--serviceTimeModel random.expovariate \
 # 	--replicationFactor 3 \
 # 	--selectionStrategy response_time \
 #	--shadowReadRatio 0.0 \
@@ -53,7 +53,7 @@ cd simulations;
 # 	--serverConcurrency 1 \
 # 	--serviceTime 4.00 \
 # 	--workloadParam 2.1818181818 \
-# 	--serviceTimeModel poisson \
+# 	--serviceTimeModel random.expovariate \
 # 	--replicationFactor 3 \
 # 	--backpressure \
 # 	--accessPattern uniform \
@@ -73,7 +73,7 @@ cd simulations;
 # 	--serverConcurrency 1 \
 # 	--serviceTime 4.00 \
 # 	--workloadParam 2.1818181818 \
-# 	--serviceTimeModel poisson \
+# 	--serviceTimeModel random.expovariate \
 # 	--replicationFactor 3 \
 # 	--selectionStrategy pendingXserviceTime \
 # 	--shadowReadRatio 0.0 \
@@ -87,14 +87,14 @@ cd simulations;
 # 	--numRequests 4000;
 
 python experiment.py  \
-	--numClients 5 \
+	--numClients 20 \
 	--numServers 3 \
 	--numWorkload 1 \
 	--workloadModel poisson \
 	--serverConcurrency 1 \
 	--serviceTime 4.00 \
 	--workloadParam 2.2818181818 \
-	--serviceTimeModel poisson \
+	--serviceTimeModel constant \
 	--replicationFactor 3 \
 	--selectionStrategy pendingXserviceTimeOracle \
 	--shadowReadRatio 0.0 \
@@ -105,17 +105,17 @@ python experiment.py  \
 	--expPrefix oracle\
 	--simulationDuration 100000\
 	--seed 434\
-	--numRequests 10000;
+	--numRequests 1000;
 
 python experiment.py  \
- 	--numClients 5 \
+ 	--numClients 20 \
 	--numServers 3 \
 	--numWorkload 1 \
 	--workloadModel poisson \
 	--serverConcurrency 1 \
 	--serviceTime 4.00 \
 	--workloadParam 2.2818181818 \
-	--serviceTimeModel poisson \
+	--serviceTimeModel constant \
 	--replicationFactor 3 \
 	--backpressure \
 	--selectionStrategy expDelay \
@@ -127,7 +127,7 @@ python experiment.py  \
 	--expPrefix expDelay \
 	--simulationDuration 100000 \
 	--seed 434 \
-	--numRequests 10000;
+	--numRequests 1000;
 
 
 cd ..

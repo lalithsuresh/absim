@@ -86,9 +86,10 @@ colnames(alpha)[4] <- "Alpha"
 
 
 p1 <- ggplot(alpha[alpha$Timestamp > 1000,]) + 
-	  geom_point(aes(y=Alpha, x=Timestamp), size=4) + 
-	  facet_grid(ServerId ~ ClientId) +
+	  geom_line(aes(y=Alpha, x=Timestamp, colour=ClientId), size=1) + 
+	  facet_grid(ServerId ~ .) +
+	  scale_y_log10()+
 	  ggtitle(paste(prefix, "Alpha")) +
 	  theme(text = element_text(size=15), 
 	  		axis.text = element_text(size=20))
-ggsave(p1, file=paste(prefix, "_alpha.pdf", sep=""), height=20, width=15)
+ggsave(p1, file=paste(prefix, "_alpha.pdf", sep=""), height=15, width=15)
