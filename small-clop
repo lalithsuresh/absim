@@ -12,7 +12,7 @@ cd simulations;
 # 	--serviceTimeModel random.expovariate \
 # 	--replicationFactor 3 \
 # 	--selectionStrategy primary \
-#	--shadowReadRatio 0.0 \
+#	--shadowReadRatio 0.10 \
 # 	--backpressure \
 # 	--accessPattern uniform \
 # 	--nwLatencyBase 0.00 \
@@ -34,7 +34,7 @@ cd simulations;
 # 	--serviceTimeModel random.expovariate \
 # 	--replicationFactor 3 \
 # 	--selectionStrategy response_time \
-#	--shadowReadRatio 0.0 \
+#	--shadowReadRatio 0.10 \
 # 	--accessPattern uniform \
 # 	--nwLatencyBase 0.00 \
 # 	--nwLatencyMu 0.0 \
@@ -76,7 +76,7 @@ cd simulations;
 # 	--serviceTimeModel random.expovariate \
 # 	--replicationFactor 3 \
 # 	--selectionStrategy pendingXserviceTime \
-# 	--shadowReadRatio 0.0 \
+# 	--shadowReadRatio 0.10 \
 # 	--accessPattern uniform \
 # 	--nwLatencyBase 0.00 \
 # 	--nwLatencyMu 0.0 \
@@ -87,17 +87,17 @@ cd simulations;
 # 	--numRequests 4000;
 
 python experiment.py  \
-	--numClients 5 \
+	--numClients 10 \
 	--numServers 3 \
 	--numWorkload 1 \
 	--workloadModel poisson \
 	--serverConcurrency 1 \
 	--serviceTime 4.000\
-	--workloadParam 2.2818181818 \
+	--workloadParam 2.5818181818 \
 	--serviceTimeModel constant \
 	--replicationFactor 3 \
 	--selectionStrategy pendingXserviceTimeOracle \
-	--shadowReadRatio 0.0 \
+	--shadowReadRatio 0.10 \
 	--accessPattern uniform \
 	--nwLatencyBase 0.00 \
 	--nwLatencyMu 0.0 \
@@ -108,18 +108,18 @@ python experiment.py  \
 	--numRequests 5000;
 
 python experiment.py  \
- 	--numClients 5 \
+ 	--numClients 10 \
 	--numServers 3 \
 	--numWorkload 1 \
 	--workloadModel poisson \
 	--serverConcurrency 1 \
 	--serviceTime 4.00 \
-	--workloadParam 2.2818181818 \
+	--workloadParam 2.5818181818 \
 	--serviceTimeModel constant \
 	--replicationFactor 3 \
 	--backpressure \
 	--selectionStrategy expDelay \
-	--shadowReadRatio 0.0 \
+	--shadowReadRatio 0.10 \
 	--accessPattern uniform \
 	--nwLatencyBase 0.00 \
 	--nwLatencyMu 0.0 \
