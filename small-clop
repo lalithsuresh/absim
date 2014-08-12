@@ -87,12 +87,12 @@ cd simulations;
 # 	--numRequests 4000;
 
 python experiment.py  \
-	--numClients 20 \
+	--numClients 5 \
 	--numServers 3 \
 	--numWorkload 1 \
 	--workloadModel poisson \
 	--serverConcurrency 1 \
-	--serviceTime 4.00 \
+	--serviceTime 4.000\
 	--workloadParam 2.2818181818 \
 	--serviceTimeModel constant \
 	--replicationFactor 3 \
@@ -105,10 +105,10 @@ python experiment.py  \
 	--expPrefix oracle\
 	--simulationDuration 100000\
 	--seed 434\
-	--numRequests 1000;
+	--numRequests 5000;
 
 python experiment.py  \
- 	--numClients 20 \
+ 	--numClients 5 \
 	--numServers 3 \
 	--numWorkload 1 \
 	--workloadModel poisson \
@@ -127,7 +127,7 @@ python experiment.py  \
 	--expPrefix expDelay \
 	--simulationDuration 100000 \
 	--seed 434 \
-	--numRequests 1000;
+	--numRequests 5000;
 
 
 cd ..

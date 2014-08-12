@@ -70,8 +70,9 @@ p1 <- ggplot(pending.requests) +
 ggsave(p1, file=paste(prefix, "_pending.requests.pdf", sep=""), width=15)
 
 p1 <- ggplot(latency.samples) + 
-	  geom_point(aes(y=LatencySample, x=Timestamp), size=4) + 
-	  facet_grid(ServerId ~ ClientId) +
+	  geom_point(aes(y=LatencySample, x=Timestamp, colour=ClientId), size=2) + 
+	  geom_line(aes(y=LatencySample, x=Timestamp, colour=ClientId), size=1) + 
+	  facet_grid(ServerId ~ .) +
 	  ggtitle(paste(prefix, "Latency Samples")) +
 	  theme(text = element_text(size=15), 
 	  		axis.text = element_text(size=20))
@@ -87,8 +88,8 @@ colnames(alpha)[4] <- "Alpha"
 
 p1 <- ggplot(alpha[alpha$Timestamp > 1000,]) + 
 	  geom_line(aes(y=Alpha, x=Timestamp, colour=ClientId), size=1) + 
+	  geom_point(aes(y=Alpha, x=Timestamp, colour=ClientId), size=2) + 
 	  facet_grid(ServerId ~ .) +
-	  scale_y_log10()+
 	  ggtitle(paste(prefix, "Alpha")) +
 	  theme(text = element_text(size=15), 
 	  		axis.text = element_text(size=20))

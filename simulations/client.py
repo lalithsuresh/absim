@@ -17,6 +17,7 @@ class Client():
         self.pendingRequestsMonitor = Simulation.Monitor(name="PendingRequests")
         self.latencyTrackerMonitor = Simulation.Monitor(name="ResponseHandler")
         self.alphaMonitor = Simulation.Monitor(name="AlphaMonitor")
+        self.muMaxMonitor = Simulation.Monitor(name="MuMaxMonitor")
         self.movingAverageWindow = 10
         self.backpressure = backpressure    # True/Flase
         self.shadowReadRatio = shadowReadRatio
@@ -246,7 +247,8 @@ class ResponseHandler(Simulation.Process):
                     else totalMu/numberOfEntries
                 mus.append(meanMu)
 
-            client.muMax = max(mus)
+            client.muMax = numpy.median(mus)
+            client.muMaxMonitor.observe(client.muMax)
 
             shuffledNodeList = client.serverList[0:]
             random.shuffle(shuffledNodeList)
@@ -256,17 +258,10 @@ class ResponseHandler(Simulation.Process):
             expDelay = client.computeExpectedDelay(replicaThatServed)
 
             if (client.muMax > expDelay):
-                client.valueOfLastDecrease[replicaThatServed] = \
-                    client.rateLimiters[replicaThatServed].alpha
-                client.rateLimiters[replicaThatServed].alpha *= 0.2
-                client.rateLimiters[replicaThatServed].alpha = \
-                    max(client.rateLimiters[replicaThatServed].alpha, 0.0001)
-                client.lastRateDecrease[replicaThatServed] = Simulation.now()
-            elif (client.muMax < expDelay):
                 # C * (T - (Wmax * Beta/C)^(1/3)) ^ 3 + Wmax
                 beta = 0.2
                 C = 0.00004
-                Smax = 10
+                Smax = 50
                 T = Simulation.now() - \
                     client.lastRateDecrease[replicaThatServed]
                 Wmax = client.valueOfLastDecrease[replicaThatServed]
@@ -276,6 +271,13 @@ class ResponseHandler(Simulation.Process):
                     client.rateLimiters[replicaThatServed].alpha += Smax
                 else:
                     client.rateLimiters[replicaThatServed].alpha = newValue
+            elif (client.muMax < expDelay):
+                client.valueOfLastDecrease[replicaThatServed] = \
+                    client.rateLimiters[replicaThatServed].alpha
+                client.rateLimiters[replicaThatServed].alpha *= 0.2
+                client.rateLimiters[replicaThatServed].alpha = \
+                    max(client.rateLimiters[replicaThatServed].alpha, 0.0001)
+                client.lastRateDecrease[replicaThatServed] = Simulation.now()
 
             if (client.rateLimiters[replicaThatServed].alpha < 0):
                 client.rateLimiters[replicaThatServed].alpha = 0
@@ -309,9 +311,9 @@ class BackpressureScheduler(Simulation.Process):
                 sortedReplicaSet = self.client.sort(replicaSet)
                 sent = False
 
-                if(random.uniform(0, 1) < 0.10):
-                    sortedReplicaSet[0], sortedReplicaSet[1] = \
-                        sortedReplicaSet[1], sortedReplicaSet[0]
+                # if(random.uniform(0, 1) < 0.15):
+                #     sortedReplicaSet[0], sortedReplicaSet[1] = \
+                #         sortedReplicaSet[1], sortedReplicaSet[0]
 
                 for replica in sortedReplicaSet:
                     if (self.client.rateLimiters[replica].tryAcquire()
@@ -324,8 +326,10 @@ class BackpressureScheduler(Simulation.Process):
                         break
 
                 if (not sent):
+                    print 'conge'
                     yield Simulation.waitevent, self, self.congestionEvent
                     self.congestionEvent = Simulation.SimEvent("Congestion")
+                    print 'deconge'
             else:
                 yield Simulation.waitevent, self, self.backlogReadyEvent
                 self.backlogReadyEvent = Simulation.SimEvent("BacklogReady")
@@ -355,7 +359,7 @@ class RateLimiter(Simulation.Process):
                 yield Simulation.waitevent, self, self.waitIfZeroTokens
                 self.waitIfZeroTokens = Simulation.SimEvent("BacklogReady")
             else:
-                yield Simulation.hold, self, self.alpha/100.0
+                yield Simulation.hold, self, 1/float(self.alpha)
                 self.tokens += 1
                 shuffledNodeList = self.client.serverList[0:]
                 random.shuffle(shuffledNodeList)
@@ -370,7 +374,7 @@ class RateLimiter(Simulation.Process):
             self.waitIfZeroTokens.signal()
 
     def tryAcquire(self):
-        rate = 1/float((self.alpha)/100.0)
+        rate = float(self.alpha)
         self.tokens = self.tokens + rate * (Simulation.now() - self.lastSent)
         self.tokens = self.maxTokens if self.tokens >= self.maxTokens \
             else self.tokens
