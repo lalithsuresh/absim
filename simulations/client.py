@@ -45,7 +45,7 @@ class Client():
         self.expectedDelayMap = {node: {} for node in serverList}
 
         # Rate limiters per replica
-        self.rateLimiters = {node: RateLimiter("RL-%s" % node.id, self, 10)
+        self.rateLimiters = {node: RateLimiter("RL-%s" % node.id, self, 1)
                              for node in serverList}
         self.lastRateDecrease = {node: 0 for node in serverList}
         self.valueOfLastDecrease = {node: 1 for node in serverList}
@@ -167,7 +167,7 @@ class Client():
                 - (metricMap["serviceTime"] + metricMap["waitingTime"])
             total += (twiceNetworkLatency +
                       (1 + self.pendingRequestsMap[replica]
-                      * constants.NUMBER_OF_CLIENTS + metricMap["queueSizeAfter"])
+                      * constants.NUMBER_OF_CLIENTS)
                       * metricMap["serviceTime"])
             # total += (1 + metricMap["queueSizeAfter"] )* metricMap["serviceTime"]
         else:
@@ -188,7 +188,7 @@ class Client():
                     self.sendRequest(shadowReadTask, replica)
 
     def updateEma(self, replica, metricMap):
-        alpha = 0.75
+        alpha = 0.90
         if (len(self.expectedDelayMap[replica]) == 0):
             self.expectedDelayMap[replica] = metricMap
             return
@@ -254,9 +254,10 @@ class ResponseHandler(Simulation.Process):
                 if (len(client.expectedDelayMap[replica]) != 0):
                     totalMu = client.expectedDelayMap[replica]["serviceTime"] \
                         + client.expectedDelayMap[replica]["waitingTime"]
+                    # totalMu = client.expectedDelayMap[replica]["seriTime"]
                 mus.append(totalMu)
 
-            client.muMax = max(mus)
+            client.muMax = numpy.mean(mus)
             client.muMaxMonitor.observe(client.muMax)
 
             shuffledNodeList = client.serverList[0:]
@@ -265,13 +266,15 @@ class ResponseHandler(Simulation.Process):
                 client.backpressureSchedulers[node].congestionEvent.signal()
 
             expDelay = client.computeExpectedDelay(replicaThatServed)
-            print metricMap["responseTime"], expDelay
+            # print metricMap["responseTime"], expDelay
 
+            # CUBIC CONSTANTS
+            beta = 0.2
+            C = 0.00004
+            Smax = 20
             if (client.muMax > expDelay):
                 # C * (T - (Wmax * Beta/C)^(1/3)) ^ 3 + Wmax
-                beta = 0.2
-                C = 0.00004
-                Smax = 50
+
                 T = Simulation.now() - \
                     client.lastRateDecrease[replicaThatServed]
                 Wmax = client.valueOfLastDecrease[replicaThatServed]
@@ -284,7 +287,7 @@ class ResponseHandler(Simulation.Process):
             elif (client.muMax < expDelay):
                 client.valueOfLastDecrease[replicaThatServed] = \
                     client.rateLimiters[replicaThatServed].alpha
-                client.rateLimiters[replicaThatServed].alpha *= 0.2
+                client.rateLimiters[replicaThatServed].alpha *= beta
                 client.rateLimiters[replicaThatServed].alpha = \
                     max(client.rateLimiters[replicaThatServed].alpha, 0.0001)
                 client.lastRateDecrease[replicaThatServed] = Simulation.now()
@@ -321,9 +324,9 @@ class BackpressureScheduler(Simulation.Process):
                 sortedReplicaSet = self.client.sort(replicaSet)
                 sent = False
 
-                if(random.uniform(0, 1) < 0.15):
-                    sortedReplicaSet[0], sortedReplicaSet[1] = \
-                        sortedReplicaSet[1], sortedReplicaSet[0]
+                # if(random.uniform(0, 1) < 0.15):
+                #     sortedReplicaSet[0], sortedReplicaSet[1] = \
+                #         sortedReplicaSet[1], sortedReplicaSet[0]
 
                 for replica in sortedReplicaSet:
                     if (self.client.rateLimiters[replica].tryAcquire()
@@ -351,7 +354,7 @@ class BackpressureScheduler(Simulation.Process):
 class RateLimiter(Simulation.Process):
     def __init__(self, id_, client, maxTokens):
         self.id = id_
-        self.alpha = 10
+        self.alpha = 50
         self.lastSent = 0
         self.client = client
         self.tokens = 0

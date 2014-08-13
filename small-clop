@@ -84,7 +84,7 @@ cd simulations;
 # 	--expPrefix pendingXserviceTime\
 # 	--simulationDuration 100000\
 # 	--seed 434\
-# 	--numRequests 4000;
+# 	--numRequests 400;
 
 python experiment.py  \
 	--numClients 10 \
@@ -93,11 +93,11 @@ python experiment.py  \
 	--workloadModel poisson \
 	--serverConcurrency 1 \
 	--serviceTime 4.000\
-	--workloadParam 2.5818181818 \
+	--workloadParam 2.6818181818 \
 	--serviceTimeModel constant \
 	--replicationFactor 3 \
 	--selectionStrategy pendingXserviceTimeOracle \
-	--shadowReadRatio 0.10 \
+	--shadowReadRatio 0.00 \
 	--accessPattern uniform \
 	--nwLatencyBase 0.00 \
 	--nwLatencyMu 0.0 \
@@ -105,7 +105,7 @@ python experiment.py  \
 	--expPrefix oracle\
 	--simulationDuration 100000\
 	--seed 434\
-	--numRequests 5000;
+	--numRequests 10000;
 
 python experiment.py  \
  	--numClients 10 \
@@ -114,12 +114,12 @@ python experiment.py  \
 	--workloadModel poisson \
 	--serverConcurrency 1 \
 	--serviceTime 4.00 \
-	--workloadParam 2.5818181818 \
+	--workloadParam 2.6818181818 \
 	--serviceTimeModel constant \
 	--replicationFactor 3 \
 	--backpressure \
 	--selectionStrategy expDelay \
-	--shadowReadRatio 0.10 \
+	--shadowReadRatio 0.00 \
 	--accessPattern uniform \
 	--nwLatencyBase 0.00 \
 	--nwLatencyMu 0.0 \
@@ -127,7 +127,7 @@ python experiment.py  \
 	--expPrefix expDelay \
 	--simulationDuration 100000 \
 	--seed 434 \
-	--numRequests 5000;
+	--numRequests 10000;
 
 
 cd ..
