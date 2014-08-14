@@ -115,8 +115,9 @@ if __name__ == '__main__':
     actMonFD = open("../logs/%s_ActMon" % (args.expPrefix), 'w')
     latencyFD = open("../logs/%s_Latency" % (args.expPrefix), 'w')
     latencyTrackerFD = open("../logs/%s_LatencyTracker" % (args.expPrefix), 'w')
-    alphaFD = open("../logs/%s_Alpha" % (args.expPrefix), 'w')
+    rateFD = open("../logs/%s_Rate" % (args.expPrefix), 'w')
     muMaxFD = open("../logs/%s_MuMax" % (args.expPrefix), 'w')
+    tokenFD = open("../logs/%s_Tokens" % (args.expPrefix), 'w')
 
     for clientNode in clients:
         printMonitorTimeSeriesToFile(pendingRequestsFD,
@@ -125,12 +126,15 @@ if __name__ == '__main__':
         printMonitorTimeSeriesToFile(latencyTrackerFD,
                                      clientNode.id,
                                      clientNode.latencyTrackerMonitor)
-        printMonitorTimeSeriesToFile(alphaFD,
+        printMonitorTimeSeriesToFile(rateFD,
                                      clientNode.id,
-                                     clientNode.alphaMonitor)
+                                     clientNode.rateMonitor)
         printMonitorTimeSeriesToFile(muMaxFD,
                                      clientNode.id,
                                      clientNode.muMaxMonitor)
+        printMonitorTimeSeriesToFile(tokenFD,
+                                     clientNode.id,
+                                     clientNode.tokenMonitor)
     for serv in servers:
         printMonitorTimeSeriesToFile(waitMonFD,
                                      serv.id,

@@ -78,18 +78,36 @@ p1 <- ggplot(latency.samples) +
 ggsave(p1, file=paste(prefix, "_latency.samples.pdf", sep=""), width=15)
 
 
-alpha <- read.table(paste("../logs/", prefix, "_Alpha", sep=""))
-colnames(alpha)[1] <- "ClientId"
-colnames(alpha)[2] <- "Timestamp"
-colnames(alpha)[3] <- "ServerId"
-colnames(alpha)[4] <- "Alpha"
+rate <- read.table(paste("../logs/", prefix, "_Rate", sep=""))
+colnames(rate)[1] <- "ClientId"
+colnames(rate)[2] <- "Timestamp"
+colnames(rate)[3] <- "ServerId"
+colnames(rate)[4] <- "Rate"
 
 
-p1 <- ggplot(alpha[alpha$Timestamp > 1000,]) + 
-	  geom_line(aes(y=Alpha, x=Timestamp, colour=ClientId), size=1) + 
-	  geom_point(aes(y=Alpha, x=Timestamp, colour=ClientId), size=2) + 
+p1 <- ggplot(rate) + 
+	  geom_line(aes(y=Rate, x=Timestamp, colour=ClientId), size=1) + 
+	  geom_point(aes(y=Rate, x=Timestamp, colour=ClientId), size=2) + 
 	  facet_grid(ServerId ~ ClientId) +
-	  ggtitle(paste(prefix, "Alpha")) +
+	  ggtitle(paste(prefix, "rate")) +
 	  theme(text = element_text(size=15), 
 	  		axis.text = element_text(size=20))
-ggsave(p1, file=paste(prefix, "_alpha.pdf", sep=""), height=30, width=30)
+ggsave(p1, file=paste(prefix, "_rate.pdf", sep=""), height=30, width=50, limitsize=FALSE)
+
+
+
+tokens <- read.table(paste("../logs/", prefix, "_Tokens", sep=""))
+colnames(tokens)[1] <- "ClientId"
+colnames(tokens)[2] <- "Timestamp"
+colnames(tokens)[3] <- "ServerId"
+colnames(tokens)[4] <- "Tokens"
+
+
+p1 <- ggplot(tokens) + 
+	  geom_line(aes(y=Tokens, x=Timestamp, colour=ClientId), size=1) + 
+	  geom_point(aes(y=Tokens, x=Timestamp, colour=ClientId), size=2) + 
+	  facet_grid(ServerId ~ ClientId) +
+	  ggtitle(paste(prefix, "tokens")) +
+	  theme(text = element_text(size=15), 
+	  		axis.text = element_text(size=20))
+ggsave(p1, file=paste(prefix, "_tokens.pdf", sep=""), height=30, width=50, limitsize=FALSE)

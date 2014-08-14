@@ -92,12 +92,12 @@ python experiment.py  \
 	--numWorkload 1 \
 	--workloadModel poisson \
 	--serverConcurrency 1 \
-	--serviceTime 4.000\
-	--workloadParam 2.6818181818 \
+	--serviceTime 4.00\
+	--workloadParam 2.2818181818 \
 	--serviceTimeModel constant \
 	--replicationFactor 3 \
 	--selectionStrategy pendingXserviceTimeOracle \
-	--shadowReadRatio 0.00 \
+	--shadowReadRatio 0.0 \
 	--accessPattern uniform \
 	--nwLatencyBase 0.00 \
 	--nwLatencyMu 0.0 \
@@ -114,12 +114,12 @@ python experiment.py  \
 	--workloadModel poisson \
 	--serverConcurrency 1 \
 	--serviceTime 4.00 \
-	--workloadParam 2.6818181818 \
+	--workloadParam 2.2818181818 \
 	--serviceTimeModel constant \
 	--replicationFactor 3 \
 	--backpressure \
 	--selectionStrategy expDelay \
-	--shadowReadRatio 0.00 \
+	--shadowReadRatio 0.0 \
 	--accessPattern uniform \
 	--nwLatencyBase 0.00 \
 	--nwLatencyMu 0.0 \
