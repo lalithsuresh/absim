@@ -88,6 +88,7 @@ colnames(rate)[4] <- "Rate"
 p1 <- ggplot(rate) + 
 	  geom_line(aes(y=Rate, x=Timestamp, colour=ClientId), size=1) + 
 	  geom_point(aes(y=Rate, x=Timestamp, colour=ClientId), size=2) + 
+	  geom_smooth(aes(y=Rate, x=Timestamp), size=2) + 
 	  facet_grid(ServerId ~ ClientId) +
 	  ggtitle(paste(prefix, "rate")) +
 	  theme(text = element_text(size=15), 
@@ -105,7 +106,8 @@ colnames(tokens)[4] <- "Tokens"
 
 p1 <- ggplot(tokens) + 
 	  geom_line(aes(y=Tokens, x=Timestamp, colour=ClientId), size=1) + 
-	  geom_point(aes(y=Tokens, x=Timestamp, colour=ClientId), size=2) + 
+	  geom_point(aes(y=Tokens, x=Timestamp, colour=ClientId), size=2) +
+	  geom_smooth(aes(y=Tokens, x=Timestamp), size=2) + 
 	  facet_grid(ServerId ~ ClientId) +
 	  ggtitle(paste(prefix, "tokens")) +
 	  theme(text = element_text(size=15), 

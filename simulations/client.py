@@ -51,6 +51,8 @@ class Client():
                              for node in serverList}
         self.lastRateDecrease = {node: 0 for node in serverList}
         self.valueOfLastDecrease = {node: 10 for node in serverList}
+        self.receiveRate = {node: ReceiveRate("RL-%s" % node.id, 20)
+                            for node in serverList}
 
         # Backpressure related initialization
         self.backpressureSchedulers =\
@@ -168,7 +170,7 @@ class Client():
             twiceNetworkLatency = metricMap["responseTime"]\
                 - (metricMap["serviceTime"] + metricMap["waitingTime"])
             total += (twiceNetworkLatency +
-                      (1 + self.pendingRequestsMap[replica]
+                      (1 + self.pendingRequestsMap[replica] * constants.NUMBER_OF_CLIENTS
                       + metricMap["queueSizeAfter"])
                       * metricMap["serviceTime"])
         else:
@@ -221,10 +223,10 @@ class Client():
         # CUBIC CONSTANTS
         beta = 0.2
         C = 0.000004
-        Smax = 20
+        Smax = 5
         # if (self.muMax > expDelay):
-        if (self.muMax > metricMap["responseTime"]
-           and self.rateLimiters[replica].tryAcquire() is False):
+        if (self.rateLimiters[replica].rate <
+           self.receiveRate[replica].getRate() * 0.50):
             T = Simulation.now() - \
                 self.lastRateDecrease[replica]
             Wmax = self.valueOfLastDecrease[replica]
@@ -234,8 +236,8 @@ class Client():
                 self.rateLimiters[replica].rate += Smax
             else:
                 self.rateLimiters[replica].rate = newValue
-        elif (self.muMax < metricMap["responseTime"]
-              and self.rateLimiters[replica].tryAcquire() is True):
+        elif (self.rateLimiters[replica].rate >
+              self.receiveRate[replica].getRate()):
             self.valueOfLastDecrease[replica] = \
                 self.rateLimiters[replica].rate
             self.rateLimiters[replica].rate *= beta
@@ -272,6 +274,7 @@ class ResponseHandler(Simulation.Process):
             random.normalvariate(constants.NW_LATENCY_MU,
                                  constants.NW_LATENCY_SIGMA)
         yield Simulation.hold, self, delay
+        client.receiveRate[replicaThatServed].add(1)
 
         # OMG request completed. Time for some book-keeping
         client.outstandingRequests.remove(task)
@@ -292,7 +295,6 @@ class ResponseHandler(Simulation.Process):
         metricMap = task.completionEvent.signalparam
         metricMap["responseTime"] = client.responseTimesMap[replicaThatServed]
         client.updateEma(replicaThatServed, metricMap)
-
         # TODO: Threshold
         # if (len(client.expectedDelayMap[replicaThatServed])
         #    > client.movingAverageWindow):
@@ -375,7 +377,7 @@ class RateLimiter(Simulation.Process):
         while (1):
             yield Simulation.hold, self
 
-            if (self.tokens != 0):
+            if (self.tokens >= 1):
                 yield Simulation.waitevent, self, self.waitIfZeroTokens
                 self.waitIfZeroTokens = Simulation.SimEvent("BacklogReady")
             else:
@@ -398,3 +400,30 @@ class RateLimiter(Simulation.Process):
         self.tokens = min(self.maxTokens, self.tokens
                           + self.rate * (Simulation.now() - self.lastSent))
         return self.tokens >= 1
+
+
+class ReceiveRate():
+    def __init__(self, id, interval):
+        self.rate = 1
+        self.id = id
+        self.interval = interval
+        self.last = 0
+        self.count = 0
+
+    def getRate(self):
+        self.add(0)
+        return self.rate
+
+    def add(self, requests):
+        now = int(Simulation.now()/20)
+        if (now - self.last < self.interval):
+            self.count += requests
+            if (now > self.last + self.interval/2.0):
+                alpha = (now - self.last)/float(self.interval)
+                self.rate = alpha * self.count + (1 - alpha) * self.rate
+                self.last = now
+                self.count = 0
+        else:
+            self.rate = self.count
+            self.last = now
+            self.count = 0
