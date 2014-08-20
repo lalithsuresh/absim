@@ -37,6 +37,8 @@ if __name__ == '__main__':
                         type=str, default="pending")
     parser.add_argument('--shadowReadRatio', nargs='?',
                         type=float, default=0.10)
+    parser.add_argument('--rateInterval', nargs='?',
+                        type=int, default=10)
     parser.add_argument('--backpressure', action='store_true',
                         default=False)
     parser.add_argument('--accessPattern', nargs='?',
@@ -88,7 +90,8 @@ if __name__ == '__main__':
                           accessPattern=args.accessPattern,
                           replicationFactor=args.replicationFactor,
                           backpressure=args.backpressure,
-                          shadowReadRatio=args.shadowReadRatio)
+                          shadowReadRatio=args.shadowReadRatio,
+                          rateInterval=args.rateInterval)
         clients.append(c)
 
     # Start workload generators (analogous to YCSB)
