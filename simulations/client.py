@@ -223,7 +223,8 @@ class Client():
         C = 0.000004
         Smax = 20
         # if (self.muMax > expDelay):
-        if (self.muMax > self.expectedDelayPerTask[task]):
+        if (self.muMax > metricMap["responseTime"]
+           and self.rateLimiters[replica].tryAcquire() is False):
             T = Simulation.now() - \
                 self.lastRateDecrease[replica]
             Wmax = self.valueOfLastDecrease[replica]
@@ -233,7 +234,8 @@ class Client():
                 self.rateLimiters[replica].rate += Smax
             else:
                 self.rateLimiters[replica].rate = newValue
-        elif (self.muMax < self.expectedDelayPerTask[task]):
+        elif (self.muMax < metricMap["responseTime"]
+              and self.rateLimiters[replica].tryAcquire() is True):
             self.valueOfLastDecrease[replica] = \
                 self.rateLimiters[replica].rate
             self.rateLimiters[replica].rate *= beta
@@ -332,6 +334,9 @@ class BackpressureScheduler(Simulation.Process):
                            self.client.rateLimiters[replica].tokens))
                     if (self.client.rateLimiters[replica].tryAcquire()
                        is True):
+                        waitingTime = Simulation.now() - task.start
+                        if (waitingTime > 0):
+                            print waitingTime
                         self.backlogQueue.pop(0)
                         self.client.sendRequest(task, replica)
                         self.client.maybeSendShadowReads(replica, replicaSet)
@@ -386,11 +391,10 @@ class RateLimiter(Simulation.Process):
     def update(self):
         self.lastSent = Simulation.now()
         self.tokens -= 1
-        if (self.tokens <= 0):
+        if (self.tokens < 1):
             self.waitIfZeroTokens.signal()
 
     def tryAcquire(self):
         self.tokens = min(self.maxTokens, self.tokens
                           + self.rate * (Simulation.now() - self.lastSent))
-        print Simulation.now(), self.tokens, self.rate
         return self.tokens >= 1

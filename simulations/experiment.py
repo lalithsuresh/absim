@@ -153,3 +153,4 @@ if __name__ == '__main__':
 
     printMonitorTimeSeriesToFile(latencyFD, "0",
                                  latencyMonitor)
+    assert args.numRequests == len(latencyMonitor)
