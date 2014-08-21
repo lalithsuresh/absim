@@ -47,7 +47,11 @@ def runExperiment(args):
                           replicationFactor=args.replicationFactor,
                           backpressure=args.backpressure,
                           shadowReadRatio=args.shadowReadRatio,
-                          rateInterval=args.rateInterval)
+                          rateInterval=args.rateInterval,
+                          cubicC=args.cubicC,
+                          cubicSmax=args.cubicSmax,
+                          cubicBeta=args.cubicBeta,
+                          hysterisisFactor=args.hysterisisFactor)
         clients.append(c)
 
     # Start workload generators (analogous to YCSB)
@@ -81,8 +85,6 @@ def runExperiment(args):
                             (args.logFolder, args.expPrefix), 'w')
     rateFD = open("../%s/%s_Rate" % (args.logFolder,
                                      args.expPrefix), 'w')
-    muMaxFD = open("../%s/%s_MuMax" % (args.logFolder,
-                                       args.expPrefix), 'w')
     tokenFD = open("../%s/%s_Tokens" % (args.logFolder,
                                         args.expPrefix), 'w')
 
@@ -96,9 +98,6 @@ def runExperiment(args):
         printMonitorTimeSeriesToFile(rateFD,
                                      clientNode.id,
                                      clientNode.rateMonitor)
-        printMonitorTimeSeriesToFile(muMaxFD,
-                                     clientNode.id,
-                                     clientNode.muMaxMonitor)
         printMonitorTimeSeriesToFile(tokenFD,
                                      clientNode.id,
                                      clientNode.tokenMonitor)
@@ -149,6 +148,14 @@ if __name__ == '__main__':
                         type=float, default=0.10)
     parser.add_argument('--rateInterval', nargs='?',
                         type=int, default=10)
+    parser.add_argument('--cubicC', nargs='?',
+                        type=float, default=0.000004)
+    parser.add_argument('--cubicSmax', nargs='?',
+                        type=float, default=10)
+    parser.add_argument('--cubicBeta', nargs='?',
+                        type=float, default=0.2)
+    parser.add_argument('--hysterisisFactor', nargs='?',
+                        type=float, default=2)
     parser.add_argument('--backpressure', action='store_true',
                         default=False)
     parser.add_argument('--accessPattern', nargs='?',

@@ -4,17 +4,21 @@ import os
 import sys
 
 
-numClients = [5, 10]
+numClients = [10]
 numServers = [3]
 numWorkload = [1]
-workloadModel = ["constant", "poisson"]
+workloadModel = ["poisson"]
 serverConcurrency = [1]
-serviceTime = [1, 4, 8]
-workloadParam = [2.3818181818, 2.8818181818]
-serviceTimeModel = ["constant", "random.expovariate"]
+serviceTime = [4]
+workloadParam = [2.8818181818]
+serviceTimeModel = ["random.expovariate"]
 replicationFactor = [3]
 rateInterval = [10, 20, 30, 40]
-shadowReadRatio = [0.0]
+cubicC = [0.0004, 0.000004, 0.0000004]
+cubicSmax = [1, 10, 20]
+cubicBeta = [0.2, 0.5, 0.8]
+hysterisisFactor = [1, 2, 4]
+shadowReadRatio = [0.0, 0.1]
 accessPattern = ["uniform", "zipfian"]
 nwLatencyBase = [0.0, 2.0]
 nwLatencyMu = [0]
@@ -33,6 +37,10 @@ LIST = [numClients,
         serviceTimeModel,
         replicationFactor,
         rateInterval,
+        cubicC,
+        cubicSmax,
+        cubicBeta,
+        hysterisisFactor,
         shadowReadRatio,
         accessPattern,
         nwLatencyBase,
@@ -51,7 +59,8 @@ for combination in PARAM_COMBINATIONS:
             workloadModel, serverConcurrency, \
             serviceTime, workloadParam, \
             serviceTimeModel, replicationFactor, \
-            rateInterval, shadowReadRatio, \
+            rateInterval, cubicC, cubicSmax, \
+            cubicBeta, hysterisisFactor, shadowReadRatio, \
             accessPattern, nwLatencyBase, \
             nwLatencyMu, nwLatencySigma, \
             simulationDuration, seed, \
@@ -133,6 +142,10 @@ for combination in PARAM_COMBINATIONS:
                 --backpressure\
                 --shadowReadRatio %s\
                 --rateInterval %s\
+                --cubicC %s\
+                --cubicSmax %s\
+                --cubicBeta %s\
+                --hysterisisFactor %s\
                 --accessPattern %s\
                 --nwLatencyBase %s\
                 --nwLatencyMu %s\
@@ -153,6 +166,10 @@ for combination in PARAM_COMBINATIONS:
                      replicationFactor,
                      shadowReadRatio,
                      rateInterval,
+                     cubicC,
+                     cubicSmax,
+                     cubicBeta,
+                     hysterisisFactor,
                      accessPattern,
                      nwLatencyBase,
                      nwLatencyMu,

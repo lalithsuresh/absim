@@ -120,6 +120,10 @@ python experiment.py  \
 	--replicationFactor 3 \
 	--backpressure \
 	--rateInterval 20\
+	--cubicC 0.000004\
+	--cubicSmax 10\
+	--cubicBeta 0.2\
+	--hysterisisFactor 2\
 	--selectionStrategy expDelay \
 	--shadowReadRatio 0.0 \
 	--accessPattern uniform \

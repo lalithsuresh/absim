@@ -8,7 +8,8 @@ import task
 class Client():
     def __init__(self, id_, serverList, replicaSelectionStrategy,
                  accessPattern, replicationFactor, backpressure,
-                 shadowReadRatio, rateInterval):
+                 shadowReadRatio, rateInterval,
+                 cubicC, cubicSmax, cubicBeta, hysterisisFactor):
         self.id = id_
         self.serverList = serverList
         self.accessPattern = accessPattern
@@ -17,9 +18,7 @@ class Client():
         self.pendingRequestsMonitor = Simulation.Monitor(name="PendingRequests")
         self.latencyTrackerMonitor = Simulation.Monitor(name="ResponseHandler")
         self.rateMonitor = Simulation.Monitor(name="AlphaMonitor")
-        self.muMaxMonitor = Simulation.Monitor(name="MuMaxMonitor")
         self.tokenMonitor = Simulation.Monitor(name="TokenMonitor")
-        self.movingAverageWindow = 10
         self.backpressure = backpressure    # True/Flase
         self.shadowReadRatio = shadowReadRatio
 
@@ -44,7 +43,6 @@ class Client():
 
         # Record waiting and service times as relayed by the server
         self.expectedDelayMap = {node: {} for node in serverList}
-        self.expectedDelayPerTask = {}
 
         # Rate limiters per replica
         self.rateLimiters = {node: RateLimiter("RL-%s" % node.id,
@@ -57,12 +55,16 @@ class Client():
         self.lastRateIncrease = {node: 0 for node in serverList}
         self.rateInterval = rateInterval
 
+        # Parameters for congestion control
+        self.cubicC = cubicC
+        self.cubicSmax = cubicSmax
+        self.cubicBeta = cubicBeta
+        self.hysterisisFactor = hysterisisFactor
+
         # Backpressure related initialization
         self.backpressureSchedulers =\
             {node: BackpressureScheduler("BP%s" % (node.id), self)
                 for node in serverList}
-
-        self.muMax = 0.0
 
         for node, sched in self.backpressureSchedulers.items():
             Simulation.activate(sched, sched.run(), at=Simulation.now())
@@ -212,40 +214,54 @@ class Client():
         for node in shuffledNodeList:
             self.backpressureSchedulers[node].congestionEvent.signal()
 
-        # CUBIC CONSTANTS
-        beta = 0.2
-        C = 0.000004
-        Smax = 10
-        # if (self.muMax > expDelay):
-        if (self.rateLimiters[replica].rate <
-           self.receiveRate[replica].getRate()):
-            T = Simulation.now() - \
-                self.lastRateDecrease[replica]
+        # Cubic Parameters go here
+        # beta = 0.2
+        # C = 0.000004
+        # Smax = 10
+        beta = self.cubicBeta
+        C = self.cubicC
+        Smax = self.cubicSmax
+        hysterisisFactor = self.hysterisisFactor
+        currentSendingRate = self.rateLimiters[replica].rate
+        currentReceiveRate = self.receiveRate[replica].getRate()
+
+        if (currentSendingRate < currentReceiveRate):
+            # This means that we need to bump up our own rate.
+            # For this, increase the rate according to a cubic
+            # window. Rmax is the sending-rate at which we last
+            # observed a congestion event. We grow aggressively
+            # towards this point, and then slow down, stabilise,
+            # and then advance further up. Every rate
+            # increase is capped by Smax.
+            T = Simulation.now() - self.lastRateDecrease[replica]
             self.lastRateIncrease[replica] = Simulation.now()
-            Wmax = self.valueOfLastDecrease[replica]
-            oldValue = self.rateLimiters[replica].rate
-            newValue = C * (T - (Wmax * beta/C)**(1.0/3.0))**3 + Wmax
-            if (newValue - oldValue > Smax):
+            Rmax = self.valueOfLastDecrease[replica]
+
+            newSendingRate = C * (T - (Rmax * beta/C)**(1.0/3.0))**3 + Rmax
+
+            if (newSendingRate - currentSendingRate > Smax):
                 self.rateLimiters[replica].rate += Smax
             else:
-                self.rateLimiters[replica].rate = newValue
-        elif (self.rateLimiters[replica].rate >
-              self.receiveRate[replica].getRate()
+                self.rateLimiters[replica].rate = newSendingRate
+        elif (currentSendingRate > currentReceiveRate
               and Simulation.now() - self.lastRateIncrease[replica]
-              > self.rateInterval * 2):
-            self.valueOfLastDecrease[replica] = \
-                self.rateLimiters[replica].rate
+              > self.rateInterval * hysterisisFactor):
+            # The hysterisis factor in the condition is to ensure
+            # that the receive-rate measurements have enough time
+            # to adapt to the updated rate.
+
+            # So we're in here now, which means we need to back down.
+            # Multiplicatively decrease the rate by a factor of beta.
+            self.valueOfLastDecrease[replica] = currentSendingRate
             self.rateLimiters[replica].rate *= beta
             self.rateLimiters[replica].rate = \
                 max(self.rateLimiters[replica].rate, 0.0001)
             self.lastRateDecrease[replica] = Simulation.now()
 
-        if (self.rateLimiters[replica].rate < 0):
-            self.rateLimiters[replica].rate = 0
+        assert (self.rateLimiters[replica].rate > 0)
         alphaObservation = (replica.id,
                             self.rateLimiters[replica].rate)
         self.rateMonitor.observe("%s %s" % alphaObservation)
-        del self.expectedDelayPerTask[task]
 
 
 class DeliverMessageWithDelay(Simulation.Process):
@@ -290,10 +306,6 @@ class ResponseHandler(Simulation.Process):
         metricMap = task.completionEvent.signalparam
         metricMap["responseTime"] = client.responseTimesMap[replicaThatServed]
         client.updateEma(replicaThatServed, metricMap)
-        # TODO: Threshold
-        # if (len(client.expectedDelayMap[replicaThatServed])
-        #    > client.movingAverageWindow):
-        #     client.expectedDelayMap[replicaThatServed].pop(0)
 
         # Backpressure related book-keeping
         if (client.backpressure):
@@ -326,9 +338,10 @@ class BackpressureScheduler(Simulation.Process):
                 sent = False
 
                 for replica in sortedReplicaSet:
-                    self.client.tokenMonitor.observe("%s %s" \
-                        % (replica.id,
-                           self.client.rateLimiters[replica].tokens))
+                    currentTokens = self.client.rateLimiters[replica].tokens
+                    self.client.tokenMonitor.observe("%s %s"
+                                                     % (replica.id,
+                                                        currentTokens))
                     if (self.client.rateLimiters[replica].tryAcquire()
                        is True):
                         waitingTime = Simulation.now() - task.start
@@ -339,12 +352,10 @@ class BackpressureScheduler(Simulation.Process):
                         self.client.maybeSendShadowReads(replica, replicaSet)
                         sent = True
                         self.client.rateLimiters[replica].update()
-                        self.client.expectedDelayPerTask[task] = \
-                            self.client.computeExpectedDelay(replica)
                         break
 
                 if (not sent):
-                    print 'conge', Simulation.now()
+                    print 'BP-Congestion', Simulation.now()
                     yield Simulation.waitevent, self, self.congestionEvent
                     self.congestionEvent = Simulation.SimEvent("Congestion")
             else:
@@ -356,7 +367,6 @@ class BackpressureScheduler(Simulation.Process):
         self.backlogReadyEvent.signal()
 
 
-# TODO: does not ramp up or account for underutilization
 class RateLimiter(Simulation.Process):
     def __init__(self, id_, client, maxTokens, rateInterval):
         self.id = id_
