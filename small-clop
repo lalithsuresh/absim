@@ -6,7 +6,7 @@ cd simulations;
 # 	--numServers 3 \
 # 	--numWorkload 1 \
 #	--workloadModel poisson \
-# 	--serverConcurrency 1 1
+# 	--serverConcurrency 4 1
 # 	--serviceTime 4.00 \
 # 	--workloadParam 2.3818181818 \
 # 	--serviceTimeModel random.expovariate \
@@ -28,7 +28,7 @@ cd simulations;
 # 	--numServers 3 \
 # 	--numWorkload 1 \
 #	--workloadModel poisson \
-# 	--serverConcurrency 1 \
+# 	--serverConcurrency 4 \
 # 	--serviceTime 4.00 \
 # 	--workloadParam 2.3818181818 \
 # 	--serviceTimeModel random.expovariate \
@@ -50,7 +50,7 @@ cd simulations;
 # 	--numServers 3 \
 # 	--numWorkload 1 \
 #	--workloadModel poisson \
-# 	--serverConcurrency 1 \
+# 	--serverConcurrency 4 \
 # 	--serviceTime 4.00 \
 # 	--workloadParam 2.3818181818 \
 # 	--serviceTimeModel random.expovariate \
@@ -70,7 +70,7 @@ cd simulations;
 # 	--numServers 3 \
 # 	--numWorkload 1 \
 #	--workloadModel poisson \
-# 	--serverConcurrency 1 \
+# 	--serverConcurrency 4 \
 # 	--serviceTime 4.00 \
 # 	--workloadParam 2.3818181818 \
 # 	--serviceTimeModel random.expovariate \
@@ -91,10 +91,10 @@ python experiment.py  \
 	--numServers 3 \
 	--numWorkload 1 \
 	--workloadModel poisson \
-	--serverConcurrency 1 \
+	--serverConcurrency 4 \
 	--serviceTime 4.00\
-	--workloadParam 2.4818181818 \
-	--serviceTimeModel random.expovariate \
+	--workloadParam 0.7818181818 \
+	--serviceTimeModel constant \
 	--replicationFactor 3 \
 	--selectionStrategy pendingXserviceTimeOracle \
 	--shadowReadRatio 0.0 \
@@ -113,10 +113,10 @@ python experiment.py  \
 	--numServers 3 \
 	--numWorkload 1 \
 	--workloadModel poisson \
-	--serverConcurrency 1 \
+	--serverConcurrency 4 \
 	--serviceTime 4.00 \
-	--workloadParam 2.4818181818 \
-	--serviceTimeModel random.expovariate \
+	--workloadParam 0.7818181818 \
+	--serviceTimeModel constant \
 	--replicationFactor 3 \
 	--backpressure \
 	--rateInterval 20\

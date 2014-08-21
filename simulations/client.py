@@ -175,9 +175,10 @@ class Client():
             twiceNetworkLatency = metricMap["responseTime"]\
                 - (metricMap["serviceTime"] + metricMap["waitingTime"])
             total += (twiceNetworkLatency +
-                      (1 + self.pendingRequestsMap[replica] * constants.NUMBER_OF_CLIENTS
-                      + metricMap["queueSizeAfter"])
-                      * metricMap["serviceTime"])
+                      ((1 + self.pendingRequestsMap[replica]
+                        * constants.NUMBER_OF_CLIENTS
+                        + metricMap["queueSizeAfter"])) ** 4
+                       * metricMap["serviceTime"])
         else:
             if (len(self.outstandingRequests) != 0):
                 sentTime = self.taskSentTimeTracker[self.outstandingRequests[0]]
