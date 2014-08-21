@@ -13,51 +13,7 @@ def printMonitorTimeSeriesToFile(fileDesc, prefix, monitor):
         fileDesc.write("%s %s %s\n" % (prefix, entry[0], entry[1]))
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Absinthe sim.')
-    parser.add_argument('--numClients', nargs='?',
-                        type=int, default=1)
-    parser.add_argument('--numServers', nargs='?',
-                        type=int, default=1)
-    parser.add_argument('--numWorkload', nargs='?',
-                        type=int, default=1)
-    parser.add_argument('--serverConcurrency', nargs='?',
-                        type=int, default=1)
-    parser.add_argument('--serviceTime', nargs='?',
-                        type=float, default=1)
-    parser.add_argument('--workloadModel', nargs='?',
-                        type=str, default="constant")
-    parser.add_argument('--workloadParam', nargs='?',
-                        type=float, default=1)
-    parser.add_argument('--serviceTimeModel', nargs='?',
-                        type=str, default="constant")
-    parser.add_argument('--replicationFactor', nargs='?',
-                        type=int, default=1)
-    parser.add_argument('--selectionStrategy', nargs='?',
-                        type=str, default="pending")
-    parser.add_argument('--shadowReadRatio', nargs='?',
-                        type=float, default=0.10)
-    parser.add_argument('--rateInterval', nargs='?',
-                        type=int, default=10)
-    parser.add_argument('--backpressure', action='store_true',
-                        default=False)
-    parser.add_argument('--accessPattern', nargs='?',
-                        type=str, default="uniform")
-    parser.add_argument('--nwLatencyBase', nargs='?',
-                        type=float, default=0.960)
-    parser.add_argument('--nwLatencyMu', nargs='?',
-                        type=float, default=0.040)
-    parser.add_argument('--nwLatencySigma', nargs='?',
-                        type=float, default=0.0)
-    parser.add_argument('--expPrefix', nargs='?',
-                        type=str, default="")
-    parser.add_argument('--seed', nargs='?',
-                        type=int, default=25072014)
-    parser.add_argument('--simulationDuration', nargs='?',
-                        type=int, default=500)
-    parser.add_argument('--numRequests', nargs='?',
-                        type=int, default=100)
-    args = parser.parse_args()
+def runExperiment(args):
 
     # Set the random seed
     random.seed(args.seed)
@@ -112,15 +68,23 @@ if __name__ == '__main__':
     #
     # Print a bunch of timeseries
     #
-    pendingRequestsFD = open("../logs/%s_PendingRequests" %
-                             (args.expPrefix), 'w')
-    waitMonFD = open("../logs/%s_WaitMon" % (args.expPrefix), 'w')
-    actMonFD = open("../logs/%s_ActMon" % (args.expPrefix), 'w')
-    latencyFD = open("../logs/%s_Latency" % (args.expPrefix), 'w')
-    latencyTrackerFD = open("../logs/%s_LatencyTracker" % (args.expPrefix), 'w')
-    rateFD = open("../logs/%s_Rate" % (args.expPrefix), 'w')
-    muMaxFD = open("../logs/%s_MuMax" % (args.expPrefix), 'w')
-    tokenFD = open("../logs/%s_Tokens" % (args.expPrefix), 'w')
+    pendingRequestsFD = open("../%s/%s_PendingRequests" %
+                             (args.logFolder,
+                              args.expPrefix), 'w')
+    waitMonFD = open("../%s/%s_WaitMon" % (args.logFolder,
+                                           args.expPrefix), 'w')
+    actMonFD = open("../%s/%s_ActMon" % (args.logFolder,
+                                         args.expPrefix), 'w')
+    latencyFD = open("../%s/%s_Latency" % (args.logFolder,
+                                           args.expPrefix), 'w')
+    latencyTrackerFD = open("../%s/%s_LatencyTracker" %
+                            (args.logFolder, args.expPrefix), 'w')
+    rateFD = open("../%s/%s_Rate" % (args.logFolder,
+                                     args.expPrefix), 'w')
+    muMaxFD = open("../%s/%s_MuMax" % (args.logFolder,
+                                       args.expPrefix), 'w')
+    tokenFD = open("../%s/%s_Tokens" % (args.logFolder,
+                                        args.expPrefix), 'w')
 
     for clientNode in clients:
         printMonitorTimeSeriesToFile(pendingRequestsFD,
@@ -157,3 +121,54 @@ if __name__ == '__main__':
     printMonitorTimeSeriesToFile(latencyFD, "0",
                                  latencyMonitor)
     assert args.numRequests == len(latencyMonitor)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Absinthe sim.')
+    parser.add_argument('--numClients', nargs='?',
+                        type=int, default=1)
+    parser.add_argument('--numServers', nargs='?',
+                        type=int, default=1)
+    parser.add_argument('--numWorkload', nargs='?',
+                        type=int, default=1)
+    parser.add_argument('--serverConcurrency', nargs='?',
+                        type=int, default=1)
+    parser.add_argument('--serviceTime', nargs='?',
+                        type=float, default=1)
+    parser.add_argument('--workloadModel', nargs='?',
+                        type=str, default="constant")
+    parser.add_argument('--workloadParam', nargs='?',
+                        type=float, default=1)
+    parser.add_argument('--serviceTimeModel', nargs='?',
+                        type=str, default="constant")
+    parser.add_argument('--replicationFactor', nargs='?',
+                        type=int, default=1)
+    parser.add_argument('--selectionStrategy', nargs='?',
+                        type=str, default="pending")
+    parser.add_argument('--shadowReadRatio', nargs='?',
+                        type=float, default=0.10)
+    parser.add_argument('--rateInterval', nargs='?',
+                        type=int, default=10)
+    parser.add_argument('--backpressure', action='store_true',
+                        default=False)
+    parser.add_argument('--accessPattern', nargs='?',
+                        type=str, default="uniform")
+    parser.add_argument('--nwLatencyBase', nargs='?',
+                        type=float, default=0.960)
+    parser.add_argument('--nwLatencyMu', nargs='?',
+                        type=float, default=0.040)
+    parser.add_argument('--nwLatencySigma', nargs='?',
+                        type=float, default=0.0)
+    parser.add_argument('--expPrefix', nargs='?',
+                        type=str, default="")
+    parser.add_argument('--seed', nargs='?',
+                        type=int, default=25072014)
+    parser.add_argument('--simulationDuration', nargs='?',
+                        type=int, default=500)
+    parser.add_argument('--numRequests', nargs='?',
+                        type=int, default=100)
+    parser.add_argument('--logFolder', nargs='?',
+                        type=str, default="logs")
+    args = parser.parse_args()
+
+    runExperiment(args)

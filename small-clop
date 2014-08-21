@@ -6,7 +6,7 @@ cd simulations;
 # 	--numServers 3 \
 # 	--numWorkload 1 \
 #	--workloadModel poisson \
-# 	--serverConcurrency 1 \
+# 	--serverConcurrency 1 1
 # 	--serviceTime 4.00 \
 # 	--workloadParam 2.3818181818 \
 # 	--serviceTimeModel random.expovariate \
@@ -105,7 +105,8 @@ python experiment.py  \
 	--expPrefix oracle\
 	--simulationDuration 100000\
 	--seed 434\
-	--numRequests 10000;
+	--numRequests 10000\
+	--logFolder logs;
 
 python experiment.py  \
  	--numClients 10 \
@@ -128,7 +129,8 @@ python experiment.py  \
 	--expPrefix expDelay \
 	--simulationDuration 100000 \
 	--seed 434 \
-	--numRequests 10000;
+	--numRequests 10000\
+	--logFolder logs;
 
 
 cd ..

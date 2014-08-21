@@ -43,7 +43,7 @@ p1 <- ggplot(latency) +
 	  		axis.text = element_text(size=20))
 ggsave(p1, file=paste(prefix, "_latency.pdf", sep=""), width=15)
 
-print(quantile(latency$Latency,c(0.5,0.99)))
+print(c(prefix, quantile(latency$Latency,c(0.5,0.95, 0.99))))
 
 p1 <- ggplot(act.mon) + 
 	  geom_line(aes(y=ActiveRequests, x=Timestamp), size=2) + 
