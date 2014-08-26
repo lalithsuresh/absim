@@ -6,7 +6,7 @@ cd simulations;
 # 	--numServers 3 \
 # 	--numWorkload 1 \
 #	--workloadModel poisson \
-# 	--serverConcurrency 4 1
+# 	--serverConcurrency 1 1
 # 	--serviceTime 4.00 \
 # 	--workloadParam 2.3818181818 \
 # 	--serviceTimeModel random.expovariate \
@@ -28,7 +28,7 @@ cd simulations;
 # 	--numServers 3 \
 # 	--numWorkload 1 \
 #	--workloadModel poisson \
-# 	--serverConcurrency 4 \
+# 	--serverConcurrency 1 \
 # 	--serviceTime 4.00 \
 # 	--workloadParam 2.3818181818 \
 # 	--serviceTimeModel random.expovariate \
@@ -50,7 +50,7 @@ cd simulations;
 # 	--numServers 3 \
 # 	--numWorkload 1 \
 #	--workloadModel poisson \
-# 	--serverConcurrency 4 \
+# 	--serverConcurrency 1 \
 # 	--serviceTime 4.00 \
 # 	--workloadParam 2.3818181818 \
 # 	--serviceTimeModel random.expovariate \
@@ -70,7 +70,7 @@ cd simulations;
 # 	--numServers 3 \
 # 	--numWorkload 1 \
 #	--workloadModel poisson \
-# 	--serverConcurrency 4 \
+# 	--serverConcurrency 1 \
 # 	--serviceTime 4.00 \
 # 	--workloadParam 2.3818181818 \
 # 	--serviceTimeModel random.expovariate \
@@ -88,13 +88,13 @@ cd simulations;
 
 python experiment.py  \
 	--numClients 10 \
-	--numServers 3 \
+	--numServers 6 \
 	--numWorkload 1 \
 	--workloadModel poisson \
-	--serverConcurrency 4 \
+	--serverConcurrency 1 \
 	--serviceTime 4.00\
-	--workloadParam 0.7818181818 \
-	--serviceTimeModel constant \
+	--workloadParam 1.9818181818 \
+	--serviceTimeModel random.expovariate \
 	--replicationFactor 3 \
 	--selectionStrategy pendingXserviceTimeOracle \
 	--shadowReadRatio 0.0 \
@@ -106,17 +106,20 @@ python experiment.py  \
 	--simulationDuration 100000\
 	--seed 434\
 	--numRequests 10000\
-	--logFolder logs;
+	--logFolder logs\
+	--expScenario timeVaryingServiceTimeServers\
+	--rangeParam 7.5\
+	--intervalParam 10;
 
 python experiment.py  \
  	--numClients 10 \
-	--numServers 3 \
+	--numServers 6 \
 	--numWorkload 1 \
 	--workloadModel poisson \
-	--serverConcurrency 4 \
+	--serverConcurrency 1 \
 	--serviceTime 4.00 \
-	--workloadParam 0.7818181818 \
-	--serviceTimeModel constant \
+	--workloadParam 1.9818181818 \
+	--serviceTimeModel random.expovariate \
 	--replicationFactor 3 \
 	--backpressure \
 	--rateInterval 20\
@@ -134,7 +137,10 @@ python experiment.py  \
 	--simulationDuration 100000 \
 	--seed 434 \
 	--numRequests 10000\
-	--logFolder logs;
+	--logFolder logs\
+	--expScenario timeVaryingServiceTimeServers\
+	--rangeParam 7.5\
+	--intervalParam 10;
 
 
 cd ..

@@ -67,7 +67,7 @@ for combination in PARAM_COMBINATIONS:
             numRequests = combination
 
         os.chdir(basePath + "/simulations")
-        cmd = "python experiment.py  \
+        cmd = "python factorialExperiment.py  \
                 --numClients %s\
                 --numServers %s\
                 --numWorkload %s\
@@ -128,7 +128,7 @@ for combination in PARAM_COMBINATIONS:
                 sys.stdout.flush()
 
         os.chdir(basePath + "/simulations")
-        cmd = "python experiment.py  \
+        cmd = "python factorialExperiment.py \
                 --numClients %s\
                 --numServers %s\
                 --numWorkload %s\

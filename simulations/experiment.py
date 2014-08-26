@@ -6,7 +6,8 @@ import argparse
 import random
 import constants
 import numpy
-
+import sys
+import muUpdater
 
 def printMonitorTimeSeriesToFile(fileDesc, prefix, monitor):
     for entry in monitor:
@@ -30,13 +31,48 @@ def runExperiment(args):
     constants.NW_LATENCY_SIGMA = args.nwLatencySigma
     constants.NUMBER_OF_CLIENTS = args.numClients
 
-    # Start the servers
-    for i in range(args.numServers):
-        serv = server.Server(i,
-                             resourceCapacity=args.serverConcurrency,
-                             serviceTime=((i+1) * args.serviceTime),
-                             serviceTimeModel=args.serviceTimeModel)
-        servers.append(serv)
+    assert args.expScenario != ""
+
+    if (args.expScenario == "base"):
+        # Start the servers
+        for i in range(args.numServers):
+            serv = server.Server(i,
+                                 resourceCapacity=args.serverConcurrency,
+                                 serviceTime=(args.serviceTime),
+                                 serviceTimeModel=args.serviceTimeModel)
+            servers.append(serv)
+    elif(args.expScenario == "multipleServiceTimeServers"):
+      # Start the servers
+        for i in range(args.numServers):
+            serv = server.Server(i,
+                                 resourceCapacity=args.serverConcurrency,
+                                 serviceTime=((i + 1) * args.serviceTime),
+                                 serviceTimeModel=args.serviceTimeModel)
+            servers.append(serv)
+    elif(args.expScenario == "expovariateServiceTimeServers"):
+        # Start the servers
+        for i in range(args.numServers):
+            st = random.expovariate(1/float(args.serviceTime))
+            serv = server.Server(i,
+                                 resourceCapacity=args.serverConcurrency,
+                                 serviceTime=st,
+                                 serviceTimeModel=args.serviceTimeModel)
+            servers.append(serv)
+    elif(args.expScenario == "timeVaryingServiceTimeServers"):
+        # Start the servers
+        for i in range(args.numServers):
+            serv = server.Server(i,
+                                 resourceCapacity=args.serverConcurrency,
+                                 serviceTime=(args.serviceTime),
+                                 serviceTimeModel=args.serviceTimeModel)
+            mup = muUpdater.MuUpdater(serv, args.serviceTime,
+                                      args.intervalParam,
+                                      args.rangeParam)
+            Simulation.activate(mup, mup.run(), at=0.0)
+            servers.append(serv)
+    else:
+        print "Unknown experiment scenario"
+        sys.exit(-1)
 
     # Start the clients
     for i in range(args.numClients):
@@ -176,6 +212,12 @@ if __name__ == '__main__':
                         type=int, default=100)
     parser.add_argument('--logFolder', nargs='?',
                         type=str, default="logs")
+    parser.add_argument('--expScenario', nargs='?',
+                        type=str, default="")
+    parser.add_argument('--rangeParam', nargs='?',
+                        type=float, default=0.0)
+    parser.add_argument('--intervalParam', nargs='?',
+                        type=float, default=0.0)
     args = parser.parse_args()
 
     runExperiment(args)

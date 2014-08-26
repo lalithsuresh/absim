@@ -178,7 +178,7 @@ class Client():
                       ((1 + self.pendingRequestsMap[replica]
                         * constants.NUMBER_OF_CLIENTS
                         + metricMap["queueSizeAfter"])) ** 4
-                       * metricMap["serviceTime"])
+                      * metricMap["serviceTime"])
         else:
             if (len(self.outstandingRequests) != 0):
                 sentTime = self.taskSentTimeTracker[self.outstandingRequests[0]]
@@ -199,7 +199,7 @@ class Client():
                     self.rateLimiters[replica].update()
 
     def updateEma(self, replica, metricMap):
-        alpha = 0.90
+        alpha = 0.9
         if (len(self.expectedDelayMap[replica]) == 0):
             self.expectedDelayMap[replica] = metricMap
             return
