@@ -3,14 +3,14 @@
 cd simulations;
 
 python experiment.py  \
-	--numClients 20 \
-	--numServers 10 \
+	--numClients 2 \
+	--numServers 2 \
 	--numWorkload 1 \
-	--workloadModel poisson \
+	--workloadModel constant \
 	--serverConcurrency 1 \
 	--serviceTime 4.00\
-	--workloadParam 1.6818181818 \
-	--serviceTimeModel random.expovariate \
+	--workloadParam 2.1 \
+	--serviceTimeModel math.sin \
 	--replicationFactor 3 \
 	--selectionStrategy pending \
 	--shadowReadRatio 0.0 \
@@ -23,20 +23,20 @@ python experiment.py  \
 	--seed 434\
 	--numRequests 10000\
 	--logFolder logs\
-	--expScenario timeVaryingServiceTimeServers\
-	--demandSkew 100\
-	--intervalParam 80\
+	--expScenario base\
+	--demandSkew 0\
+	--intervalParam 50000\
 	--rangeParam 20;
 
 python experiment.py  \
- 	--numClients 20 \
-	--numServers 10 \
+ 	--numClients 2 \
+	--numServers 2 \
 	--numWorkload 1 \
-	--workloadModel poisson \
+	--workloadModel constant \
 	--serverConcurrency 1 \
 	--serviceTime 4.00 \
-	--workloadParam 1.6818181818 \
-	--serviceTimeModel random.expovariate \
+	--workloadParam 2.1 \
+	--serviceTimeModel math.sin \
 	--replicationFactor 3 \
 	--backpressure \
 	--rateInterval 20\
@@ -55,9 +55,9 @@ python experiment.py  \
 	--seed 434 \
 	--numRequests 10000\
 	--logFolder logs\
-	--expScenario timeVaryingServiceTimeServers\
-	--demandSkew 100\
-	--intervalParam 80\
+	--expScenario base\
+	--demandSkew 0\
+	--intervalParam 50000\
 	--rangeParam 20;
 
 

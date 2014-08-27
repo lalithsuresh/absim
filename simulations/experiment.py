@@ -131,6 +131,8 @@ def runExperiment(args):
                                      args.expPrefix), 'w')
     tokenFD = open("../%s/%s_Tokens" % (args.logFolder,
                                         args.expPrefix), 'w')
+    receiveRateFD = open("../%s/%s_ReceiveRate" % (args.logFolder,
+                                                   args.expPrefix), 'w')
 
     for clientNode in clients:
         printMonitorTimeSeriesToFile(pendingRequestsFD,
@@ -145,6 +147,9 @@ def runExperiment(args):
         printMonitorTimeSeriesToFile(tokenFD,
                                      clientNode.id,
                                      clientNode.tokenMonitor)
+        printMonitorTimeSeriesToFile(receiveRateFD,
+                                     clientNode.id,
+                                     clientNode.receiveRateMonitor)
     for serv in servers:
         printMonitorTimeSeriesToFile(waitMonFD,
                                      serv.id,

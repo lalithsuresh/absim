@@ -26,9 +26,8 @@ class Server():
             serviceTime = self.serviceTime
         elif(self.serviceTimeModel == "math.sin"):
             serviceTime = self.serviceTime \
-                + self.serviceTimeParams[0] \
-                * math.sin(self.serviceTimeParams[2]
-                + Simulation.now()/float(self.serviceTimeParams[1]))
+                + self.serviceTime \
+                * math.sin(1 + Simulation.now()/100)
         else:
             print "Unknown service time model"
             sys.exit(-1)

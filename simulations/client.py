@@ -19,6 +19,7 @@ class Client():
         self.pendingRequestsMonitor = Simulation.Monitor(name="PendingRequests")
         self.latencyTrackerMonitor = Simulation.Monitor(name="ResponseHandler")
         self.rateMonitor = Simulation.Monitor(name="AlphaMonitor")
+        self.receiveRateMonitor = Simulation.Monitor(name="ReceiveRateMonitor")
         self.tokenMonitor = Simulation.Monitor(name="TokenMonitor")
         self.backpressure = backpressure    # True/Flase
         self.shadowReadRatio = shadowReadRatio
@@ -262,7 +263,10 @@ class Client():
         assert (self.rateLimiters[replica].rate > 0)
         alphaObservation = (replica.id,
                             self.rateLimiters[replica].rate)
+        receiveRateObs = (replica.id,
+                          self.receiveRate[replica].getRate())
         self.rateMonitor.observe("%s %s" % alphaObservation)
+        self.receiveRateMonitor.observe("%s %s" % receiveRateObs)
 
 
 class DeliverMessageWithDelay(Simulation.Process):
@@ -381,10 +385,8 @@ class BackpressureScheduler(Simulation.Process):
                     # self.congestionEvent = Simulation.SimEvent("Congestion")
                     # self.waitingBacklogQueues = set()
             else:
-                # print "BLO"
                 yield Simulation.waitevent, self, self.backlogReadyEvent
                 self.backlogReadyEvent = Simulation.SimEvent("BacklogReady")
-                # print "NOBLO"
 
     def enqueue(self, task, replicaSet):
         self.activeBacklogQueues[replicaSet[0]].append((task, replicaSet))
