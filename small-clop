@@ -10,7 +10,7 @@ cd simulations;
 # 	--serviceTime 4.00 \
 # 	--workloadParam 2.3818181818 \
 # 	--serviceTimeModel random.expovariate \
-# 	--replicationFactor 3 \
+# 	--replicationFactor 4 \
 # 	--selectionStrategy primary \
 #	--shadowReadRatio 0.10 \
 # 	--backpressure \
@@ -32,7 +32,7 @@ cd simulations;
 # 	--serviceTime 4.00 \
 # 	--workloadParam 2.3818181818 \
 # 	--serviceTimeModel random.expovariate \
-# 	--replicationFactor 3 \
+# 	--replicationFactor 4 \
 # 	--selectionStrategy response_time \
 #	--shadowReadRatio 0.10 \
 # 	--accessPattern uniform \
@@ -54,7 +54,7 @@ cd simulations;
 # 	--serviceTime 4.00 \
 # 	--workloadParam 2.3818181818 \
 # 	--serviceTimeModel random.expovariate \
-# 	--replicationFactor 3 \
+# 	--replicationFactor 4 \
 # 	--backpressure \
 # 	--accessPattern uniform \
 # 	--nwLatencyBase 1.00 \
@@ -74,7 +74,7 @@ cd simulations;
 # 	--serviceTime 4.00 \
 # 	--workloadParam 2.3818181818 \
 # 	--serviceTimeModel random.expovariate \
-# 	--replicationFactor 3 \
+# 	--replicationFactor 4 \
 # 	--selectionStrategy pendingXserviceTime \
 # 	--shadowReadRatio 0.10 \
 # 	--accessPattern uniform \
@@ -93,7 +93,7 @@ python experiment.py  \
 	--workloadModel poisson \
 	--serverConcurrency 1 \
 	--serviceTime 4.00\
-	--workloadParam 1.9818181818 \
+	--workloadParam 2.3818181818 \
 	--serviceTimeModel random.expovariate \
 	--replicationFactor 3 \
 	--selectionStrategy pendingXserviceTimeOracle \
@@ -107,7 +107,7 @@ python experiment.py  \
 	--seed 434\
 	--numRequests 10000\
 	--logFolder logs\
-	--expScenario timeVaryingServiceTimeServers\
+	--expScenario expovariateServiceTimeServers\
 	--rangeParam 7.5\
 	--intervalParam 10;
 
@@ -118,7 +118,7 @@ python experiment.py  \
 	--workloadModel poisson \
 	--serverConcurrency 1 \
 	--serviceTime 4.00 \
-	--workloadParam 1.9818181818 \
+	--workloadParam 2.3818181818 \
 	--serviceTimeModel random.expovariate \
 	--replicationFactor 3 \
 	--backpressure \
@@ -138,7 +138,7 @@ python experiment.py  \
 	--seed 434 \
 	--numRequests 10000\
 	--logFolder logs\
-	--expScenario timeVaryingServiceTimeServers\
+	--expScenario expovariateServiceTimeServers\
 	--rangeParam 7.5\
 	--intervalParam 10;
 

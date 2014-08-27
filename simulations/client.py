@@ -62,12 +62,11 @@ class Client():
         self.hysterisisFactor = hysterisisFactor
 
         # Backpressure related initialization
-        self.backpressureSchedulers =\
-            {node: BackpressureScheduler("BP%s" % (node.id), self)
-                for node in serverList}
+        self.backpressureScheduler = BackpressureScheduler("BP", self)
 
-        for node, sched in self.backpressureSchedulers.items():
-            Simulation.activate(sched, sched.run(), at=Simulation.now())
+        Simulation.activate(self.backpressureScheduler,
+                            self.backpressureScheduler.run(),
+                            at=Simulation.now())
 
         for node, rateLimiter in self.rateLimiters.items():
             Simulation.activate(rateLimiter, rateLimiter.run(),
@@ -97,8 +96,7 @@ class Client():
             self.sendRequest(task, replicaToServe)
             self.maybeSendShadowReads(replicaToServe, replicaSet)
         else:
-            firstReplica = self.serverList[firstReplicaIndex]
-            self.backpressureSchedulers[firstReplica].enqueue(task, replicaSet)
+            self.backpressureScheduler.enqueue(task, replicaSet)
 
     def sendRequest(self, task, replicaToServe):
         delay = constants.NW_LATENCY_BASE + \
@@ -213,7 +211,7 @@ class Client():
         shuffledNodeList = self.serverList[0:]
         random.shuffle(shuffledNodeList)
         for node in shuffledNodeList:
-            self.backpressureSchedulers[node].congestionEvent.signal()
+            self.backpressureScheduler.promoteWaitingQueues()
 
         # Cubic Parameters go here
         # beta = 0.2
@@ -324,17 +322,33 @@ class ResponseHandler(Simulation.Process):
 class BackpressureScheduler(Simulation.Process):
     def __init__(self, id_, client):
         self.id = id_
-        self.backlogQueue = []
+        self.activeBacklogQueues = {node: [] for node in client.serverList}
+        self.waitingBacklogQueues = set()
         self.client = client
         self.congestionEvent = Simulation.SimEvent("Congestion")
         self.backlogReadyEvent = Simulation.SimEvent("BacklogReady")
+        self.count = 0
         Simulation.Process.__init__(self, name='BackpressureScheduler')
 
     def run(self):
         while(1):
             yield Simulation.hold, self,
-            if (len(self.backlogQueue) != 0):
-                task, replicaSet = self.backlogQueue[0]
+            nonBlockedRgOwners = [n for n in self.activeBacklogQueues
+                                  if n not in self.waitingBacklogQueues
+                                  and len(self.activeBacklogQueues[n]) > 0]
+
+            if (len(nonBlockedRgOwners) != 0):
+                rgOwner = max(nonBlockedRgOwners,
+                              key=lambda x:
+                              Simulation.now() - self.activeBacklogQueues[x][0][0].start)
+                # lol = []
+                # for each in nonBlockedRgOwners:
+                #     lol.append(Simulation.now() - self.activeBacklogQueues[each][0][0].start)
+                # print lol, len(self.activeBacklogQueues), len(self.waitingBacklogQueues),\
+                #  map(lambda x: len(self.activeBacklogQueues[x]), self.activeBacklogQueues),\
+                #  len(self.activeBacklogQueues[rgOwner])
+                backlogQueue = self.activeBacklogQueues[rgOwner]
+                task, replicaSet = backlogQueue[0]
                 sortedReplicaSet = self.client.sort(replicaSet)
                 sent = False
 
@@ -346,9 +360,9 @@ class BackpressureScheduler(Simulation.Process):
                     if (self.client.rateLimiters[replica].tryAcquire()
                        is True):
                         waitingTime = Simulation.now() - task.start
-                        if (waitingTime > 0):
-                            print waitingTime
-                        self.backlogQueue.pop(0)
+                        # if (waitingTime > 0):
+                        #     print task.id, waitingTime
+                        backlogQueue.pop(0)
                         self.client.sendRequest(task, replica)
                         self.client.maybeSendShadowReads(replica, replicaSet)
                         sent = True
@@ -356,15 +370,27 @@ class BackpressureScheduler(Simulation.Process):
                         break
 
                 if (not sent):
-                    print 'BP-Congestion', Simulation.now()
-                    yield Simulation.waitevent, self, self.congestionEvent
-                    self.congestionEvent = Simulation.SimEvent("Congestion")
+                    # for each in self.client.rateLimiters:
+                    #     print self.client.rateLimiters[each].tokens
+                    self.waitingBacklogQueues.add(rgOwner)
+                    # print rgOwner, "blocked", task.id, task.start, Simulation.now()
+                    # print 'BP-Congestion', Simulation.now()
+                    # yield Simulation.waitevent, self, self.congestionEvent
+                    # self.congestionEvent = Simulation.SimEvent("Congestion")
+                    # self.waitingBacklogQueues = set()
+                    # print 'BP-CongestionDONE', Simulation.now()
             else:
+                # print "BLO"
                 yield Simulation.waitevent, self, self.backlogReadyEvent
                 self.backlogReadyEvent = Simulation.SimEvent("BacklogReady")
+                # print "NOBLO"
 
     def enqueue(self, task, replicaSet):
-        self.backlogQueue.append((task, replicaSet))
+        self.activeBacklogQueues[replicaSet[0]].append((task, replicaSet))
+        self.backlogReadyEvent.signal()
+
+    def promoteWaitingQueues(self):
+        self.waitingBacklogQueues = set()
         self.backlogReadyEvent.signal()
 
 
@@ -393,9 +419,7 @@ class RateLimiter(Simulation.Process):
                 self.tokens += 1
                 shuffledNodeList = self.client.serverList[0:]
                 random.shuffle(shuffledNodeList)
-                for node in shuffledNodeList:
-                    self.client \
-                        .backpressureSchedulers[node].congestionEvent.signal()
+                self.client.backpressureScheduler.promoteWaitingQueues()
 
     # These updates can be forced due to shadowReads
     def update(self):
@@ -408,7 +432,10 @@ class RateLimiter(Simulation.Process):
         self.tokens = min(self.maxTokens, self.tokens
                           + self.rate/float(self.rateInterval)
                           * (Simulation.now() - self.lastSent))
-        return self.tokens >= 1
+        if (self.tokens >= 1):
+            return True
+        else:
+            return False
 
 
 class ReceiveRate():
