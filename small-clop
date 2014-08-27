@@ -1,102 +1,18 @@
 #!/bin/bash
 
 cd simulations;
-# python experiment.py  \
-# 	--numClients 4 \
-# 	--numServers 3 \
-# 	--numWorkload 1 \
-#	--workloadModel poisson \
-# 	--serverConcurrency 1 1
-# 	--serviceTime 4.00 \
-# 	--workloadParam 2.3818181818 \
-# 	--serviceTimeModel random.expovariate \
-# 	--replicationFactor 4 \
-# 	--selectionStrategy primary \
-#	--shadowReadRatio 0.10 \
-# 	--backpressure \
-# 	--accessPattern uniform \
-# 	--nwLatencyBase 1.00 \
-# 	--nwLatencyMu 0.0 \
-# 	--nwLatencySigma 0.0 \
-# 	--expPrefix primary\
-# 	--simulationDuration 100000\
-# 	--seed 434\
-# 	--numRequests 4000;
-
-# python experiment.py  \
-# 	--numClients 4 \
-# 	--numServers 3 \
-# 	--numWorkload 1 \
-#	--workloadModel poisson \
-# 	--serverConcurrency 1 \
-# 	--serviceTime 4.00 \
-# 	--workloadParam 2.3818181818 \
-# 	--serviceTimeModel random.expovariate \
-# 	--replicationFactor 4 \
-# 	--selectionStrategy response_time \
-#	--shadowReadRatio 0.10 \
-# 	--accessPattern uniform \
-# 	--nwLatencyBase 1.00 \
-# 	--nwLatencyMu 0.0 \
-# 	--nwLatencySigma 0.0 \
-# 	--expPrefix rp\
-# 	--simulationDuration 100000\
-# 	--seed 434\
-# 	--numRequests 4000;
-
-
-# python experiment.py  \
-# 	--numClients 4 \
-# 	--numServers 3 \
-# 	--numWorkload 1 \
-#	--workloadModel poisson \
-# 	--serverConcurrency 1 \
-# 	--serviceTime 4.00 \
-# 	--workloadParam 2.3818181818 \
-# 	--serviceTimeModel random.expovariate \
-# 	--replicationFactor 4 \
-# 	--backpressure \
-# 	--accessPattern uniform \
-# 	--nwLatencyBase 1.00 \
-# 	--nwLatencyMu 0.0 \
-# 	--nwLatencySigma 0.0 \
-# 	--expPrefix pending\
-# 	--simulationDuration 100000\
-# 	-1000eed 41000\
-# 	--numRequests 4000;
-
-# python experiment.py  \
-# 	--numClients 4 \
-# 	--numServers 3 \
-# 	--numWorkload 1 \
-#	--workloadModel poisson \
-# 	--serverConcurrency 1 \
-# 	--serviceTime 4.00 \
-# 	--workloadParam 2.3818181818 \
-# 	--serviceTimeModel random.expovariate \
-# 	--replicationFactor 4 \
-# 	--selectionStrategy pendingXserviceTime \
-# 	--shadowReadRatio 0.10 \
-# 	--accessPattern uniform \
-# 	--nwLatencyBase 1.00 \
-# 	--nwLatencyMu 0.0 \
-# 	--nwLatencySigma 0.0 \
-# 	--expPrefix pendingXserviceTime\
-# 	--simulationDuration 100000\
-# 	--seed 434\
-# 	--numRequests 400;
 
 python experiment.py  \
-	--numClients 10 \
-	--numServers 6 \
+	--numClients 20 \
+	--numServers 10 \
 	--numWorkload 1 \
 	--workloadModel poisson \
 	--serverConcurrency 1 \
 	--serviceTime 4.00\
-	--workloadParam 2.3818181818 \
+	--workloadParam 1.6818181818 \
 	--serviceTimeModel random.expovariate \
 	--replicationFactor 3 \
-	--selectionStrategy pendingXserviceTimeOracle \
+	--selectionStrategy pending \
 	--shadowReadRatio 0.0 \
 	--accessPattern uniform \
 	--nwLatencyBase 0.00 \
@@ -107,18 +23,19 @@ python experiment.py  \
 	--seed 434\
 	--numRequests 10000\
 	--logFolder logs\
-	--expScenario expovariateServiceTimeServers\
-	--rangeParam 7.5\
-	--intervalParam 10;
+	--expScenario timeVaryingServiceTimeServers\
+	--demandSkew 100\
+	--intervalParam 80\
+	--rangeParam 20;
 
 python experiment.py  \
- 	--numClients 10 \
-	--numServers 6 \
+ 	--numClients 20 \
+	--numServers 10 \
 	--numWorkload 1 \
 	--workloadModel poisson \
 	--serverConcurrency 1 \
 	--serviceTime 4.00 \
-	--workloadParam 2.3818181818 \
+	--workloadParam 1.6818181818 \
 	--serviceTimeModel random.expovariate \
 	--replicationFactor 3 \
 	--backpressure \
@@ -138,9 +55,10 @@ python experiment.py  \
 	--seed 434 \
 	--numRequests 10000\
 	--logFolder logs\
-	--expScenario expovariateServiceTimeServers\
-	--rangeParam 7.5\
-	--intervalParam 10;
+	--expScenario timeVaryingServiceTimeServers\
+	--demandSkew 100\
+	--intervalParam 80\
+	--rangeParam 20;
 
 
 cd ..

@@ -1,5 +1,6 @@
 import SimPy.Simulation as Simulation
 import numpy
+import random
 
 
 class MuUpdater(Simulation.Process):
@@ -13,9 +14,10 @@ class MuUpdater(Simulation.Process):
 
     def run(self):
         while(1):
-            yield Simulation.hold, self, self.intervalParam
-            st = numpy.random.pareto(2, 1) + self.serviceTimeBase
-            self.server.serviceTime = min(st[0], 1000)
-                # random.uniform(self.serviceTimeBase - self.rangeParam/2.0,
-                #                self.serviceTimeBase + self.rangeParam/2.0)
-                #
+            yield Simulation.hold, self,\
+                random.expovariate(1/float(self.intervalParam))
+            # st = numpy.random.pareto(1, 1) + self.serviceTimeBase
+            # self.server.serviceTime = min(st[0], 80)
+            self.server.serviceTime = \
+                random.uniform(self.serviceTimeBase,
+                               self.serviceTimeBase + self.rangeParam)

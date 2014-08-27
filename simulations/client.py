@@ -9,7 +9,8 @@ class Client():
     def __init__(self, id_, serverList, replicaSelectionStrategy,
                  accessPattern, replicationFactor, backpressure,
                  shadowReadRatio, rateInterval,
-                 cubicC, cubicSmax, cubicBeta, hysterisisFactor):
+                 cubicC, cubicSmax, cubicBeta, hysterisisFactor,
+                 demandWeight):
         self.id = id_
         self.serverList = serverList
         self.accessPattern = accessPattern
@@ -21,6 +22,7 @@ class Client():
         self.tokenMonitor = Simulation.Monitor(name="TokenMonitor")
         self.backpressure = backpressure    # True/Flase
         self.shadowReadRatio = shadowReadRatio
+        self.demandWeight = demandWeight
 
         # Book-keeping and metrics to be recorded follow...
 
@@ -316,7 +318,9 @@ class ResponseHandler(Simulation.Process):
         # Does not make sense to record shadow read latencies
         # as a latency measurement
         if (task.latencyMonitor is not None):
-            task.latencyMonitor.observe(Simulation.now() - task.start)
+            task.latencyMonitor.observe("%s %s" %
+                                        (Simulation.now() - task.start,
+                                         client.id))
 
 
 class BackpressureScheduler(Simulation.Process):
@@ -340,12 +344,9 @@ class BackpressureScheduler(Simulation.Process):
             if (len(nonBlockedRgOwners) != 0):
                 rgOwner = max(nonBlockedRgOwners,
                               key=lambda x:
-                              Simulation.now() - self.activeBacklogQueues[x][0][0].start)
-                # lol = []
-                # for each in nonBlockedRgOwners:
-                #     lol.append(Simulation.now() - self.activeBacklogQueues[each][0][0].start)
-                # print lol, len(self.activeBacklogQueues), len(self.waitingBacklogQueues),\
-                #  map(lambda x: len(self.activeBacklogQueues[x]), self.activeBacklogQueues),\
+                              Simulation.now()
+                              - self.activeBacklogQueues[x][0][0].start)
+
                 #  len(self.activeBacklogQueues[rgOwner])
                 backlogQueue = self.activeBacklogQueues[rgOwner]
                 task, replicaSet = backlogQueue[0]
@@ -359,7 +360,8 @@ class BackpressureScheduler(Simulation.Process):
                                                         currentTokens))
                     if (self.client.rateLimiters[replica].tryAcquire()
                        is True):
-                        waitingTime = Simulation.now() - task.start
+                        assert self.client.rateLimiters[replica].tokens >= 1
+                        # waitingTime = Simulation.now() - task.start
                         # if (waitingTime > 0):
                         #     print task.id, waitingTime
                         backlogQueue.pop(0)
@@ -368,17 +370,16 @@ class BackpressureScheduler(Simulation.Process):
                         sent = True
                         self.client.rateLimiters[replica].update()
                         break
+                    else:
+                        assert self.client.rateLimiters[replica].tokens < 1
 
                 if (not sent):
                     # for each in self.client.rateLimiters:
                     #     print self.client.rateLimiters[each].tokens
                     self.waitingBacklogQueues.add(rgOwner)
-                    # print rgOwner, "blocked", task.id, task.start, Simulation.now()
-                    # print 'BP-Congestion', Simulation.now()
                     # yield Simulation.waitevent, self, self.congestionEvent
                     # self.congestionEvent = Simulation.SimEvent("Congestion")
                     # self.waitingBacklogQueues = set()
-                    # print 'BP-CongestionDONE', Simulation.now()
             else:
                 # print "BLO"
                 yield Simulation.waitevent, self, self.backlogReadyEvent

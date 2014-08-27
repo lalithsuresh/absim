@@ -9,6 +9,7 @@ import numpy
 import sys
 import muUpdater
 
+
 def printMonitorTimeSeriesToFile(fileDesc, prefix, monitor):
     for entry in monitor:
         fileDesc.write("%s %s %s\n" % (prefix, entry[0], entry[1]))
@@ -76,6 +77,11 @@ def runExperiment(args):
 
     # Start the clients
     for i in range(args.numClients):
+        demandWeight = 1.0
+        assert args.demandSkew >= 0
+        if(args.demandSkew > 0.0):
+            demandWeight += random.expovariate(1/float(args.demandSkew))
+
         c = client.Client(id_="Client%s" % (i),
                           serverList=servers,
                           replicaSelectionStrategy=args.selectionStrategy,
@@ -87,18 +93,20 @@ def runExperiment(args):
                           cubicC=args.cubicC,
                           cubicSmax=args.cubicSmax,
                           cubicBeta=args.cubicBeta,
-                          hysterisisFactor=args.hysterisisFactor)
+                          hysterisisFactor=args.hysterisisFactor,
+                          demandWeight=demandWeight)
         clients.append(c)
 
     # Start workload generators (analogous to YCSB)
     latencyMonitor = Simulation.Monitor(name="Latency")
 
     for i in range(args.numWorkload):
-        w = workload.Workload(i, latencyMonitor)
-        Simulation.activate(w, w.run(clients,
-                                     args.workloadModel,
-                                     args.workloadParam,
-                                     args.numRequests/args.numWorkload),
+        w = workload.Workload(i, latencyMonitor,
+                              clients,
+                              args.workloadModel,
+                              args.workloadParam,
+                              args.numRequests/args.numWorkload)
+        Simulation.activate(w, w.run(),
                             at=0.0),
         workloadGens.append(w)
 
@@ -151,7 +159,8 @@ def runExperiment(args):
         print "Mean:", serv.queueResource.actMon.mean()
 
     print "------- Latency ------"
-    print "Mean Latency:", latencyMonitor.mean()
+    print "Mean Latency:",\
+      sum([float(entry[1].split()[0]) for entry in latencyMonitor])/float(len(latencyMonitor))
 
     printMonitorTimeSeriesToFile(latencyFD, "0",
                                  latencyMonitor)
@@ -214,9 +223,11 @@ if __name__ == '__main__':
                         type=str, default="logs")
     parser.add_argument('--expScenario', nargs='?',
                         type=str, default="")
-    parser.add_argument('--rangeParam', nargs='?',
-                        type=float, default=0.0)
+    parser.add_argument('--demandSkew', nargs='?',
+                        type=int, default="")
     parser.add_argument('--intervalParam', nargs='?',
+                        type=float, default=0.0)
+    parser.add_argument('--rangeParam', nargs='?',
                         type=float, default=0.0)
     args = parser.parse_args()
 
