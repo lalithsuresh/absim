@@ -70,10 +70,41 @@ def runExperiment(args):
                                  serviceTime=((i + 1) * args.serviceTime),
                                  serviceTimeModel=args.serviceTimeModel)
             servers.append(serv)
-    elif(args.expScenario == "expovariateServiceTimeServers"):
+    elif(args.expScenario == "heterogenousStaticServiceTimeScenario"):
+        baseServiceTime = args.serviceTime
+        serviceRatePerServer = []
+
+        assert args.slowServerFraction >= 0 and args.slowServerFraction < 1.0
+        assert args.slowServerSlowness >= 0 and args.slowServerSlowness < 1.0
+        assert not (args.slowServerSlowness == 0
+                    and args.slowServerFraction != 0)
+        assert not (args.slowServerSlowness != 0
+                    and args.slowServerFraction == 0)
+
+        if(args.slowServerFraction > 0.0):
+            slowServerRate = (1/float(baseServiceTime)) *\
+                args.slowServerSlowness
+            numSlowServers = int(args.slowServerFraction * args.numServers)
+            slowServerRates = [slowServerRate] * numSlowServers
+
+            numFastServers = args.numServers - numSlowServers
+            totalRate = (1/float(args.serviceTime) * args.numServers)
+            fastServerRate = (totalRate - sum(slowServerRates))\
+                / float(numFastServers)
+            fastServerRates = [fastServerRate] * numFastServers
+            serviceRatePerServer = slowServerRates + fastServerRates
+        else:
+            serviceRatePerServer = [1/float(args.serviceTime)] * args.numServers
+        print serviceRatePerServer
+
+        assert sum(serviceRatePerServer) > 0.99 *\
+            (1/float(baseServiceTime)) * args.numServers
+        assert sum(serviceRatePerServer) <=\
+            (1/float(baseServiceTime)) * args.numServers
+
         # Start the servers
         for i in range(args.numServers):
-            st = random.expovariate(1/float(args.serviceTime))
+            st = 1/float(serviceRatePerServer[i])
             serv = server.Server(i,
                                  resourceCapacity=args.serverConcurrency,
                                  serviceTime=st,
@@ -273,6 +304,10 @@ if __name__ == '__main__':
     parser.add_argument('--demandSkew', nargs='?',
                         type=float, default=0)
     parser.add_argument('--highDemandFraction', nargs='?',
+                        type=float, default=0)
+    parser.add_argument('--slowServerFraction', nargs='?',
+                        type=float, default=0)
+    parser.add_argument('--slowServerSlowness', nargs='?',
                         type=float, default=0)
     parser.add_argument('--intervalParam', nargs='?',
                         type=float, default=0.0)
