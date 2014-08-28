@@ -95,13 +95,32 @@ def runExperiment(args):
         print "Unknown experiment scenario"
         sys.exit(-1)
 
+    baseDemandWeight = 1.0
+    clientWeights = []
+    assert args.highDemandFraction >= 0 and args.highDemandFraction < 1.0
+    assert args.demandSkew >= 0 and args.demandSkew < 1.0
+    assert not (args.demandSkew == 0 and args.highDemandFraction != 0)
+    assert not (args.demandSkew != 0 and args.highDemandFraction == 0)
+
+    if(args.highDemandFraction > 0.0 and args.demandSkew >= 0):
+        heavyClientWeight = baseDemandWeight *\
+            args.demandSkew/args.highDemandFraction
+        numHeavyClients = int(args.highDemandFraction * args.numClients)
+        heavyClientWeights = [heavyClientWeight] * numHeavyClients
+
+        lightClientWeight = baseDemandWeight *\
+            (1 - args.demandSkew)/(1 - args.highDemandFraction)
+        numLightClients = args.numClients - numHeavyClients
+        lightClientWeights = [lightClientWeight] * numLightClients
+        clientWeights = heavyClientWeights + lightClientWeights
+    else:
+        clientWeights = [baseDemandWeight] * args.numClients
+    print clientWeights
+    assert sum(clientWeights) > 0.99 * args.numClients
+    assert sum(clientWeights) <= args.numClients
+
     # Start the clients
     for i in range(args.numClients):
-        demandWeight = 1.0
-        assert args.demandSkew >= 0
-        if(args.demandSkew > 0.0):
-            demandWeight += random.expovariate(1/float(args.demandSkew))
-
         c = client.Client(id_="Client%s" % (i),
                           serverList=servers,
                           replicaSelectionStrategy=args.selectionStrategy,
@@ -114,7 +133,7 @@ def runExperiment(args):
                           cubicSmax=args.cubicSmax,
                           cubicBeta=args.cubicBeta,
                           hysterisisFactor=args.hysterisisFactor,
-                          demandWeight=demandWeight)
+                          demandWeight=clientWeights[i])
         clients.append(c)
 
     # Start workload generators (analogous to YCSB)
@@ -252,7 +271,9 @@ if __name__ == '__main__':
     parser.add_argument('--expScenario', nargs='?',
                         type=str, default="")
     parser.add_argument('--demandSkew', nargs='?',
-                        type=int, default=0)
+                        type=float, default=0)
+    parser.add_argument('--highDemandFraction', nargs='?',
+                        type=float, default=0)
     parser.add_argument('--intervalParam', nargs='?',
                         type=float, default=0.0)
     parser.add_argument('--rangeParam', nargs='?',

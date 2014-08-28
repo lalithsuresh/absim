@@ -3,7 +3,7 @@
 cd simulations;
 
 python experiment.py  \
-	--numClients 1 \
+	--numClients 10 \
 	--numServers 2 \
 	--numWorkload 1 \
 	--workloadModel constant \
@@ -24,12 +24,13 @@ python experiment.py  \
 	--numRequests 10000\
 	--logFolder logs\
 	--expScenario base\
-	--demandSkew 0\
+	--demandSkew 0.0\
+	--highDemandFraction 0.0\
 	--intervalParam 500\
 	--rangeParam 10;
 
 python experiment.py  \
- 	--numClients 1 \
+ 	--numClients 10 \
 	--numServers 2 \
 	--numWorkload 1 \
 	--workloadModel constant \
@@ -56,7 +57,8 @@ python experiment.py  \
 	--numRequests 10000\
 	--logFolder logs\
 	--expScenario base\
-	--demandSkew 0\
+	--demandSkew 0.0\
+	--highDemandFraction 0.0\
 	--intervalParam 500\
 	--rangeParam 10;
 
