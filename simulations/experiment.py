@@ -15,6 +15,19 @@ def printMonitorTimeSeriesToFile(fileDesc, prefix, monitor):
         fileDesc.write("%s %s %s\n" % (prefix, entry[0], entry[1]))
 
 
+class WorkloadUpdater(Simulation.Process):
+    def __init__(self, workload, value):
+        self.workload = workload
+        self.value = value
+        Simulation.Process.__init__(self, name='WorkloadUpdater')
+
+    def run(self):
+        while(1):
+            yield Simulation.hold, self, 10.0
+            self.workload.model_param = random.uniform(self.value,
+                                                       self.value * 40)
+
+
 def runExperiment(args):
 
     # Set the random seed
@@ -33,6 +46,13 @@ def runExperiment(args):
     constants.NUMBER_OF_CLIENTS = args.numClients
 
     assert args.expScenario != ""
+
+    # This is where we set the inter-arrival times based on
+    # the required utilization level and the service time
+    # of the overall server pool.
+    arrivalRate = args.numServers *\
+        (args.utilization * (1/float(args.serviceTime)))
+    interArrivalTime = 1/float(arrivalRate)
 
     if (args.expScenario == "base"):
         # Start the servers
@@ -104,10 +124,13 @@ def runExperiment(args):
         w = workload.Workload(i, latencyMonitor,
                               clients,
                               args.workloadModel,
-                              args.workloadParam,
+                              interArrivalTime,
                               args.numRequests/args.numWorkload)
         Simulation.activate(w, w.run(),
                             at=0.0),
+        # updater = WorkloadUpdater(w, 0.2818181818)
+        # Simulation.activate(updater, updater.run(),
+        #                     at=10000.0),
         workloadGens.append(w)
 
     # Begin simulation
@@ -186,8 +209,8 @@ if __name__ == '__main__':
                         type=float, default=1)
     parser.add_argument('--workloadModel', nargs='?',
                         type=str, default="constant")
-    parser.add_argument('--workloadParam', nargs='?',
-                        type=float, default=1)
+    parser.add_argument('--utilization', nargs='?',
+                        type=float, default=0.90)
     parser.add_argument('--serviceTimeModel', nargs='?',
                         type=str, default="constant")
     parser.add_argument('--replicationFactor', nargs='?',
@@ -229,7 +252,7 @@ if __name__ == '__main__':
     parser.add_argument('--expScenario', nargs='?',
                         type=str, default="")
     parser.add_argument('--demandSkew', nargs='?',
-                        type=int, default="")
+                        type=int, default=0)
     parser.add_argument('--intervalParam', nargs='?',
                         type=float, default=0.0)
     parser.add_argument('--rangeParam', nargs='?',

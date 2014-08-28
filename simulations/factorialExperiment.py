@@ -80,7 +80,7 @@ def runExperiment(args):
         demandWeight = 1.0
         assert args.demandSkew >= 0
         if(args.demandSkew > 0.0):
-          demandWeight += random.expovariate(1/float(args.demandSkew))
+            demandWeight += random.expovariate(1/float(args.demandSkew))
 
         c = client.Client(id_="Client%s" % (i),
                           serverList=servers,
@@ -116,51 +116,56 @@ def runExperiment(args):
     #
     # Print a bunch of timeseries
     #
-    pendingRequestsFD = open("../%s/%s_PendingRequests" %
-                             (args.logFolder,
-                              args.expPrefix), 'w')
-    waitMonFD = open("../%s/%s_WaitMon" % (args.logFolder,
-                                           args.expPrefix), 'w')
-    actMonFD = open("../%s/%s_ActMon" % (args.logFolder,
-                                         args.expPrefix), 'w')
+    # pendingRequestsFD = open("../%s/%s_PendingRequests" %
+    #                          (args.logFolder,
+    #                           args.expPrefix), 'w')
+    # waitMonFD = open("../%s/%s_WaitMon" % (args.logFolder,
+    #                                        args.expPrefix), 'w')
+    # actMonFD = open("../%s/%s_ActMon" % (args.logFolder,
+    #                                      args.expPrefix), 'w')
     latencyFD = open("../%s/%s_Latency" % (args.logFolder,
                                            args.expPrefix), 'w')
-    latencyTrackerFD = open("../%s/%s_LatencyTracker" %
-                            (args.logFolder, args.expPrefix), 'w')
-    rateFD = open("../%s/%s_Rate" % (args.logFolder,
-                                     args.expPrefix), 'w')
-    tokenFD = open("../%s/%s_Tokens" % (args.logFolder,
-                                        args.expPrefix), 'w')
+    # latencyTrackerFD = open("../%s/%s_LatencyTracker" %
+    #                         (args.logFolder, args.expPrefix), 'w')
+    # rateFD = open("../%s/%s_Rate" % (args.logFolder,
+    #                                  args.expPrefix), 'w')
+    # tokenFD = open("../%s/%s_Tokens" % (args.logFolder,
+    #                                     args.expPrefix), 'w')
+    # receiveRateFD = open("../%s/%s_ReceiveRate" % (args.logFolder,
+    #                                                args.expPrefix), 'w')
 
-    for clientNode in clients:
-        printMonitorTimeSeriesToFile(pendingRequestsFD,
-                                     clientNode.id,
-                                     clientNode.pendingRequestsMonitor)
-        printMonitorTimeSeriesToFile(latencyTrackerFD,
-                                     clientNode.id,
-                                     clientNode.latencyTrackerMonitor)
-        printMonitorTimeSeriesToFile(rateFD,
-                                     clientNode.id,
-                                     clientNode.rateMonitor)
-        printMonitorTimeSeriesToFile(tokenFD,
-                                     clientNode.id,
-                                     clientNode.tokenMonitor)
-    for serv in servers:
-        printMonitorTimeSeriesToFile(waitMonFD,
-                                     serv.id,
-                                     serv.queueResource.waitMon)
-        printMonitorTimeSeriesToFile(actMonFD,
-                                     serv.id,
-                                     serv.queueResource.actMon)
-        print "------- Server:%s %s ------" % (serv.id, "WaitMon")
-        print "Mean:", serv.queueResource.waitMon.mean()
+    # for clientNode in clients:
+    #     printMonitorTimeSeriesToFile(pendingRequestsFD,
+    #                                  clientNode.id,
+    #                                  clientNode.pendingRequestsMonitor)
+    #     printMonitorTimeSeriesToFile(latencyTrackerFD,
+    #                                  clientNode.id,
+    #                                  clientNode.latencyTrackerMonitor)
+    #     printMonitorTimeSeriesToFile(rateFD,
+    #                                  clientNode.id,
+    #                                  clientNode.rateMonitor)
+    #     printMonitorTimeSeriesToFile(tokenFD,
+    #                                  clientNode.id,
+    #                                  clientNode.tokenMonitor)
+    #     printMonitorTimeSeriesToFile(receiveRateFD,
+    #                                  clientNode.id,
+    #                                  clientNode.receiveRateMonitor)
+    # for serv in servers:
+    #     printMonitorTimeSeriesToFile(waitMonFD,
+    #                                  serv.id,
+    #                                  serv.queueResource.waitMon)
+    #     printMonitorTimeSeriesToFile(actMonFD,
+    #                                  serv.id,
+    #                                  serv.queueResource.actMon)
+    #     print "------- Server:%s %s ------" % (serv.id, "WaitMon")
+    #     print "Mean:", serv.queueResource.waitMon.mean()
 
-        print "------- Server:%s %s ------" % (serv.id, "ActMon")
-        print "Mean:", serv.queueResource.actMon.mean()
+    #     print "------- Server:%s %s ------" % (serv.id, "ActMon")
+    #     print "Mean:", serv.queueResource.actMon.mean()
 
-    print "------- Latency ------"
-    print "Mean Latency:",\
-      sum([float(entry[1].split()[0]) for entry in latencyMonitor])/float(len(latencyMonitor))
+    # print "------- Latency ------"
+    # print "Mean Latency:",\
+    #   sum([float(entry[1].split()[0]) for entry in latencyMonitor])/float(len(latencyMonitor))
 
     printMonitorTimeSeriesToFile(latencyFD, "0",
                                  latencyMonitor)
@@ -224,7 +229,7 @@ if __name__ == '__main__':
     parser.add_argument('--expScenario', nargs='?',
                         type=str, default="")
     parser.add_argument('--demandSkew', nargs='?',
-                        type=int, default="")
+                        type=int, default=0)
     parser.add_argument('--intervalParam', nargs='?',
                         type=float, default=0.0)
     parser.add_argument('--rangeParam', nargs='?',

@@ -350,7 +350,6 @@ class BackpressureScheduler(Simulation.Process):
                               key=lambda x:
                               Simulation.now()
                               - self.activeBacklogQueues[x][0][0].start)
-
                 #  len(self.activeBacklogQueues[rgOwner])
                 backlogQueue = self.activeBacklogQueues[rgOwner]
                 task, replicaSet = backlogQueue[0]
@@ -375,6 +374,7 @@ class BackpressureScheduler(Simulation.Process):
                         self.client.rateLimiters[replica].update()
                         break
                     else:
+                        # print 'lol', Simulation.now()
                         assert self.client.rateLimiters[replica].tokens < 1
 
                 if (not sent):

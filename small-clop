@@ -3,14 +3,14 @@
 cd simulations;
 
 python experiment.py  \
-	--numClients 2 \
+	--numClients 1 \
 	--numServers 2 \
 	--numWorkload 1 \
 	--workloadModel constant \
 	--serverConcurrency 1 \
 	--serviceTime 4.00\
-	--workloadParam 2.1 \
-	--serviceTimeModel math.sin \
+	--utilization 0.90 \
+	--serviceTimeModel constant \
 	--replicationFactor 3 \
 	--selectionStrategy pending \
 	--shadowReadRatio 0.0 \
@@ -20,23 +20,23 @@ python experiment.py  \
 	--nwLatencySigma 0.0 \
 	--expPrefix oracle\
 	--simulationDuration 100000\
-	--seed 434\
+	--seed 433\
 	--numRequests 10000\
 	--logFolder logs\
 	--expScenario base\
 	--demandSkew 0\
-	--intervalParam 50000\
-	--rangeParam 20;
+	--intervalParam 500\
+	--rangeParam 10;
 
 python experiment.py  \
- 	--numClients 2 \
+ 	--numClients 1 \
 	--numServers 2 \
 	--numWorkload 1 \
 	--workloadModel constant \
 	--serverConcurrency 1 \
 	--serviceTime 4.00 \
-	--workloadParam 2.1 \
-	--serviceTimeModel math.sin \
+	--utilization 0.90 \
+	--serviceTimeModel constant \
 	--replicationFactor 3 \
 	--backpressure \
 	--rateInterval 20\
@@ -52,13 +52,13 @@ python experiment.py  \
 	--nwLatencySigma 0.0 \
 	--expPrefix expDelay \
 	--simulationDuration 100000 \
-	--seed 434 \
+	--seed 433 \
 	--numRequests 10000\
 	--logFolder logs\
 	--expScenario base\
 	--demandSkew 0\
-	--intervalParam 50000\
-	--rangeParam 20;
+	--intervalParam 500\
+	--rangeParam 10;
 
 
 cd ..
