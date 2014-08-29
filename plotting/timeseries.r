@@ -12,8 +12,8 @@ colnames(latency)[3] <- "Latency"
 colnames(latency)[4] <- "ClientId"
 
 # latency <- latency[10:NROW(latency),]
-latency <- latency[latency$Timestamp > 200,]
-print(summary(latency[latency$Timestamp > 200,]))
+latency <- latency[latency$Timestamp > 2000,]
+print(summary(latency[latency$Timestamp > 2000,]))
 latency.dt <- data.table(latency)
 lat50.by.client <- latency.dt[,quantile(Latency,c(0.50)),by=list(ClientId)]
 lat95.by.client <- latency.dt[,quantile(Latency,c(0.95)),by=list(ClientId)]

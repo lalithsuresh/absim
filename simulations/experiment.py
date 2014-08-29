@@ -47,13 +47,7 @@ def runExperiment(args):
 
     assert args.expScenario != ""
 
-    # This is where we set the inter-arrival times based on
-    # the required utilization level and the service time
-    # of the overall server pool.
-    arrivalRate = args.numServers *\
-        (args.utilization * (1/float(args.serviceTime)))
-    interArrivalTime = 1/float(arrivalRate)
-
+    serviceRatePerServer = []
     if (args.expScenario == "base"):
         # Start the servers
         for i in range(args.numServers):
@@ -72,7 +66,6 @@ def runExperiment(args):
             servers.append(serv)
     elif(args.expScenario == "heterogenousStaticServiceTimeScenario"):
         baseServiceTime = args.serviceTime
-        serviceRatePerServer = []
 
         assert args.slowServerFraction >= 0 and args.slowServerFraction < 1.0
         assert args.slowServerSlowness >= 0 and args.slowServerSlowness < 1.0
@@ -95,12 +88,13 @@ def runExperiment(args):
             serviceRatePerServer = slowServerRates + fastServerRates
         else:
             serviceRatePerServer = [1/float(args.serviceTime)] * args.numServers
-        print serviceRatePerServer
 
+        random.shuffle(serviceRatePerServer)
+        # print sum(serviceRatePerServer), (1/float(baseServiceTime)) * args.numServers
         assert sum(serviceRatePerServer) > 0.99 *\
             (1/float(baseServiceTime)) * args.numServers
-        assert sum(serviceRatePerServer) <=\
-            (1/float(baseServiceTime)) * args.numServers
+        # assert sum(serviceRatePerServer) <=\
+        #     (1/float(baseServiceTime)) * args.numServers
 
         # Start the servers
         for i in range(args.numServers):
@@ -111,15 +105,18 @@ def runExperiment(args):
                                  serviceTimeModel=args.serviceTimeModel)
             servers.append(serv)
     elif(args.expScenario == "timeVaryingServiceTimeServers"):
+        assert args.intervalParam != 0.0
+        assert args.timeVaryingDrift != 0.0
+
         # Start the servers
         for i in range(args.numServers):
             serv = server.Server(i,
                                  resourceCapacity=args.serverConcurrency,
                                  serviceTime=(args.serviceTime),
                                  serviceTimeModel=args.serviceTimeModel)
-            mup = muUpdater.MuUpdater(serv, args.serviceTime,
-                                      args.intervalParam,
-                                      args.rangeParam)
+            mup = muUpdater.MuUpdater(serv, args.intervalParam,
+                                      args.serviceTime,
+                                      args.timeVaryingDrift)
             Simulation.activate(mup, mup.run(), at=0.0)
             servers.append(serv)
     else:
@@ -146,7 +143,7 @@ def runExperiment(args):
         clientWeights = heavyClientWeights + lightClientWeights
     else:
         clientWeights = [baseDemandWeight] * args.numClients
-    print clientWeights
+
     assert sum(clientWeights) > 0.99 * args.numClients
     assert sum(clientWeights) <= args.numClients
 
@@ -169,6 +166,19 @@ def runExperiment(args):
 
     # Start workload generators (analogous to YCSB)
     latencyMonitor = Simulation.Monitor(name="Latency")
+
+    # This is where we set the inter-arrival times based on
+    # the required utilization level and the service time
+    # of the overall server pool.
+    arrivalRate = 0
+    interArrivalTime = 0
+    if (len(serviceRatePerServer) > 0):
+        print serviceRatePerServer
+        arrivalRate = (args.utilization * sum(serviceRatePerServer))
+        interArrivalTime = 1/float(arrivalRate)
+    else:
+        arrivalRate = args.numServers * (args.utilization * 1/float(args.serviceTime))
+        interArrivalTime = 1/float(arrivalRate)
 
     for i in range(args.numWorkload):
         w = workload.Workload(i, latencyMonitor,
@@ -311,7 +321,7 @@ if __name__ == '__main__':
                         type=float, default=0)
     parser.add_argument('--intervalParam', nargs='?',
                         type=float, default=0.0)
-    parser.add_argument('--rangeParam', nargs='?',
+    parser.add_argument('--timeVaryingDrift', nargs='?',
                         type=float, default=0.0)
     args = parser.parse_args()
 

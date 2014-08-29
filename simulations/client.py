@@ -84,7 +84,7 @@ class Client():
         if (self.accessPattern == "uniform"):
             firstReplicaIndex = random.randint(0, len(self.serverList) - 1)
         elif(self.accessPattern == "zipfian"):
-            firstReplicaIndex = numpy.random.zipf(2) % len(self.serverList)
+            firstReplicaIndex = numpy.random.zipf(1.5) % len(self.serverList)
 
         replicaSet = [self.serverList[i % len(self.serverList)]
                       for i in range(firstReplicaIndex,
@@ -146,6 +146,25 @@ class Client():
         elif(self.REPLICA_SELECTION_STRATEGY == "response_time"):
             # Sort by response times
             replicaSet.sort(key=self.responseTimesMap.get)
+        elif(self.REPLICA_SELECTION_STRATEGY == "weighted_response_time"):
+            # Weighted random proportional to response times
+            replicaSet.sort(key=self.responseTimesMap.get)
+            total = sum(map(lambda x: self.responseTimesMap[x], replicaSet))
+            selection = random.uniform(0, total)
+            cumSum = 0
+            nodeToSelect = None
+            i = 0
+            if (total != 0):
+                for entry in replicaSet:
+                    cumSum += self.responseTimesMap[entry]
+                    if (selection < cumSum):
+                        nodeToSelect = entry
+                        break
+                    i += 1
+                assert nodeToSelect is not None
+
+                # Swap i'th element
+                replicaSet[0], replicaSet[i] = replicaSet[i], replicaSet[0]
         elif(self.REPLICA_SELECTION_STRATEGY == "primary"):
             pass
         elif(self.REPLICA_SELECTION_STRATEGY == "pendingXserviceTime"):
@@ -211,10 +230,10 @@ class Client():
                 * self.expectedDelayMap[replica][metric]
 
     def updateRates(self, replica, metricMap, task):
-        shuffledNodeList = self.serverList[0:]
-        random.shuffle(shuffledNodeList)
-        for node in shuffledNodeList:
-            self.backpressureScheduler.promoteWaitingQueues()
+        # shuffledNodeList = self.serverList[0:]
+        # random.shuffle(shuffledNodeList)
+        # for node in shuffledNodeList:
+        self.backpressureScheduler.promoteWaitingQueues()
 
         # Cubic Parameters go here
         # beta = 0.2
@@ -341,7 +360,15 @@ class BackpressureScheduler(Simulation.Process):
     def run(self):
         while(1):
             yield Simulation.hold, self,
-            nonBlockedRgOwners = [n for n in self.activeBacklogQueues
+
+            # The below sort + shuffle is necessary for keeping the simulation
+            # deterministic. Else, the ordering is dependent on memory
+            # addresses,  which leads to different results for the same seed.
+            sortedActiveBacklogQ = \
+                sorted(self.activeBacklogQueues, key=lambda x: x.id)
+            random.shuffle(sortedActiveBacklogQ)
+
+            nonBlockedRgOwners = [n for n in sortedActiveBacklogQ
                                   if n not in self.waitingBacklogQueues
                                   and len(self.activeBacklogQueues[n]) > 0]
 
@@ -420,8 +447,8 @@ class RateLimiter(Simulation.Process):
                 yield Simulation.hold, self, \
                     self.rateInterval * 1/float(self.rate)
                 self.tokens += 1
-                shuffledNodeList = self.client.serverList[0:]
-                random.shuffle(shuffledNodeList)
+                # shuffledNodeList = self.client.serverList[0:]
+                # random.shuffle(shuffledNodeList)
                 self.client.backpressureScheduler.promoteWaitingQueues()
 
     # These updates can be forced due to shadowReads

@@ -4,13 +4,13 @@ cd simulations;
 
 python experiment.py  \
 	--numClients 2 \
-	--numServers 2 \
+	--numServers 10 \
 	--numWorkload 1 \
-	--workloadModel constant \
+	--workloadModel poisson \
 	--serverConcurrency 1 \
 	--serviceTime 4.00\
-	--utilization 0.90 \
-	--serviceTimeModel constant \
+	--utilization 0.85 \
+	--serviceTimeModel random.expovariate \
 	--replicationFactor 3 \
 	--selectionStrategy pending \
 	--shadowReadRatio 0.0 \
@@ -20,26 +20,26 @@ python experiment.py  \
 	--nwLatencySigma 0.0 \
 	--expPrefix oracle\
 	--simulationDuration 100000\
-	--seed 433\
+	--seed 2\
 	--numRequests 10000\
 	--logFolder logs\
-	--expScenario heterogenousStaticServiceTimeScenario\
+	--expScenario base\
 	--demandSkew 0.0\
 	--highDemandFraction 0.0\
-	--slowServerFraction 0.5\
-	--slowServerSlowness 0.5\
+	--slowServerFraction 0.0\
+	--slowServerSlowness 0.0\
 	--intervalParam 500\
-	--rangeParam 10;
+	--timeVaryingDrift 10;
 
 python experiment.py  \
  	--numClients 2 \
-	--numServers 2 \
+	--numServers 10 \
 	--numWorkload 1 \
-	--workloadModel constant \
+	--workloadModel poisson \
 	--serverConcurrency 1 \
 	--serviceTime 4.00 \
-	--utilization 0.90 \
-	--serviceTimeModel constant \
+	--utilization 0.85 \
+	--serviceTimeModel random.expovariate \
 	--replicationFactor 3 \
 	--backpressure \
 	--rateInterval 20\
@@ -55,16 +55,16 @@ python experiment.py  \
 	--nwLatencySigma 0.0 \
 	--expPrefix expDelay \
 	--simulationDuration 100000 \
-	--seed 433 \
+	--seed 2 \
 	--numRequests 10000\
 	--logFolder logs\
-	--expScenario heterogenousStaticServiceTimeScenario\
-	--demandSkew 0.0\
+	--expScenario base\
+	--demandSkew 0\
 	--highDemandFraction 0.0\
-	--slowServerFraction 0.5\
-	--slowServerSlowness 0.5\
+	--slowServerFraction 0.0\
+	--slowServerSlowness 0.0\
 	--intervalParam 500\
-	--rangeParam 10;
+	--timeVaryingDrift 10;
 
 
 cd ..

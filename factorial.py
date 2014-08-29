@@ -5,13 +5,13 @@ import sys
 
 uniqId = sys.argv[1]
 
-numClients = [5, 10, 20, 30]
+numClients = [20, 30]
 numServers = [10]
 numWorkload = [1]
 workloadModel = ["poisson"]
 serverConcurrency = [1]
 serviceTime = [4]
-workloadParam = [0.9818181818]
+utilization = [0.4, 0.45]
 serviceTimeModel = ["random.expovariate"]
 replicationFactor = [3]
 rateInterval = [20]
@@ -20,18 +20,32 @@ cubicSmax = [10]
 cubicBeta = [0.2]
 hysterisisFactor = [2]
 shadowReadRatio = [0.0]
-accessPattern = ["uniform", "zipfian"]
+accessPattern = ["zipfian"]
 nwLatencyBase = [0.0, 2.0]
 nwLatencyMu = [0]
 nwLatencySigma = [0]
 simulationDuration = [100000]
 seed = [int(uniqId)]
-numRequests = [10000]
-expScenario = ["expovariateServiceTimeServers"]
-demandSkew = [0, 50, 100]
-intervalParam = [10]
-rangeParam = [20]
+numRequests = [20000]
+expScenario = ["heterogenousStaticServiceTimeScenario"]
+# expScenario = ["timeVaryingServiceTimeServers"]
+demandSkew = [0.0]
+highDemandFraction = [0.0]
+slowServerFraction = [0.3]
+slowServerSlowness = [0.8]
+intervalParam = [0]
+timeVaryingDrift = [0]
+# slowServerFraction = [0]
+# slowServerSlowness = [0]
+# intervalParam = [50, 100, 500]
+# timeVaryingDrift = [1, 5, 10]
 
+
+# logFolder = "timeVaryingSweep" + uniqId
+logFolder = "postSyncHetero" + uniqId
+
+if not os.path.exists(logFolder):
+        os.makedirs(logFolder)
 
 LIST = [numClients,
         numServers,
@@ -39,7 +53,7 @@ LIST = [numClients,
         workloadModel,
         serverConcurrency,
         serviceTime,
-        workloadParam,
+        utilization,
         serviceTimeModel,
         replicationFactor,
         rateInterval,
@@ -57,8 +71,11 @@ LIST = [numClients,
         numRequests,
         expScenario,
         demandSkew,
+        highDemandFraction,
+        slowServerFraction,
+        slowServerSlowness,
         intervalParam,
-        rangeParam,
+        timeVaryingDrift,
         ]
 PARAM_COMBINATIONS = list(itertools.product(*LIST))
 
@@ -69,7 +86,7 @@ basePath = os.getcwd()
 for combination in PARAM_COMBINATIONS:
         numClients, numServers, numWorkload, \
             workloadModel, serverConcurrency, \
-            serviceTime, workloadParam, \
+            serviceTime, utilization, \
             serviceTimeModel, replicationFactor, \
             rateInterval, cubicC, cubicSmax, \
             cubicBeta, hysterisisFactor, shadowReadRatio, \
@@ -77,12 +94,10 @@ for combination in PARAM_COMBINATIONS:
             nwLatencyMu, nwLatencySigma, \
             simulationDuration, seed, \
             numRequests, expScenario, \
-            demandSkew, intervalParam, \
-            rangeParam, = combination
-
-        logFolder = "timeVaryingSweep" + uniqId
-        if not os.path.exists(logFolder):
-                os.makedirs(logFolder)
+            demandSkew, highDemandFraction, \
+            slowServerFraction, \
+            slowServerSlowness, intervalParam, \
+            timeVaryingDrift, = combination
 
         os.chdir(basePath + "/simulations")
         cmd = "python factorialExperiment.py  \
@@ -92,7 +107,7 @@ for combination in PARAM_COMBINATIONS:
                 --workloadModel %s\
                 --serverConcurrency %s\
                 --serviceTime %s\
-                --workloadParam %s\
+                --utilization %s\
                 --serviceTimeModel %s\
                 --replicationFactor %s\
                 --selectionStrategy pending\
@@ -107,8 +122,11 @@ for combination in PARAM_COMBINATIONS:
                 --numRequests %s\
                 --expScenario %s\
                 --demandSkew %s\
+                --highDemandFraction %s\
+                --slowServerFraction %s\
+                --slowServerSlowness %s\
                 --intervalParam %s\
-                --rangeParam %s\
+                --timeVaryingDrift %s\
                 --logFolder %s"\
                     % (numClients,
                        numServers,
@@ -116,7 +134,7 @@ for combination in PARAM_COMBINATIONS:
                        workloadModel,
                        serverConcurrency,
                        serviceTime,
-                       workloadParam,
+                       utilization,
                        serviceTimeModel,
                        replicationFactor,
                        shadowReadRatio,
@@ -129,8 +147,11 @@ for combination in PARAM_COMBINATIONS:
                        numRequests,
                        expScenario,
                        demandSkew,
+                       highDemandFraction,
+                       slowServerFraction,
+                       slowServerSlowness,
                        intervalParam,
-                       rangeParam,
+                       timeVaryingDrift,
                        logFolder)
         proc = subprocess.Popen(cmd.split(),
                                 stdin=subprocess.PIPE,
@@ -168,7 +189,7 @@ for combination in PARAM_COMBINATIONS:
                 --workloadModel %s\
                 --serverConcurrency %s\
                 --serviceTime %s\
-                --workloadParam %s\
+                --utilization %s\
                 --serviceTimeModel %s\
                 --replicationFactor %s\
                 --selectionStrategy expDelay \
@@ -189,8 +210,11 @@ for combination in PARAM_COMBINATIONS:
                 --numRequests %s\
                 --expScenario %s\
                 --demandSkew %s\
+                --highDemandFraction %s\
+                --slowServerFraction %s\
+                --slowServerSlowness %s\
                 --intervalParam %s\
-                --rangeParam %s\
+                --timeVaryingDrift %s\
                 --logFolder %s"\
                   % (numClients,
                      numServers,
@@ -198,7 +222,7 @@ for combination in PARAM_COMBINATIONS:
                      workloadModel,
                      serverConcurrency,
                      serviceTime,
-                     workloadParam,
+                     utilization,
                      serviceTimeModel,
                      replicationFactor,
                      shadowReadRatio,
@@ -216,8 +240,11 @@ for combination in PARAM_COMBINATIONS:
                      numRequests,
                      expScenario,
                      demandSkew,
+                     highDemandFraction,
+                     slowServerFraction,
+                     slowServerSlowness,
                      intervalParam,
-                     rangeParam,
+                     timeVaryingDrift,
                      logFolder)
         proc = subprocess.Popen(cmd.split(),
                                 stdin=subprocess.PIPE,

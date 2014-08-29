@@ -1,22 +1,24 @@
 import SimPy.Simulation as Simulation
-import numpy
 import random
 
 
 class MuUpdater(Simulation.Process):
 
-    def __init__(self, server, serviceTimeBase, intervalParam, rangeParam):
+    def __init__(self, server, intervalParam, serviceTime, rateChangeFactor):
         self.server = server
-        self.serviceTimeBase = serviceTimeBase
         self.intervalParam = intervalParam
-        self.rangeParam = rangeParam
+        self.serviceTime = serviceTime
+        self.rateChangeFactor = rateChangeFactor
         Simulation.Process.__init__(self, name='MuUpdater')
 
     def run(self):
         while(1):
             yield Simulation.hold, self, self.intervalParam
-            st = numpy.random.pareto(2, 1) + self.serviceTimeBase
-            self.server.serviceTime = min(st[0], 80)
-            # self.server.serviceTime = \
-            #     random.uniform(self.serviceTimeBase,
-            #                    self.serviceTimeBase + self.rangeParam)
+
+            # if (random.uniform(0, 1.0) >= 0.5):
+            #     rate = 1/float(self.serviceTime)
+            #     self.server.serviceTime = 1/float(rate)
+            # else:
+            #     rate = 1/float(self.serviceTime)
+            #     rate += self.rateChangeFactor * rate
+            #     self.server.serviceTime = 1/float(rate)
