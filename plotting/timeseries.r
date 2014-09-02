@@ -12,8 +12,8 @@ colnames(latency)[3] <- "Latency"
 colnames(latency)[4] <- "ClientId"
 
 # latency <- latency[10:NROW(latency),]
-latency <- latency[latency$Timestamp > 2000,]
-print(summary(latency[latency$Timestamp > 2000,]))
+latency <- latency[latency$Timestamp > 1000,]
+print(summary(latency[latency$Timestamp > 1000,]))
 latency.dt <- data.table(latency)
 lat50.by.client <- latency.dt[,quantile(Latency,c(0.50)),by=list(ClientId)]
 lat95.by.client <- latency.dt[,quantile(Latency,c(0.95)),by=list(ClientId)]
@@ -97,7 +97,7 @@ ggsave(p1, file=paste(prefix, "_latency.samples.pdf", sep=""), width=15)
 # colnames(rate)[3] <- "ServerId"
 # colnames(rate)[4] <- "Rate"
 
-
+# rate <- rate[rate$ClientId == "Client1",]
 # p1 <- ggplot(rate) + 
 # 	  geom_line(aes(y=Rate, x=Timestamp, colour=ClientId), size=1) + 
 # 	  geom_point(aes(y=Rate, x=Timestamp, colour=ClientId), size=2) + 
@@ -115,6 +115,7 @@ ggsave(p1, file=paste(prefix, "_latency.samples.pdf", sep=""), width=15)
 # colnames(rate)[3] <- "ServerId"
 # colnames(rate)[4] <- "Rate"
 
+# rate <- rate[rate$ClientId == "Client1",]
 
 # p1 <- ggplot(rate) + 
 # 	  geom_line(aes(y=Rate, x=Timestamp, colour=ClientId), size=1) + 

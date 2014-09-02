@@ -148,7 +148,13 @@ class Client():
             replicaSet.sort(key=self.responseTimesMap.get)
         elif(self.REPLICA_SELECTION_STRATEGY == "weighted_response_time"):
             # Weighted random proportional to response times
-            replicaSet.sort(key=self.responseTimesMap.get)
+            m = {}
+            for each in replicaSet:
+                if ("serviceTime" not in self.expectedDelayMap[each]):
+                    m[each] = 0.0
+                else:
+                    m[each] = self.expectedDelayMap[each]["serviceTime"]
+            replicaSet.sort(key=m.get)
             total = sum(map(lambda x: self.responseTimesMap[x], replicaSet))
             selection = random.uniform(0, total)
             cumSum = 0
@@ -197,7 +203,7 @@ class Client():
             total += (twiceNetworkLatency +
                       ((1 + self.pendingRequestsMap[replica]
                         * constants.NUMBER_OF_CLIENTS
-                        + metricMap["queueSizeAfter"])) ** 4
+                        + metricMap["queueSizeAfter"])) ** 3
                       * metricMap["serviceTime"])
         else:
             if (len(self.outstandingRequests) != 0):
@@ -446,7 +452,7 @@ class RateLimiter(Simulation.Process):
             else:
                 yield Simulation.hold, self, \
                     self.rateInterval * 1/float(self.rate)
-                self.tokens += 1
+                # self.tokens += 1
                 # shuffledNodeList = self.client.serverList[0:]
                 # random.shuffle(shuffledNodeList)
                 self.client.backpressureScheduler.promoteWaitingQueues()

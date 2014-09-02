@@ -15,10 +15,10 @@ class MuUpdater(Simulation.Process):
         while(1):
             yield Simulation.hold, self, self.intervalParam
 
-            # if (random.uniform(0, 1.0) >= 0.5):
-            #     rate = 1/float(self.serviceTime)
-            #     self.server.serviceTime = 1/float(rate)
-            # else:
-            #     rate = 1/float(self.serviceTime)
-            #     rate += self.rateChangeFactor * rate
-            #     self.server.serviceTime = 1/float(rate)
+            if (random.uniform(0, 1.0) >= 0.5):
+                rate = 1/float(self.serviceTime)
+                self.server.serviceTime = 1/float(rate)
+            else:
+                rate = 1/float(self.serviceTime)
+                rate += self.rateChangeFactor * rate
+                self.server.serviceTime = 1/float(rate)
