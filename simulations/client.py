@@ -49,7 +49,7 @@ class Client():
 
         # Rate limiters per replica
         self.rateLimiters = {node: RateLimiter("RL-%s" % node.id,
-                                               self, 10, rateInterval)
+                                               self, 20, rateInterval)
                              for node in serverList}
         self.lastRateDecrease = {node: 0 for node in serverList}
         self.valueOfLastDecrease = {node: 10 for node in serverList}
@@ -433,7 +433,7 @@ class BackpressureScheduler(Simulation.Process):
 class RateLimiter(Simulation.Process):
     def __init__(self, id_, client, maxTokens, rateInterval):
         self.id = id_
-        self.rate = 1
+        self.rate = 5
         self.lastSent = 0
         self.client = client
         self.tokens = 0

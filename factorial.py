@@ -12,9 +12,10 @@ workloadModel = ["poisson"]
 serverConcurrency = [1]
 serviceTime = [4]
 # utilization = [0.4, 0.45]
-utilization = [0.8, 0.85]
+utilization = [0.90]
 serviceTimeModel = ["random.expovariate"]
 replicationFactor = [3]
+selectionStrategy = ["expDelay", "pending", "pendingXserviceTimeOracle"]
 rateInterval = [20]
 cubicC = [0.000004]
 cubicSmax = [10]
@@ -28,22 +29,22 @@ nwLatencySigma = [0]
 simulationDuration = [100000]
 seed = [int(uniqId)]
 numRequests = [20000]
-expScenario = ["heterogenousStaticServiceTimeScenario"]
-# expScenario = ["timeVaryingServiceTimeServers"]
+# expScenario = ["heterogenousStaticServiceTimeScenario"]
+expScenario = ["timeVaryingServiceTimeServers"]
 demandSkew = [0.0]
 highDemandFraction = [0.0]
-slowServerFraction = [0.3, 0.5, 0.7]
-slowServerSlowness = [0.8, 0.5, 0.3]
-intervalParam = [0]
-timeVaryingDrift = [0]
-# slowServerFraction = [0]
-# slowServerSlowness = [0]
-# intervalParam = [50, 100, 500]
-# timeVaryingDrift = [1, 5, 10]
+# slowServerFraction = [0.3, 0.5, 0.7]
+# slowServerSlowness = [0.8, 0.5, 0.3]
+# intervalParam = [0]
+# timeVaryingDrift = [0]
+slowServerFraction = [0]
+slowServerSlowness = [0]
+intervalParam = [10, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500]
+timeVaryingDrift = [1, 5, 10]
 
 
-# logFolder = "timeVaryingSweep" + uniqId
-logFolder = "postSyncHetero" + uniqId
+logFolder = "paperTvSweep" + uniqId
+# logFolder = "postSyncHetero" + uniqId
 
 if not os.path.exists(logFolder):
         os.makedirs(logFolder)
@@ -57,6 +58,7 @@ LIST = [numClients,
         utilization,
         serviceTimeModel,
         replicationFactor,
+        selectionStrategy,
         rateInterval,
         cubicC,
         cubicSmax,
@@ -88,7 +90,7 @@ for combination in PARAM_COMBINATIONS:
         numClients, numServers, numWorkload, \
             workloadModel, serverConcurrency, \
             serviceTime, utilization, \
-            serviceTimeModel, replicationFactor, \
+            serviceTimeModel, replicationFactor, selectionStrategy, \
             rateInterval, cubicC, cubicSmax, \
             cubicBeta, hysterisisFactor, shadowReadRatio, \
             accessPattern, nwLatencyBase, \
@@ -101,88 +103,10 @@ for combination in PARAM_COMBINATIONS:
             timeVaryingDrift, = combination
 
         os.chdir(basePath + "/simulations")
-        cmd = "python factorialExperiment.py  \
-                --numClients %s\
-                --numServers %s\
-                --numWorkload %s\
-                --workloadModel %s\
-                --serverConcurrency %s\
-                --serviceTime %s\
-                --utilization %s\
-                --serviceTimeModel %s\
-                --replicationFactor %s\
-                --selectionStrategy pending\
-                --shadowReadRatio %s\
-                --accessPattern %s\
-                --nwLatencyBase %s\
-                --nwLatencyMu %s\
-                --nwLatencySigma %s\
-                --expPrefix pending\
-                --simulationDuration %s\
-                --seed %s\
-                --numRequests %s\
-                --expScenario %s\
-                --demandSkew %s\
-                --highDemandFraction %s\
-                --slowServerFraction %s\
-                --slowServerSlowness %s\
-                --intervalParam %s\
-                --timeVaryingDrift %s\
-                --logFolder %s"\
-                    % (numClients,
-                       numServers,
-                       numWorkload,
-                       workloadModel,
-                       serverConcurrency,
-                       serviceTime,
-                       utilization,
-                       serviceTimeModel,
-                       replicationFactor,
-                       shadowReadRatio,
-                       accessPattern,
-                       nwLatencyBase,
-                       nwLatencyMu,
-                       nwLatencySigma,
-                       simulationDuration,
-                       seed,
-                       numRequests,
-                       expScenario,
-                       demandSkew,
-                       highDemandFraction,
-                       slowServerFraction,
-                       slowServerSlowness,
-                       intervalParam,
-                       timeVaryingDrift,
-                       logFolder)
-        proc = subprocess.Popen(cmd.split(),
-                                stdin=subprocess.PIPE,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
-        out, err = proc.communicate()
+        backpressure = ""
 
-        if (proc.returncode != 0):
-            print ' '.join(map(lambda x: str(x), combination)) + " ERROR"
-        else:
-            os.chdir(basePath + "/plotting")
-            cmd = "Rscript factorialResults.r pending %s" % (logFolder)
-            proc = subprocess.Popen(cmd.split(),
-                                    stdin=subprocess.PIPE,
-                                    stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE)
-            out, err = proc.communicate()
-            for line in out.split("\n"):
-                if ("pending" in line):
-                    parts = line.split()
-                    for i in range(len(parts)):
-                        parts[i] = parts[i][1:-1]
-                    print ' '.join(map(lambda x: str(x), combination))\
-                        + " " + ' '.join(parts)
-                    sys.stdout.flush()
-
-        if not os.path.exists(logFolder):
-            os.makedirs(logFolder)
-        os.chdir(basePath + "/simulations")
-
+        if (selectionStrategy == "expDelay"):
+            backpressure = "--backpressure"
         cmd = "python factorialExperiment.py \
                 --numClients %s\
                 --numServers %s\
@@ -193,8 +117,7 @@ for combination in PARAM_COMBINATIONS:
                 --utilization %s\
                 --serviceTimeModel %s\
                 --replicationFactor %s\
-                --selectionStrategy expDelay \
-                --backpressure\
+                --selectionStrategy %s \
                 --shadowReadRatio %s\
                 --rateInterval %s\
                 --cubicC %s\
@@ -205,7 +128,7 @@ for combination in PARAM_COMBINATIONS:
                 --nwLatencyBase %s\
                 --nwLatencyMu %s\
                 --nwLatencySigma %s\
-                --expPrefix expDelay\
+                --expPrefix %s\
                 --simulationDuration %s\
                 --seed %s\
                 --numRequests %s\
@@ -216,7 +139,7 @@ for combination in PARAM_COMBINATIONS:
                 --slowServerSlowness %s\
                 --intervalParam %s\
                 --timeVaryingDrift %s\
-                --logFolder %s"\
+                --logFolder %s %s"\
                   % (numClients,
                      numServers,
                      numWorkload,
@@ -226,6 +149,7 @@ for combination in PARAM_COMBINATIONS:
                      utilization,
                      serviceTimeModel,
                      replicationFactor,
+                     selectionStrategy,
                      shadowReadRatio,
                      rateInterval,
                      cubicC,
@@ -236,6 +160,7 @@ for combination in PARAM_COMBINATIONS:
                      nwLatencyBase,
                      nwLatencyMu,
                      nwLatencySigma,
+                     selectionStrategy,
                      simulationDuration,
                      seed,
                      numRequests,
@@ -246,7 +171,8 @@ for combination in PARAM_COMBINATIONS:
                      slowServerSlowness,
                      intervalParam,
                      timeVaryingDrift,
-                     logFolder)
+                     logFolder,
+                     backpressure)
         proc = subprocess.Popen(cmd.split(),
                                 stdin=subprocess.PIPE,
                                 stdout=subprocess.PIPE,
@@ -257,7 +183,8 @@ for combination in PARAM_COMBINATIONS:
             print ' '.join(map(lambda x: str(x), combination)) + " ERROR"
         else:
             os.chdir(basePath + "/plotting")
-            cmd = "Rscript factorialResults.r expDelay %s" % (logFolder)
+            cmd = "Rscript factorialResults.r %s %s"\
+                % (selectionStrategy, logFolder)
             proc = subprocess.Popen(cmd.split(),
                                     stdin=subprocess.PIPE,
                                     stdout=subprocess.PIPE,

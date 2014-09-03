@@ -16,16 +16,31 @@ def printMonitorTimeSeriesToFile(fileDesc, prefix, monitor):
 
 
 class WorkloadUpdater(Simulation.Process):
-    def __init__(self, workload, value):
+    def __init__(self, workload, value, clients):
         self.workload = workload
         self.value = value
+        self.clients = clients
         Simulation.Process.__init__(self, name='WorkloadUpdater')
 
     def run(self):
-        while(1):
-            yield Simulation.hold, self, 10.0
-            self.workload.model_param = random.uniform(self.value,
-                                                       self.value * 40)
+        # while(1):
+            yield Simulation.hold, self,
+            # self.workload.model_param = random.uniform(self.value,
+                                                       # self.value * 40)
+            old = self.workload.model_param
+            self.workload.model_param = self.value
+            self.workload.clientList = self.clients
+            self.workload.total = \
+                sum(client.demandWeight for client in self.clients)
+            yield Simulation.hold, self, 1000
+            self.workload.model_param = old
+
+class ClientAdder(Simulation.Process):
+    def __init__(self,):
+        Simulation.Process.__init__(self, name='ClientAdder')
+
+    def run(self, clientToAdd):
+        yield Simulation.hold, self,
 
 
 def runExperiment(args):
@@ -193,9 +208,10 @@ def runExperiment(args):
                               args.numRequests/args.numWorkload)
         Simulation.activate(w, w.run(),
                             at=0.0),
-        # updater = WorkloadUpdater(w, 0.2818181818)
-        # Simulation.activate(updater, updater.run(),
-        #                     at=10000.0),
+        # for i in range(1, len(clients) + 1):
+        #     updater = WorkloadUpdater(w, interArrivalTime, clients[0:i])
+        #     Simulation.activate(updater, updater.run(),
+        #                         at=(i - 1) * 7000.0)
         workloadGens.append(w)
 
     # Begin simulation
