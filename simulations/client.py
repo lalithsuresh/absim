@@ -3,6 +3,7 @@ import random
 import numpy
 import constants
 import task
+from yunomi.stats.exp_decay_sample import ExponentiallyDecayingSample
 
 
 class Client():
@@ -65,15 +66,37 @@ class Client():
         self.hysterisisFactor = hysterisisFactor
 
         # Backpressure related initialization
-        self.backpressureScheduler = BackpressureScheduler("BP", self)
+        if (backpressure is True):
+            self.backpressureScheduler = BackpressureScheduler("BP", self)
 
-        Simulation.activate(self.backpressureScheduler,
-                            self.backpressureScheduler.run(),
-                            at=Simulation.now())
-
-        for node, rateLimiter in self.rateLimiters.items():
-            Simulation.activate(rateLimiter, rateLimiter.run(),
+            Simulation.activate(self.backpressureScheduler,
+                                self.backpressureScheduler.run(),
                                 at=Simulation.now())
+
+            for node, rateLimiter in self.rateLimiters.items():
+                Simulation.activate(rateLimiter, rateLimiter.run(),
+                                    at=Simulation.now())
+
+        # ds-metrics
+        if (replicaSelectionStrategy == "ds"):
+            self.lastSeen = {node: 0 for node in serverList}
+            self.latencyEdma = {node: ExponentiallyDecayingSample(100,
+                                                                  0.75,
+                                                                  self.clock)
+                                for node in serverList}
+            self.dsScores = {node: 0 for node in serverList}
+            for node, rateLimiter in self.rateLimiters.items():
+                ds = DynamicSnitch(self, 100)
+                Simulation.activate(ds, ds.run(),
+                                    at=Simulation.now())
+
+    def clock(self):
+        '''
+            Convert to seconds because that's what the
+            ExponentiallyDecayingSample
+            assumes. Else, the internal Math.exp overflows.
+        '''
+        return Simulation.now()/1000.0
 
     def schedule(self, task):
         replicaSet = None
@@ -176,7 +199,7 @@ class Client():
         elif(self.REPLICA_SELECTION_STRATEGY == "pendingXserviceTime"):
             # Sort by response times * client-local-pending-requests
             replicaSet.sort(key=self.pendingXserviceMap.get)
-        elif(self.REPLICA_SELECTION_STRATEGY == "pendingXserviceTimeOracle"):
+        elif(self.REPLICA_SELECTION_STRATEGY == "clairvoyant"):
             # Sort by response times * pending-requests
             oracleMap = {replica: (1 + len(replica.queueResource.activeQ
                                    + replica.queueResource.waitQ))
@@ -188,6 +211,17 @@ class Client():
             for replica in originalReplicaSet:
                 sortMap[replica] = self.computeExpectedDelay(replica)
             replicaSet.sort(key=sortMap.get)
+        elif(self.REPLICA_SELECTION_STRATEGY == "ds"):
+            firstNode = replicaSet[0]
+            firstNodeScore = self.dsScores[firstNode]
+            badnessThreshold = 0.0
+
+            if (firstNodeScore != 0.0):
+                for node in replicaSet[1:]:
+                    newNodeScore = self.dsScores[node]
+                    if ((firstNodeScore - newNodeScore)/firstNodeScore
+                       > badnessThreshold):
+                        replicaSet.sort(key=self.dsScores.get)
         else:
             print self.REPLICA_SELECTION_STRATEGY
             assert False, "REPLICA_SELECTION_STRATEGY isn't set or is invalid"
@@ -340,6 +374,11 @@ class ResponseHandler(Simulation.Process):
         # Backpressure related book-keeping
         if (client.backpressure):
             client.updateRates(replicaThatServed, metricMap, task)
+
+        if (client.REPLICA_SELECTION_STRATEGY == "ds"):
+            client.lastSeen[replicaThatServed] = Simulation.now()
+            client.latencyEdma[replicaThatServed]\
+                  .update(metricMap["responseTime"])
 
         del client.taskSentTimeTracker[task]
         del client.taskArrivalTimeTracker[task]
@@ -499,3 +538,52 @@ class ReceiveRate():
             self.rate = self.count
             self.last = now
             self.count = 0
+
+
+class DynamicSnitch(Simulation.Process):
+    '''
+    Model for Cassandra's native dynamic snitching approach
+    '''
+    def __init__(self, client, snitchUpdateInterval):
+        self.SNITCHING_INTERVAL = snitchUpdateInterval
+        self.client = client
+        Simulation.Process.__init__(self, name='DynamicSnitch')
+
+    def run(self):
+        # Start each process with a minor delay
+
+        while(1):
+            yield Simulation.hold, self, self.SNITCHING_INTERVAL
+
+            # Adaptation of DynamicEndpointSnitch algorithm
+            maxLatency = 1.0
+            maxPenalty = 1.0
+            latencies = [entry.get_snapshot().get_median()
+                         for entry in self.client.latencyEdma.values()]
+            latenciesGtOne = [latency for latency in latencies if latency > 1.0]
+            if (len(latencies) == 0):  # nothing to see here
+                continue
+            maxLatency = max(latenciesGtOne) if len(latenciesGtOne) > 0 else 1.0
+            penalties = {}
+            for peer in self.client.serverList:
+                penalties[peer] = self.client.lastSeen[peer]
+                penalties[peer] = Simulation.now() - penalties[peer]
+                if (penalties[peer] > self.SNITCHING_INTERVAL):
+                    penalties[peer] = self.SNITCHING_INTERVAL
+
+            penaltiesGtOne = [penalty for penalty in penalties.values()
+                              if penalty > 1.0]
+            maxPenalty = max(penalties.values()) \
+                if len(penaltiesGtOne) > 0 else 1.0
+
+            for peer in self.client.latencyEdma:
+                score = self.client.latencyEdma[peer] \
+                            .get_snapshot() \
+                            .get_median() / float(maxLatency)
+
+                if (peer in penalties):
+                    score += penalties[peer] / float(maxPenalty)
+                else:
+                    score += 1
+                assert score >= 0 and score <= 2.0
+                self.client.dsScores[peer] = score

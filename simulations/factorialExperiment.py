@@ -75,22 +75,19 @@ def runExperiment(args):
                     and args.slowServerFraction == 0)
 
         if(args.slowServerFraction > 0.0):
-            slowServerRate = (args.serverConcurrency *
-                              1/float(baseServiceTime)) *\
+            slowServerRate = (1/float(baseServiceTime)) *\
                 args.slowServerSlowness
             numSlowServers = int(args.slowServerFraction * args.numServers)
             slowServerRates = [slowServerRate] * numSlowServers
 
             numFastServers = args.numServers - numSlowServers
-            totalRate = (args.serverConcurrency *
-                         1/float(args.serviceTime) * args.numServers)
+            totalRate = (1/float(args.serviceTime) * args.numServers)
             fastServerRate = (totalRate - sum(slowServerRates))\
                 / float(numFastServers)
             fastServerRates = [fastServerRate] * numFastServers
             serviceRatePerServer = slowServerRates + fastServerRates
         else:
-            serviceRatePerServer = [args.serverConcurrency *
-                                    1/float(args.serviceTime)] * args.numServers
+            serviceRatePerServer = [1/float(args.serviceTime)] * args.numServers
 
         random.shuffle(serviceRatePerServer)
         # print sum(serviceRatePerServer), (1/float(baseServiceTime)) * args.numServers
@@ -180,9 +177,7 @@ def runExperiment(args):
         arrivalRate = (args.utilization * sum(serviceRatePerServer))
         interArrivalTime = 1/float(arrivalRate)
     else:
-        arrivalRate = args.numServers *\
-            (args.utilization * args.serverConcurrency *
-             1/float(args.serviceTime))
+        arrivalRate = args.numServers * (args.utilization * 1/float(args.serviceTime))
         interArrivalTime = 1/float(arrivalRate)
 
     for i in range(args.numWorkload):

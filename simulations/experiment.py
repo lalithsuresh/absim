@@ -16,10 +16,11 @@ def printMonitorTimeSeriesToFile(fileDesc, prefix, monitor):
 
 
 class WorkloadUpdater(Simulation.Process):
-    def __init__(self, workload, value, clients):
+    def __init__(self, workload, value, clients, servers):
         self.workload = workload
         self.value = value
         self.clients = clients
+        self.servers = servers
         Simulation.Process.__init__(self, name='WorkloadUpdater')
 
     def run(self):
@@ -27,13 +28,14 @@ class WorkloadUpdater(Simulation.Process):
             yield Simulation.hold, self,
             # self.workload.model_param = random.uniform(self.value,
                                                        # self.value * 40)
-            old = self.workload.model_param
-            self.workload.model_param = self.value
-            self.workload.clientList = self.clients
-            self.workload.total = \
-                sum(client.demandWeight for client in self.clients)
-            yield Simulation.hold, self, 1000
-            self.workload.model_param = old
+            # old = self.workload.model_param
+            # self.workload.model_param = self.value
+            # self.workload.clientList = self.clients
+            # self.workload.total = \
+            #     sum(client.demandWeight for client in self.clients)
+            # yield Simulation.hold, self, 1000
+            # self.workload.model_param = old
+            self.servers[0].serviceTime = 1000
 
 class ClientAdder(Simulation.Process):
     def __init__(self,):
@@ -209,9 +211,9 @@ def runExperiment(args):
         Simulation.activate(w, w.run(),
                             at=0.0),
         # for i in range(1, len(clients) + 1):
-        #     updater = WorkloadUpdater(w, interArrivalTime, clients[0:i])
-        #     Simulation.activate(updater, updater.run(),
-        #                         at=(i - 1) * 7000.0)
+        updater = WorkloadUpdater(w, interArrivalTime, clients, servers)
+        Simulation.activate(updater, updater.run(),
+                            at=5000)
         workloadGens.append(w)
 
     # Begin simulation

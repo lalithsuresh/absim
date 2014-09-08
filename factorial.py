@@ -15,7 +15,7 @@ serviceTime = [4]
 utilization = [0.90]
 serviceTimeModel = ["random.expovariate"]
 replicationFactor = [3]
-selectionStrategy = ["expDelay", "pending", "pendingXserviceTimeOracle"]
+selectionStrategy = ["clairvoyant", "ds", "pending", "expDelay"]
 rateInterval = [20]
 cubicC = [0.000004]
 cubicSmax = [10]
@@ -107,6 +107,7 @@ for combination in PARAM_COMBINATIONS:
 
         if (selectionStrategy == "expDelay"):
             backpressure = "--backpressure"
+
         cmd = "python factorialExperiment.py \
                 --numClients %s\
                 --numServers %s\
@@ -191,7 +192,7 @@ for combination in PARAM_COMBINATIONS:
                                     stderr=subprocess.PIPE)
             out, err = proc.communicate()
             for line in out.split("\n"):
-                if ("expDelay" in line):
+                if (selectionStrategy in line):
                     parts = line.split()
                     for i in range(len(parts)):
                         parts[i] = parts[i][1:-1]
