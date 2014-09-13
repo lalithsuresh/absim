@@ -22,6 +22,7 @@ class Client():
         self.rateMonitor = Simulation.Monitor(name="AlphaMonitor")
         self.receiveRateMonitor = Simulation.Monitor(name="ReceiveRateMonitor")
         self.tokenMonitor = Simulation.Monitor(name="TokenMonitor")
+        self.edScoreMonitor = Simulation.Monitor(name="edScoreMonitor")
         self.backpressure = backpressure    # True/Flase
         self.shadowReadRatio = shadowReadRatio
         self.demandWeight = demandWeight
@@ -50,7 +51,7 @@ class Client():
 
         # Rate limiters per replica
         self.rateLimiters = {node: RateLimiter("RL-%s" % node.id,
-                                               self, 20, rateInterval)
+                                               self, 50, rateInterval)
                              for node in serverList}
         self.lastRateDecrease = {node: 0 for node in serverList}
         self.valueOfLastDecrease = {node: 10 for node in serverList}
@@ -234,11 +235,18 @@ class Client():
             metricMap = self.expectedDelayMap[replica]
             twiceNetworkLatency = metricMap["responseTime"]\
                 - (metricMap["serviceTime"] + metricMap["waitingTime"])
+            theta = (1 + self.pendingRequestsMap[replica]
+                     * constants.NUMBER_OF_CLIENTS
+                     + metricMap["queueSizeAfter"])
             total += (twiceNetworkLatency +
-                      ((1 + self.pendingRequestsMap[replica]
-                        * constants.NUMBER_OF_CLIENTS
-                        + metricMap["queueSizeAfter"])) ** 3
-                      * metricMap["serviceTime"])
+                      ((theta ** 3)
+                        * metricMap["serviceTime"]))
+            self.edScoreMonitor.observe("%s %s %s %s %s" %
+                                        (replica.id,
+                                         metricMap["queueSizeAfter"],
+                                         metricMap["serviceTime"],
+                                         theta,
+                                         total))
         else:
             if (len(self.outstandingRequests) != 0):
                 sentTime = self.taskSentTimeTracker[self.outstandingRequests[0]]
@@ -510,16 +518,19 @@ class RateLimiter(Simulation.Process):
         if (self.tokens >= 1):
             return True
         else:
+            print 'False', Simulation.now()
             return False
 
 
-class ReceiveRate():
+class ReceiveRate(Simulation.Process):
     def __init__(self, id, interval):
         self.rate = 1
         self.id = id
         self.interval = int(interval)
         self.last = 0
         self.count = 0
+        Simulation.Process.__init__(self, name='ReceiveRate')
+        Simulation.activate(self, self.run(), at=Simulation.now())
 
     def getRate(self):
         self.add(0)
@@ -538,6 +549,11 @@ class ReceiveRate():
             self.rate = self.count
             self.last = now
             self.count = 0
+
+    def run(self):
+        while(1):
+            yield Simulation.hold, self, self.interval
+            self.add(0)
 
 
 class DynamicSnitch(Simulation.Process):

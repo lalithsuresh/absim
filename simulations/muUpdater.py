@@ -22,4 +22,3 @@ class MuUpdater(Simulation.Process):
                 rate = 1/float(self.serviceTime)
                 rate += self.rateChangeFactor * rate
                 self.server.serviceTime = 1/float(rate)
-            print Simulation.now(), self.server.id, self.server.serviceTime
