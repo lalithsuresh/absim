@@ -3,6 +3,8 @@ import random
 import numpy
 import constants
 import task
+import math
+
 from yunomi.stats.exp_decay_sample import ExponentiallyDecayingSample
 
 
@@ -48,6 +50,7 @@ class Client():
 
         # Record waiting and service times as relayed by the server
         self.expectedDelayMap = {node: {} for node in serverList}
+        self.lastSeen = {node: 0 for node in serverList}
 
         # Rate limiters per replica
         self.rateLimiters = {node: RateLimiter("RL-%s" % node.id,
@@ -80,7 +83,6 @@ class Client():
 
         # ds-metrics
         if (replicaSelectionStrategy == "ds"):
-            self.lastSeen = {node: 0 for node in serverList}
             self.latencyEdma = {node: ExponentiallyDecayingSample(100,
                                                                   0.75,
                                                                   self.clock)
@@ -229,18 +231,21 @@ class Client():
 
         return replicaSet
 
+    def metricDecay(self, replica):
+        return math.exp(-(Simulation.now() - self.lastSeen[replica])
+                        / (2 * self.rateInterval))
+
     def computeExpectedDelay(self, replica):
         total = 0
         if (len(self.expectedDelayMap[replica]) != 0):
             metricMap = self.expectedDelayMap[replica]
-            twiceNetworkLatency = metricMap["responseTime"]\
-                - (metricMap["serviceTime"] + metricMap["waitingTime"])
+            twiceNetworkLatency = metricMap["nw"]
             theta = (1 + self.pendingRequestsMap[replica]
                      * constants.NUMBER_OF_CLIENTS
                      + metricMap["queueSizeAfter"])
             total += (twiceNetworkLatency +
                       ((theta ** 3)
-                        * metricMap["serviceTime"]))
+                      * (metricMap["serviceTime"])))
             self.edScoreMonitor.observe("%s %s %s %s %s" %
                                         (replica.id,
                                          metricMap["queueSizeAfter"],
@@ -276,6 +281,7 @@ class Client():
             self.expectedDelayMap[replica][metric] \
                 = alpha * metricMap[metric] + (1 - alpha) \
                 * self.expectedDelayMap[replica][metric]
+
 
     def updateRates(self, replica, metricMap, task):
         # shuffledNodeList = self.serverList[0:]
@@ -377,14 +383,16 @@ class ResponseHandler(Simulation.Process):
                        Simulation.now() - client.taskSentTimeTracker[task]))
         metricMap = task.completionEvent.signalparam
         metricMap["responseTime"] = client.responseTimesMap[replicaThatServed]
+        metricMap["nw"] = metricMap["responseTime"] - metricMap["serviceTime"]
         client.updateEma(replicaThatServed, metricMap)
 
         # Backpressure related book-keeping
         if (client.backpressure):
             client.updateRates(replicaThatServed, metricMap, task)
 
+        client.lastSeen[replicaThatServed] = Simulation.now()
+
         if (client.REPLICA_SELECTION_STRATEGY == "ds"):
-            client.lastSeen[replicaThatServed] = Simulation.now()
             client.latencyEdma[replicaThatServed]\
                   .update(metricMap["responseTime"])
 
@@ -419,7 +427,7 @@ class BackpressureScheduler(Simulation.Process):
             # addresses,  which leads to different results for the same seed.
             sortedActiveBacklogQ = \
                 sorted(self.activeBacklogQueues, key=lambda x: x.id)
-            random.shuffle(sortedActiveBacklogQ)
+            # random.shuffle(sortedActiveBacklogQ)
 
             nonBlockedRgOwners = [n for n in sortedActiveBacklogQ
                                   if n not in self.waitingBacklogQueues
@@ -518,7 +526,6 @@ class RateLimiter(Simulation.Process):
         if (self.tokens >= 1):
             return True
         else:
-            print 'False', Simulation.now()
             return False
 
 
@@ -538,7 +545,7 @@ class ReceiveRate(Simulation.Process):
 
     def add(self, requests):
         now = int(Simulation.now()/self.interval)
-        if (now - self.last < self.interval):
+        if (now - self.last < 2):
             self.count += requests
             if (now > self.last):
                 alpha = (now - self.last)/float(self.interval)

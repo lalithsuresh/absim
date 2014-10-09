@@ -15,17 +15,35 @@ def printMonitorTimeSeriesToFile(fileDesc, prefix, monitor):
         fileDesc.write("%s %s %s\n" % (prefix, entry[0], entry[1]))
 
 
-class WorkloadUpdater(Simulation.Process):
-    def __init__(self, workload, value):
-        self.workload = workload
-        self.value = value
-        Simulation.Process.__init__(self, name='WorkloadUpdater')
+# class WorkloadUpdater(Simulation.Process):
+#     def __init__(self, workload, value, clients, servers):
+#         self.workload = workload
+#         self.value = value
+#         self.clients = clients
+#         self.servers = servers
+#         Simulation.Process.__init__(self, name='WorkloadUpdater')
 
-    def run(self):
-        while(1):
-            yield Simulation.hold, self, 10.0
-            self.workload.model_param = random.uniform(self.value,
-                                                       self.value * 40)
+#     def run(self):
+#         # while(1):
+#             yield Simulation.hold, self,
+#             # self.workload.model_param = random.uniform(self.value,
+#                                                        # self.value * 40)
+#             # old = self.workload.model_param
+#             # self.workload.model_param = self.value
+#             # self.workload.clientList = self.clients
+#             # self.workload.total = \
+#             #     sum(client.demandWeight for client in self.clients)
+#             # yield Simulation.hold, self, 1000
+#             # self.workload.model_param = old
+#             self.servers[0].serviceTime = 1000
+
+
+class ClientAdder(Simulation.Process):
+    def __init__(self,):
+        Simulation.Process.__init__(self, name='ClientAdder')
+
+    def run(self, clientToAdd):
+        yield Simulation.hold, self,
 
 
 def runExperiment(args):
@@ -75,26 +93,29 @@ def runExperiment(args):
                     and args.slowServerFraction == 0)
 
         if(args.slowServerFraction > 0.0):
-            slowServerRate = (1/float(baseServiceTime)) *\
+            slowServerRate = (args.serverConcurrency *
+                              1/float(baseServiceTime)) *\
                 args.slowServerSlowness
             numSlowServers = int(args.slowServerFraction * args.numServers)
             slowServerRates = [slowServerRate] * numSlowServers
 
             numFastServers = args.numServers - numSlowServers
-            totalRate = (1/float(args.serviceTime) * args.numServers)
+            totalRate = (args.serverConcurrency *
+                         1/float(args.serviceTime) * args.numServers)
             fastServerRate = (totalRate - sum(slowServerRates))\
                 / float(numFastServers)
             fastServerRates = [fastServerRate] * numFastServers
             serviceRatePerServer = slowServerRates + fastServerRates
         else:
-            serviceRatePerServer = [1/float(args.serviceTime)] * args.numServers
+            serviceRatePerServer = [args.serverConcurrency *
+                                    1/float(args.serviceTime)] * args.numServers
 
         random.shuffle(serviceRatePerServer)
         # print sum(serviceRatePerServer), (1/float(baseServiceTime)) * args.numServers
         assert sum(serviceRatePerServer) > 0.99 *\
             (1/float(baseServiceTime)) * args.numServers
-        # assert sum(serviceRatePerServer) <=\
-        #     (1/float(baseServiceTime)) * args.numServers
+        assert sum(serviceRatePerServer) <=\
+            (1/float(baseServiceTime)) * args.numServers
 
         # Start the servers
         for i in range(args.numServers):
@@ -177,20 +198,19 @@ def runExperiment(args):
         arrivalRate = (args.utilization * sum(serviceRatePerServer))
         interArrivalTime = 1/float(arrivalRate)
     else:
-        arrivalRate = args.numServers * (args.utilization * 1/float(args.serviceTime))
+        arrivalRate = args.numServers *\
+            (args.utilization * args.serverConcurrency *
+             1/float(args.serviceTime))
         interArrivalTime = 1/float(arrivalRate)
 
     for i in range(args.numWorkload):
         w = workload.Workload(i, latencyMonitor,
                               clients,
                               args.workloadModel,
-                              interArrivalTime,
+                              interArrivalTime * args.numWorkload,
                               args.numRequests/args.numWorkload)
         Simulation.activate(w, w.run(),
                             at=0.0),
-        # updater = WorkloadUpdater(w, 0.2818181818)
-        # Simulation.activate(updater, updater.run(),
-        #                     at=10000.0),
         workloadGens.append(w)
 
     # Begin simulation
@@ -216,6 +236,8 @@ def runExperiment(args):
                                         args.expPrefix), 'w')
     receiveRateFD = open("../%s/%s_ReceiveRate" % (args.logFolder,
                                                    args.expPrefix), 'w')
+    edScoreFD = open("../%s/%s_EdScore" % (args.logFolder,
+                                           args.expPrefix), 'w')
 
     for clientNode in clients:
         printMonitorTimeSeriesToFile(pendingRequestsFD,
@@ -233,6 +255,9 @@ def runExperiment(args):
         printMonitorTimeSeriesToFile(receiveRateFD,
                                      clientNode.id,
                                      clientNode.receiveRateMonitor)
+        printMonitorTimeSeriesToFile(edScoreFD,
+                                     clientNode.id,
+                                     clientNode.edScoreMonitor)
     for serv in servers:
         printMonitorTimeSeriesToFile(waitMonFD,
                                      serv.id,

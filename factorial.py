@@ -5,30 +5,30 @@ import sys
 
 uniqId = sys.argv[1]
 
-numClients = [30, 60]
-numServers = [10]
-numWorkload = [1]
+numClients = [150, 300]
+numServers = [50]
+numWorkload = [200]
 workloadModel = ["poisson"]
-serverConcurrency = [1]
+serverConcurrency = [4]
 serviceTime = [4]
 # utilization = [0.4, 0.45]
-utilization = [0.90]
+utilization = [0.99]
 serviceTimeModel = ["random.expovariate"]
 replicationFactor = [3]
-selectionStrategy = ["clairvoyant", "ds", "pending", "expDelay"]
+selectionStrategy = ["clairvoyant", "pending", "expDelay"]
 rateInterval = [20]
 cubicC = [0.000004]
 cubicSmax = [10]
 cubicBeta = [0.2]
 hysterisisFactor = [2]
-shadowReadRatio = [0.0]
+shadowReadRatio = [0.1]
 accessPattern = ["uniform"]
-nwLatencyBase = [0.0, 2.0]
+nwLatencyBase = [2.0]
 nwLatencyMu = [0]
 nwLatencySigma = [0]
-simulationDuration = [100000]
+simulationDuration = [600000]
 seed = [int(uniqId)]
-numRequests = [20000]
+numRequests = [600000]
 # expScenario = ["heterogenousStaticServiceTimeScenario"]
 expScenario = ["timeVaryingServiceTimeServers"]
 demandSkew = [0.0]
@@ -39,12 +39,12 @@ highDemandFraction = [0.0]
 # timeVaryingDrift = [0]
 slowServerFraction = [0]
 slowServerSlowness = [0]
-intervalParam = [10, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500]
-timeVaryingDrift = [1, 5, 10]
+intervalParam = [10, 50, 100, 200, 300, 500]
+timeVaryingDrift = [5]
 
 
-logFolder = "paperTvSweep" + uniqId
-# logFolder = "postSyncHetero" + uniqId
+logFolder = "paperTvSweepLarge" + uniqId
+# logFolder = "paperSkewSweep" + uniqId
 
 if not os.path.exists(logFolder):
         os.makedirs(logFolder)
@@ -82,7 +82,7 @@ LIST = [numClients,
         ]
 PARAM_COMBINATIONS = list(itertools.product(*LIST))
 
-# print len(PARAM_COMBINATIONS)
+print len(PARAM_COMBINATIONS)
 
 basePath = os.getcwd()
 

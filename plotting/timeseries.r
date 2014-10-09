@@ -24,7 +24,7 @@ range99 <- max(lat99.by.client$V1) - min(lat99.by.client$V1)
 
 options(width=10000)
 print(c(prefix,
-		quantile(latency$Latency,c(0.5, 0.95, 0.99)),
+		quantile(latency$Latency,c(0.5, 0.95, 0.99, 0.999)),
 		range50, range95, range99))
 
 act.mon <- read.table(paste("../logs/", prefix, "_ActMon", sep=""))
@@ -50,7 +50,7 @@ colnames(latency.samples)[3] <- "ServerId"
 colnames(latency.samples)[4] <- "LatencySample"
 
 
-p1 <- ggplot(latency) + 
+p1 <- ggplot(latency[latency$ClientId == "Client1",]) + 
 	  geom_point(aes(y=Latency, x=Timestamp), size=4) + 
 	  facet_grid(ServerId ~ .) +
 	  ggtitle(paste(prefix, "Latency")) +
@@ -75,7 +75,7 @@ p1 <- ggplot(wait.mon) +
 	  		axis.text = element_text(size=20))
 ggsave(p1, file=paste(prefix, "_wait.mon.pdf", sep=""), width=15)
 
-p1 <- ggplot(pending.requests) + 
+p1 <- ggplot(pending.requests[pending.requests$ClientId == "Client1",]) + 
 	  geom_point(aes(y=PendingRequests, x=Timestamp), size=4) + 
 	  facet_grid(ServerId ~ ClientId) +
 	  ggtitle(paste(prefix, "Pending")) +
@@ -147,25 +147,25 @@ ggsave(p1, file=paste(prefix, "_latency.samples.pdf", sep=""), width=15)
 # 	  		axis.text = element_text(size=20))
 # ggsave(p1, file=paste(prefix, "_tokens.pdf", sep=""), height=30, width=50, limitsize=FALSE)
 
-edScore <- read.table(paste("../logs/", prefix, "_EdScore", sep=""))
-colnames(edScore)[1] <- "ClientId"
-colnames(edScore)[2] <- "Timestamp"
-colnames(edScore)[3] <- "ServerId"
-colnames(edScore)[4] <- "QSZ"
-colnames(edScore)[5] <- "MU"
-colnames(edScore)[6] <- "Theta"
-colnames(edScore)[7] <- "Score"
+# edScore <- read.table(paste("../logs/", prefix, "_EdScore", sep=""))
+# colnames(edScore)[1] <- "ClientId"
+# colnames(edScore)[2] <- "Timestamp"
+# colnames(edScore)[3] <- "ServerId"
+# colnames(edScore)[4] <- "QSZ"
+# colnames(edScore)[5] <- "MU"
+# colnames(edScore)[6] <- "Theta"
+# colnames(edScore)[7] <- "Score"
 
-edScore$FloorTimestamp <- (floor(edScore$Timestamp))
-edScore <- data.table(edScore)
-edScore[,sum()]
+# edScore$FloorTimestamp <- (floor(edScore$Timestamp))
+# edScore <- data.table(edScore)
+# edScore[,sum()]
 
-p1 <- ggplot() + 
-	  geom_point(data=edScore[edScore$ServerId == 1 & edScore$Timestamp < 10000, ],
-	  			 aes(y=Theta, x=Timestamp, colour=ClientId), size=2) +
-	  geom_point(data=wait.mon[wait.mon$ServerId == 1  & wait.mon$Timestamp < 10000,],
-	  			 aes(y=WaitingRequests, x=Timestamp), size=2) +
-	  ggtitle(paste(prefix, "edScore")) +
-	  theme(text = element_text(size=15), 
-	  		axis.text = element_text(size=20))
-ggsave(p1, file=paste(prefix, "_edScore.pdf", sep=""), height=30, width=50, limitsize=FALSE)
+# p1 <- ggplot() + 
+# 	  geom_point(data=edScore[edScore$ServerId == 1 & edScore$Timestamp < 10000, ],
+# 	  			 aes(y=Theta, x=Timestamp, colour=ClientId), size=2) +
+# 	  geom_point(data=wait.mon[wait.mon$ServerId == 1  & wait.mon$Timestamp < 10000,],
+# 	  			 aes(y=WaitingRequests, x=Timestamp), size=2) +
+# 	  ggtitle(paste(prefix, "edScore")) +
+# 	  theme(text = element_text(size=15), 
+# 	  		axis.text = element_text(size=20))
+# ggsave(p1, file=paste(prefix, "_edScore.pdf", sep=""), height=30, width=50, limitsize=FALSE)
