@@ -111,7 +111,8 @@ def runExperiment(args):
                                     1/float(args.serviceTime)] * args.numServers
 
         random.shuffle(serviceRatePerServer)
-        # print sum(serviceRatePerServer), (1/float(baseServiceTime)) * args.numServers
+        # print sum(serviceRatePerServer),\
+        # (1/float(baseServiceTime)) * args.numServers
         assert sum(serviceRatePerServer) > 0.99 *\
             (1/float(baseServiceTime)) * args.numServers
         assert sum(serviceRatePerServer) <=\

@@ -2,7 +2,6 @@ import SimPy.Simulation as Simulation
 import math
 import random
 import sys
-import client
 
 
 class Server():

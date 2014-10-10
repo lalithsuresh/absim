@@ -2,6 +2,9 @@
 
 cd simulations;
 
+# Run tests
+python -m unittest discover . '*Test*.py'
+
 python experiment.py  \
 	--numClients 150 \
 	--numServers 50 \
