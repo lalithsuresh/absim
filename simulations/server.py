@@ -2,6 +2,7 @@ import SimPy.Simulation as Simulation
 import math
 import random
 import sys
+import client
 
 
 class Server():
@@ -13,9 +14,11 @@ class Server():
         self.serviceTimeModel = serviceTimeModel
         self.queueResource = Simulation.Resource(capacity=resourceCapacity,
                                                  monitored=True)
+        self.serverRRMonitor = Simulation.Monitor(name="ServerMonitor")
 
     def enqueueTask(self, task):
         executor = Executor(self, task)
+        self.serverRRMonitor.observe(1)
         Simulation.activate(executor, executor.run(), Simulation.now())
 
     def getServiceTime(self):

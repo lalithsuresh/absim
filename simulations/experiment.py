@@ -238,6 +238,8 @@ def runExperiment(args):
                                                    args.expPrefix), 'w')
     edScoreFD = open("../%s/%s_EdScore" % (args.logFolder,
                                            args.expPrefix), 'w')
+    serverRRFD = open("../%s/%s_serverRR" % (args.logFolder,
+                                             args.expPrefix), 'w')
 
     for clientNode in clients:
         printMonitorTimeSeriesToFile(pendingRequestsFD,
@@ -265,6 +267,9 @@ def runExperiment(args):
         printMonitorTimeSeriesToFile(actMonFD,
                                      serv.id,
                                      serv.queueResource.actMon)
+        printMonitorTimeSeriesToFile(serverRRFD,
+                                     serv.id,
+                                     serv.serverRRMonitor)
         print "------- Server:%s %s ------" % (serv.id, "WaitMon")
         print "Mean:", serv.queueResource.waitMon.mean()
 

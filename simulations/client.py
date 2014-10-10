@@ -71,14 +71,12 @@ class Client():
 
         # Backpressure related initialization
         if (backpressure is True):
-            self.backpressureScheduler = BackpressureScheduler("BP", self)
-
-            Simulation.activate(self.backpressureScheduler,
-                                self.backpressureScheduler.run(),
-                                at=Simulation.now())
-
-            for node, rateLimiter in self.rateLimiters.items():
-                Simulation.activate(rateLimiter, rateLimiter.run(),
+            self.backpressureSchedulers = \
+                {node: BackpressureScheduler("BP-%s" % node.id, self)
+                 for node in serverList}
+            for node in serverList:
+                Simulation.activate(self.backpressureSchedulers[node],
+                                    self.backpressureSchedulers[node].run(),
                                     at=Simulation.now())
 
         # ds-metrics
@@ -125,7 +123,7 @@ class Client():
             self.sendRequest(task, replicaToServe)
             self.maybeSendShadowReads(replicaToServe, replicaSet)
         else:
-            self.backpressureScheduler.enqueue(task, replicaSet)
+            self.backpressureSchedulers[replicaSet[0]].enqueue(task, replicaSet)
 
     def sendRequest(self, task, replicaToServe):
         delay = constants.NW_LATENCY_BASE + \
@@ -244,8 +242,7 @@ class Client():
                      * constants.NUMBER_OF_CLIENTS
                      + metricMap["queueSizeAfter"])
             total += (twiceNetworkLatency +
-                      ((theta ** 3)
-                      * (metricMap["serviceTime"])))
+                      ((theta ** 3) * (metricMap["serviceTime"])))
             self.edScoreMonitor.observe("%s %s %s %s %s" %
                                         (replica.id,
                                          metricMap["queueSizeAfter"],
@@ -282,13 +279,7 @@ class Client():
                 = alpha * metricMap[metric] + (1 - alpha) \
                 * self.expectedDelayMap[replica][metric]
 
-
     def updateRates(self, replica, metricMap, task):
-        # shuffledNodeList = self.serverList[0:]
-        # random.shuffle(shuffledNodeList)
-        # for node in shuffledNodeList:
-        self.backpressureScheduler.promoteWaitingQueues()
-
         # Cubic Parameters go here
         # beta = 0.2
         # C = 0.000004
@@ -363,7 +354,6 @@ class ResponseHandler(Simulation.Process):
             random.normalvariate(constants.NW_LATENCY_MU,
                                  constants.NW_LATENCY_SIGMA)
         yield Simulation.hold, self, delay
-        client.receiveRate[replicaThatServed].add(1)
 
         # OMG request completed. Time for some book-keeping
         client.outstandingRequests.remove(task)
@@ -390,6 +380,7 @@ class ResponseHandler(Simulation.Process):
         if (client.backpressure):
             client.updateRates(replicaThatServed, metricMap, task)
 
+        client.receiveRate[replicaThatServed].add(1)
         client.lastSeen[replicaThatServed] = Simulation.now()
 
         if (client.REPLICA_SELECTION_STRATEGY == "ds"):
@@ -410,82 +401,56 @@ class ResponseHandler(Simulation.Process):
 class BackpressureScheduler(Simulation.Process):
     def __init__(self, id_, client):
         self.id = id_
-        self.activeBacklogQueues = {node: [] for node in client.serverList}
-        self.waitingBacklogQueues = set()
+        self.backlogQueue = []
         self.client = client
-        self.congestionEvent = Simulation.SimEvent("Congestion")
-        self.backlogReadyEvent = Simulation.SimEvent("BacklogReady")
         self.count = 0
+        self.backlogReadyEvent = Simulation.SimEvent("BacklogReady")
         Simulation.Process.__init__(self, name='BackpressureScheduler')
 
     def run(self):
         while(1):
             yield Simulation.hold, self,
 
-            # The below sort + shuffle is necessary for keeping the simulation
-            # deterministic. Else, the ordering is dependent on memory
-            # addresses,  which leads to different results for the same seed.
-            sortedActiveBacklogQ = \
-                sorted(self.activeBacklogQueues, key=lambda x: x.id)
-            # random.shuffle(sortedActiveBacklogQ)
-
-            nonBlockedRgOwners = [n for n in sortedActiveBacklogQ
-                                  if n not in self.waitingBacklogQueues
-                                  and len(self.activeBacklogQueues[n]) > 0]
-
-            if (len(nonBlockedRgOwners) != 0):
-                rgOwner = max(nonBlockedRgOwners,
-                              key=lambda x:
-                              Simulation.now()
-                              - self.activeBacklogQueues[x][0][0].start)
-                #  len(self.activeBacklogQueues[rgOwner])
-                backlogQueue = self.activeBacklogQueues[rgOwner]
-                task, replicaSet = backlogQueue[0]
+            if (len(self.backlogQueue) != 0):
+                task, replicaSet = self.backlogQueue[0]
                 sortedReplicaSet = self.client.sort(replicaSet)
                 sent = False
-
+                minDurationToWait = 1e10   # arbitrary large value
                 for replica in sortedReplicaSet:
                     currentTokens = self.client.rateLimiters[replica].tokens
                     self.client.tokenMonitor.observe("%s %s"
                                                      % (replica.id,
                                                         currentTokens))
-                    if (self.client.rateLimiters[replica].tryAcquire()
-                       is True):
+                    durationToWait = \
+                        self.client.rateLimiters[replica].tryAcquire()
+                    if (durationToWait == 0):
                         assert self.client.rateLimiters[replica].tokens >= 1
-                        # waitingTime = Simulation.now() - task.start
-                        # if (waitingTime > 0):
-                        #     print task.id, waitingTime
-                        backlogQueue.pop(0)
+                        self.backlogQueue.pop(0)
                         self.client.sendRequest(task, replica)
                         self.client.maybeSendShadowReads(replica, replicaSet)
                         sent = True
                         self.client.rateLimiters[replica].update()
                         break
                     else:
-                        # print 'lol', Simulation.now()
+                        minDurationToWait = min(minDurationToWait,
+                                                durationToWait)
                         assert self.client.rateLimiters[replica].tokens < 1
 
                 if (not sent):
-                    # for each in self.client.rateLimiters:
-                    #     print self.client.rateLimiters[each].tokens
-                    self.waitingBacklogQueues.add(rgOwner)
-                    # yield Simulation.waitevent, self, self.congestionEvent
-                    # self.congestionEvent = Simulation.SimEvent("Congestion")
-                    # self.waitingBacklogQueues = set()
+                    # Backpressure mode. Wait for the least amount of time
+                    # necessary until at least one rate limiter is expected
+                    # to be available
+                    yield Simulation.hold, self, minDurationToWait
             else:
                 yield Simulation.waitevent, self, self.backlogReadyEvent
                 self.backlogReadyEvent = Simulation.SimEvent("BacklogReady")
 
     def enqueue(self, task, replicaSet):
-        self.activeBacklogQueues[replicaSet[0]].append((task, replicaSet))
-        self.backlogReadyEvent.signal()
-
-    def promoteWaitingQueues(self):
-        self.waitingBacklogQueues = set()
+        self.backlogQueue.append((task, replicaSet))
         self.backlogReadyEvent.signal()
 
 
-class RateLimiter(Simulation.Process):
+class RateLimiter():
     def __init__(self, id_, client, maxTokens, rateInterval):
         self.id = id_
         self.rate = 5
@@ -494,50 +459,30 @@ class RateLimiter(Simulation.Process):
         self.tokens = 0
         self.rateInterval = rateInterval
         self.maxTokens = maxTokens
-        self.waitIfZeroTokens = Simulation.SimEvent("WaitIfZeroTokens")
-        Simulation.Process.__init__(self, name='RateLimiter')
-
-    def run(self):
-        while (1):
-            yield Simulation.hold, self
-
-            if (self.tokens >= 1):
-                yield Simulation.waitevent, self, self.waitIfZeroTokens
-                self.waitIfZeroTokens = Simulation.SimEvent("BacklogReady")
-            else:
-                yield Simulation.hold, self, \
-                    self.rateInterval * 1/float(self.rate)
-                # self.tokens += 1
-                # shuffledNodeList = self.client.serverList[0:]
-                # random.shuffle(shuffledNodeList)
-                self.client.backpressureScheduler.promoteWaitingQueues()
 
     # These updates can be forced due to shadowReads
     def update(self):
         self.lastSent = Simulation.now()
         self.tokens -= 1
-        if (self.tokens < 1):
-            self.waitIfZeroTokens.signal()
 
     def tryAcquire(self):
         self.tokens = min(self.maxTokens, self.tokens
                           + self.rate/float(self.rateInterval)
                           * (Simulation.now() - self.lastSent))
         if (self.tokens >= 1):
-            return True
+            return 0
         else:
-            return False
+            timetowait = (1 - self.tokens) * self.rateInterval/self.rate
+            return timetowait
 
 
-class ReceiveRate(Simulation.Process):
+class ReceiveRate():
     def __init__(self, id, interval):
-        self.rate = 1
+        self.rate = 10
         self.id = id
         self.interval = int(interval)
         self.last = 0
         self.count = 0
-        Simulation.Process.__init__(self, name='ReceiveRate')
-        Simulation.activate(self, self.run(), at=Simulation.now())
 
     def getRate(self):
         self.add(0)
@@ -545,7 +490,7 @@ class ReceiveRate(Simulation.Process):
 
     def add(self, requests):
         now = int(Simulation.now()/self.interval)
-        if (now - self.last < 2):
+        if (now - self.last <= 1):
             self.count += requests
             if (now > self.last):
                 alpha = (now - self.last)/float(self.interval)
@@ -556,11 +501,6 @@ class ReceiveRate(Simulation.Process):
             self.rate = self.count
             self.last = now
             self.count = 0
-
-    def run(self):
-        while(1):
-            yield Simulation.hold, self, self.interval
-            self.add(0)
 
 
 class DynamicSnitch(Simulation.Process):

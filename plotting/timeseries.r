@@ -129,6 +129,28 @@ ggsave(p1, file=paste(prefix, "_latency.samples.pdf", sep=""), width=15)
 # ggsave(p1, file=paste(prefix, "_ReceiveRate.pdf", sep=""), height=30, width=50, limitsize=FALSE)
 
 
+rate <- read.table(paste("../logs/", prefix, "_serverRR", sep=""))
+colnames(rate)[1] <- "ServerId"
+colnames(rate)[2] <- "Timestamp"
+colnames(rate)[3] <- "Tick"
+
+rate <- data.table(rate)
+
+ggplot(rate) + geom_histogram(aes(x=Timestamp), binwidth=20) + facet_grid(ServerId ~ .)
+
+# rate <- rate[rate$ClientId == "Client1",]
+
+# p1 <- ggplot(rate) + 
+# 	  geom_line(aes(y=Rate, x=Timestamp, colour=ClientId), size=1) + 
+# 	  geom_point(aes(y=Rate, x=Timestamp, colour=ClientId), size=2) + 
+# 	  geom_smooth(aes(y=Rate, x=Timestamp), size=2) + 
+# 	  facet_grid(ServerId ~ ClientId) +
+# 	  ggtitle(paste(prefix, "rate")) +
+# 	  theme(text = element_text(size=15), 
+# 	  		axis.text = element_text(size=20))
+# ggsave(p1, file=paste(prefix, "_ReceiveRate.pdf", sep=""), height=30, width=50, limitsize=FALSE)
+
+
 
 # tokens <- read.table(paste("../logs/", prefix, "_Tokens", sep=""))
 # colnames(tokens)[1] <- "ClientId"
