@@ -5,34 +5,34 @@ cd simulations;
 # Run tests
 python -m unittest discover . '*Test*.py'
 
-python experiment.py  \
-	--numClients 150 \
-	--numServers 50 \
-	--numWorkload 200 \
-	--workloadModel poisson \
-	--serverConcurrency 4 \
-	--serviceTime 4.00\
-	--utilization 0.99 \
-	--serviceTimeModel random.expovariate \
-	--replicationFactor 3 \
-	--selectionStrategy pending \
-	--shadowReadRatio 0.1 \
-	--accessPattern uniform \
-	--nwLatencyBase 2.00 \
-	--nwLatencyMu 0.0\
-	--nwLatencySigma 0.00 \
-	--expPrefix oracle\
-	--simulationDuration 50000\
-	--seed 2\
-	--numRequests 600000\
-	--logFolder logs\
-	--expScenario timeVaryingServiceTimeServers\
-	--demandSkew 0.0\
-	--highDemandFraction 0.0\
-	--slowServerFraction 0.0\
-	--slowServerSlowness 0.0\
-	--intervalParam 500\
-	--timeVaryingDrift 5;
+# python experiment.py  \
+# 	--numClients 150 \
+# 	--numServers 50 \
+# 	--numWorkload 200 \
+# 	--workloadModel poisson \
+# 	--serverConcurrency 4 \
+# 	--serviceTime 4.00\
+# 	--utilization 0.99 \
+# 	--serviceTimeModel random.expovariate \
+# 	--replicationFactor 3 \
+# 	--selectionStrategy pending \
+# 	--shadowReadRatio 0.1 \
+# 	--accessPattern uniform \
+# 	--nwLatencyBase 2.00 \
+# 	--nwLatencyMu 0.0\
+# 	--nwLatencySigma 0.00 \
+# 	--expPrefix oracle\
+# 	--simulationDuration 50000\
+# 	--seed 2\
+# 	--numRequests 600000\
+# 	--logFolder logs\
+# 	--expScenario timeVaryingServiceTimeServers\
+# 	--demandSkew 0.0\
+# 	--highDemandFraction 0.0\
+# 	--slowServerFraction 0.0\
+# 	--slowServerSlowness 0.0\
+# 	--intervalParam 500\
+# 	--timeVaryingDrift 5;
 
 # To profile, replace the first line with:
 # python -m cProfile -o output.txt experiment.py \"

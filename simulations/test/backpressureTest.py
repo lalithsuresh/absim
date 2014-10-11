@@ -6,21 +6,21 @@ import SimPy.Simulation as Simulation
 
 
 class Observer(Simulation.Process):
-    def __init__(self, server, client):
-        self.server = server
+    def __init__(self, serverList, client):
+        self.serverList = serverList
         self.client = client
         self.monitor = Simulation.Monitor(name="Latency")
-        Simulation.Process.__init__(self, name='Observer:' + str(server.id))
+        Simulation.Process.__init__(self, name='Observer')
 
     def addNtasks(self, cli, N):
         for i in range(N):  # A burst that uses up all tokens
             taskToSchedule = task.Task("Task%s" % i, self.monitor)
-            cli.schedule(taskToSchedule)
+            cli.schedule(taskToSchedule, self.serverList)
 
     def testBackPressureLoopSingleServer(self):
         yield Simulation.hold, self
-        rateLimiter = self.client.rateLimiters[self.server]
-        bps = self.client.backpressureSchedulers[self.server]
+        rateLimiter = self.client.rateLimiters[self.serverList[0]]
+        bps = self.client.backpressureSchedulers[self.serverList[0]]
         assert rateLimiter is not None
 
         #######################################################
@@ -84,8 +84,8 @@ class Observer(Simulation.Process):
         #######################################################
         # Wait to empty out the last request
         #######################################################
-        yield Simulation.hold, self, timeToWait - 0.0001
-        assert len(bps.backlogQueue) == 1
+        yield Simulation.hold, self, timeToWait - 0.0005
+        assert len(bps.backlogQueue) == 1, len(bps.backlogQueue)
         assert rateLimiter.tokens > 0, "Tokens is %s" % rateLimiter.tokens
         assert rateLimiter.tokens < 1, "Tokens is %s" % rateLimiter.tokens
 
@@ -98,6 +98,76 @@ class Observer(Simulation.Process):
         assert rateLimiter.tokens < 1, "Tokens is %s" % rateLimiter.tokens
         timeToWait = rateLimiter.tryAcquire()
         assert timeToWait > 0
+
+    def testBackPressureLoopTwoServers(self):
+        yield Simulation.hold, self
+        rateLimiter1 = self.client.rateLimiters[self.serverList[0]]
+        rateLimiter2 = self.client.rateLimiters[self.serverList[1]]
+        bps = self.client.backpressureSchedulers[self.serverList[0]]
+        assert rateLimiter1 is not None
+        assert rateLimiter2 is not None
+
+        #######################################################
+        # Exhaust first rate limiter, then the second.
+        # We can do this because the replica selection
+        # scheme here is 'primary'
+        #######################################################
+        rateLimiter1.rate = 5
+        rateLimiter1.tokens = 2
+        rateLimiter1.maxTokens = 2
+        rateLimiter2.rate = 10
+        rateLimiter2.tokens = 2
+        rateLimiter2.maxTokens = 2
+        self.addNtasks(self.client, 1)
+        assert len(bps.backlogQueue) == 1
+
+        yield Simulation.hold, self, 0.000001
+        assert len(bps.backlogQueue) == 0
+        assert rateLimiter1.tokens >= 1 and rateLimiter1.tokens < 2
+        assert rateLimiter2.tokens == 2
+
+        self.addNtasks(self.client, 1)
+        yield Simulation.hold, self, 0.000001
+        assert len(bps.backlogQueue) == 0
+        assert rateLimiter1.tokens >= 0 and rateLimiter1.tokens < 1
+        assert rateLimiter2.tokens == 2
+
+        self.addNtasks(self.client, 1)
+        yield Simulation.hold, self, 0.000001
+        assert len(bps.backlogQueue) == 0
+        assert rateLimiter1.tokens >= 0 and rateLimiter1.tokens < 1
+        assert rateLimiter2.tokens >= 1 and rateLimiter2.tokens < 2
+
+        self.addNtasks(self.client, 1)
+        yield Simulation.hold, self, 0.000001
+        assert len(bps.backlogQueue) == 0
+        assert rateLimiter1.tokens >= 0 and rateLimiter1.tokens < 1
+        assert rateLimiter2.tokens >= 0 and rateLimiter2.tokens < 1
+
+        #######################################################
+        # And now, backpressure
+        #######################################################
+
+        self.addNtasks(self.client, 2)
+        yield Simulation.hold, self, 0.000001
+        assert len(bps.backlogQueue) == 2
+        assert rateLimiter1.tokens >= 0 and rateLimiter1.tokens < 1
+        assert rateLimiter2.tokens >= 0 and rateLimiter2.tokens < 1
+
+        timeToWait1 = rateLimiter1.tryAcquire()
+        timeToWait2 = rateLimiter2.tryAcquire()
+        # Both rate limiters got exhausted very close in time,
+        # but rateLimiter2's rate is higher, meaning that the
+        # system should leave backpressure after timeToWait2 ms.
+        yield Simulation.hold, self, timeToWait2 - 0.001
+        assert len(bps.backlogQueue) == 2
+        assert rateLimiter1.tokens >= 0 and rateLimiter1.tokens < 1
+        assert rateLimiter2.tokens >= 0 and rateLimiter2.tokens < 1
+
+        yield Simulation.hold, self, 0.003
+        assert len(bps.backlogQueue) == 1, len(bps.backlogQueue)
+        assert rateLimiter1.tokens >= 0 and rateLimiter1.tokens < 1
+        assert rateLimiter2.tokens >= 0 and rateLimiter2.tokens < 1
 
 
 class TestServerLoop(unittest.TestCase):
@@ -124,10 +194,39 @@ class TestServerLoop(unittest.TestCase):
                            cubicBeta=0.2,
                            hysterisisFactor=2,
                            demandWeight=1.0)
-        observer = Observer(s1, c1)
+        observer = Observer([s1], c1)
         Simulation.activate(observer,
                             observer.testBackPressureLoopSingleServer(),
-                            at=1.099)
+                            at=0.1)
+        Simulation.simulate(until=100)
+
+    def testBackPressureLoopTwoServers(self):
+        Simulation.initialize()
+        s1 = server.Server(1,
+                           resourceCapacity=1,
+                           serviceTime=4,
+                           serviceTimeModel="constant")
+        s2 = server.Server(2,
+                           resourceCapacity=1,
+                           serviceTime=4,
+                           serviceTimeModel="constant")
+        c1 = client.Client(id_="Client1",
+                           serverList=[s1, s2],
+                           replicaSelectionStrategy="primary",
+                           accessPattern="uniform",
+                           replicationFactor=2,
+                           backpressure=True,
+                           shadowReadRatio=0.0,
+                           rateInterval=20,
+                           cubicC=0.000004,
+                           cubicSmax=10,
+                           cubicBeta=0.2,
+                           hysterisisFactor=2,
+                           demandWeight=1.0)
+        observer = Observer([s1, s2], c1)
+        Simulation.activate(observer,
+                            observer.testBackPressureLoopTwoServers(),
+                            at=0.1)
         Simulation.simulate(until=100)
 
 

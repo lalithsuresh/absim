@@ -99,8 +99,7 @@ class Client():
         '''
         return Simulation.now()/1000.0
 
-    def schedule(self, task):
-        replicaSet = None
+    def schedule(self, task, replicaSet=None):
         replicaToServe = None
         firstReplicaIndex = None
 
@@ -110,10 +109,11 @@ class Client():
         elif(self.accessPattern == "zipfian"):
             firstReplicaIndex = numpy.random.zipf(1.5) % len(self.serverList)
 
-        replicaSet = [self.serverList[i % len(self.serverList)]
-                      for i in range(firstReplicaIndex,
-                                     firstReplicaIndex +
-                                     self.replicationFactor)]
+        if (replicaSet is None):
+            replicaSet = [self.serverList[i % len(self.serverList)]
+                          for i in range(firstReplicaIndex,
+                                         firstReplicaIndex +
+                                         self.replicationFactor)]
         startTime = Simulation.now()
         self.taskArrivalTimeTracker[task] = startTime
 
@@ -466,10 +466,11 @@ class RateLimiter():
         self.tokens -= 1
 
     def tryAcquire(self):
-        self.tokens = min(self.maxTokens, self.tokens
-                          + self.rate/float(self.rateInterval)
-                          * (Simulation.now() - self.lastSent))
-        if (self.tokens >= 1):
+        tokens = min(self.maxTokens, self.tokens
+                     + self.rate/float(self.rateInterval)
+                     * (Simulation.now() - self.lastSent))
+        if (tokens >= 1):
+            self.tokens = tokens
             return 0
         else:
             timetowait = (1 - self.tokens) * self.rateInterval/self.rate
