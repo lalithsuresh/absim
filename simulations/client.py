@@ -313,7 +313,6 @@ class Client():
             self.rateLimiters[replica].rate = \
                 max(self.rateLimiters[replica].rate, 0.0001)
             self.lastRateDecrease[replica] = Simulation.now()
-
         assert (self.rateLimiters[replica].rate > 0)
         alphaObservation = (replica.id,
                             self.rateLimiters[replica].rate)
@@ -426,6 +425,7 @@ class BackpressureScheduler(Simulation.Process):
                         assert self.client.rateLimiters[replica].tokens < 1
 
                 if (not sent):
+                    print 'BP', Simulation.now(), minDurationToWait
                     # Backpressure mode. Wait for the least amount of time
                     # necessary until at least one rate limiter is expected
                     # to be available
@@ -463,8 +463,13 @@ class RateLimiter():
             return 0
         else:
             assert self.tokens < 1
-            timetowait = (1 - self.tokens) * self.rateInterval/self.rate
-            return timetowait
+            timetowait = (1 - tokens) * self.rateInterval/self.rate
+            return timetowait + 1
+
+    def getTokens(self):
+        return min(self.maxTokens, self.tokens
+                   + self.rate/float(self.rateInterval)
+                   * (Simulation.now() - self.lastSent))
 
 
 class ReceiveRate():

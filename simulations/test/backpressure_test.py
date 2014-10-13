@@ -17,7 +17,7 @@ class Observer(Simulation.Process):
             taskToSchedule = task.Task("Task%s" % i, self.monitor)
             cli.schedule(taskToSchedule, self.serverList)
 
-    def testBackPressureLoopSingleServer(self):
+    def testBackPressureLoopSingleServer1(self):
         yield Simulation.hold, self
         rateLimiter = self.client.rateLimiters[self.serverList[0]]
         bps = self.client.backpressureSchedulers[self.serverList[0]]
@@ -32,8 +32,14 @@ class Observer(Simulation.Process):
         assert len(bps.backlogQueue) == 1
         yield Simulation.hold, self, 0.0001
         assert len(bps.backlogQueue) == 0
-        assert rateLimiter.tokens > 4, "Tokens is %s" % rateLimiter.tokens
-        assert rateLimiter.tokens < 5, "Tokens is %s" % rateLimiter.tokens
+        assert rateLimiter.getTokens() > 4
+        assert rateLimiter.getTokens() < 5
+
+    def testBackPressureLoopSingleServer2(self):
+        yield Simulation.hold, self
+        rateLimiter = self.client.rateLimiters[self.serverList[0]]
+        bps = self.client.backpressureSchedulers[self.serverList[0]]
+        assert rateLimiter is not None
 
         #######################################################
         # Multiple task insertion, single rate limiter
@@ -47,55 +53,65 @@ class Observer(Simulation.Process):
         assert len(bps.backlogQueue) == 5
         yield Simulation.hold, self, 0.0001
         assert len(bps.backlogQueue) == 0
-        assert rateLimiter.tokens > 0, "Tokens is %s" % rateLimiter.tokens
-        assert rateLimiter.tokens < 1, "Tokens is %s" % rateLimiter.tokens
+        assert rateLimiter.getTokens() > 0
+        assert rateLimiter.getTokens() < 1
+
+    def testBackPressureLoopSingleServer3(self):
+        yield Simulation.hold, self
+        rateLimiter = self.client.rateLimiters[self.serverList[0]]
+        bps = self.client.backpressureSchedulers[self.serverList[0]]
+        assert rateLimiter is not None
+
+        rateLimiter.rate = 5
+        rateLimiter.tokens = 0.0
 
         #######################################################
         # Now that the number of tokens is close to zero,
-        # add another two requests to the queue
+        # add two requests to the queue
         #######################################################
         self.addNtasks(self.client, 2)
         assert len(bps.backlogQueue) == 2
         yield Simulation.hold, self, 0.0001
         assert len(bps.backlogQueue) == 2   # Backpressure should have happened
-        assert rateLimiter.tokens > 0, "Tokens is %s" % rateLimiter.tokens
-        assert rateLimiter.tokens < 1, "Tokens is %s" % rateLimiter.tokens
+        assert rateLimiter.getTokens() > 0
+        assert rateLimiter.getTokens() < 1
 
         #######################################################
         # At this juncture, the scheduler should not dequeue
         # the remaining request any time before timeToWait milliseconds
         #######################################################
         timeToWait = rateLimiter.tryAcquire()
-        yield Simulation.hold, self, timeToWait - 0.0001
+        assert timeToWait > 0
+        yield Simulation.hold, self, timeToWait - 1.0001
         assert len(bps.backlogQueue) == 2   # Should still be in backpressure
-        assert rateLimiter.tokens > 0, "Tokens is %s" % rateLimiter.tokens
-        assert rateLimiter.tokens < 1, "Tokens is %s" % rateLimiter.tokens
+        assert rateLimiter.getTokens() > 0
+        assert rateLimiter.getTokens() < 1
 
-        yield Simulation.hold, self, 0.0003
+        yield Simulation.hold, self, 1.0002
         # Done with one round of backpressure, one more request left
         assert len(bps.backlogQueue) == 1
         # Tokens should still not be enough, and tryAcquire should
         # report a waiting time
-        assert rateLimiter.tokens > 0, "Tokens is %s" % rateLimiter.tokens
-        assert rateLimiter.tokens < 1, "Tokens is %s" % rateLimiter.tokens
+        assert rateLimiter.getTokens() > 0
+        assert rateLimiter.getTokens() < 1
         timeToWait = rateLimiter.tryAcquire()
         assert timeToWait > 0
 
         #######################################################
         # Wait to empty out the last request
         #######################################################
-        yield Simulation.hold, self, timeToWait - 0.0005
+        yield Simulation.hold, self, timeToWait - 1.0005
         assert len(bps.backlogQueue) == 1, len(bps.backlogQueue)
-        assert rateLimiter.tokens > 0, "Tokens is %s" % rateLimiter.tokens
-        assert rateLimiter.tokens < 1, "Tokens is %s" % rateLimiter.tokens
+        assert rateLimiter.getTokens() > 0
+        assert rateLimiter.getTokens() < 1
 
-        yield Simulation.hold, self, 0.0003
+        yield Simulation.hold, self, 1.0006
         # Aaaaand the last one is out
         assert len(bps.backlogQueue) == 0
         # Tokens should still not be enough, and tryAcquire should
         # report a waiting time
-        assert rateLimiter.tokens > 0, "Tokens is %s" % rateLimiter.tokens
-        assert rateLimiter.tokens < 1, "Tokens is %s" % rateLimiter.tokens
+        assert rateLimiter.getTokens() > 0
+        assert rateLimiter.getTokens() < 1
         timeToWait = rateLimiter.tryAcquire()
         assert timeToWait > 0
 
@@ -123,26 +139,26 @@ class Observer(Simulation.Process):
 
         yield Simulation.hold, self, 0.000001
         assert len(bps.backlogQueue) == 0
-        assert rateLimiter1.tokens >= 1 and rateLimiter1.tokens < 2
+        assert rateLimiter1.getTokens() >= 1 and rateLimiter1.getTokens() < 2
         assert rateLimiter2.tokens == 2
 
         self.addNtasks(self.client, 1)
         yield Simulation.hold, self, 0.000001
         assert len(bps.backlogQueue) == 0
-        assert rateLimiter1.tokens >= 0 and rateLimiter1.tokens < 1
+        assert rateLimiter1.getTokens() >= 0 and rateLimiter1.getTokens() < 1
         assert rateLimiter2.tokens == 2
 
         self.addNtasks(self.client, 1)
         yield Simulation.hold, self, 0.000001
         assert len(bps.backlogQueue) == 0
-        assert rateLimiter1.tokens >= 0 and rateLimiter1.tokens < 1
-        assert rateLimiter2.tokens >= 1 and rateLimiter2.tokens < 2
+        assert rateLimiter1.getTokens() >= 0 and rateLimiter1.getTokens() < 1
+        assert rateLimiter2.getTokens() >= 1 and rateLimiter2.getTokens() < 2
 
         self.addNtasks(self.client, 1)
         yield Simulation.hold, self, 0.000001
         assert len(bps.backlogQueue) == 0
-        assert rateLimiter1.tokens >= 0 and rateLimiter1.tokens < 1
-        assert rateLimiter2.tokens >= 0 and rateLimiter2.tokens < 1
+        assert rateLimiter1.getTokens() >= 0 and rateLimiter1.getTokens() < 1
+        assert rateLimiter2.getTokens() >= 0 and rateLimiter2.getTokens() < 1
 
         #######################################################
         # And now, backpressure
@@ -151,23 +167,22 @@ class Observer(Simulation.Process):
         self.addNtasks(self.client, 2)
         yield Simulation.hold, self, 0.000001
         assert len(bps.backlogQueue) == 2
-        assert rateLimiter1.tokens >= 0 and rateLimiter1.tokens < 1
-        assert rateLimiter2.tokens >= 0 and rateLimiter2.tokens < 1
+        assert rateLimiter1.getTokens() >= 0 and rateLimiter1.getTokens() < 1
+        assert rateLimiter2.getTokens() >= 0 and rateLimiter2.getTokens() < 1
 
-        timeToWait1 = rateLimiter1.tryAcquire()
         timeToWait2 = rateLimiter2.tryAcquire()
         # Both rate limiters got exhausted very close in time,
         # but rateLimiter2's rate is higher, meaning that the
         # system should leave backpressure after timeToWait2 ms.
-        yield Simulation.hold, self, timeToWait2 - 0.001
+        yield Simulation.hold, self, timeToWait2 - 1.001
         assert len(bps.backlogQueue) == 2
-        assert rateLimiter1.tokens >= 0 and rateLimiter1.tokens < 1
-        assert rateLimiter2.tokens >= 0 and rateLimiter2.tokens < 1
+        assert rateLimiter1.getTokens() >= 0 and rateLimiter1.getTokens() < 1
+        assert rateLimiter2.getTokens() >= 0 and rateLimiter2.getTokens() < 1
 
-        yield Simulation.hold, self, 0.003
+        yield Simulation.hold, self, 1.002
         assert len(bps.backlogQueue) == 1, len(bps.backlogQueue)
-        assert rateLimiter1.tokens >= 0 and rateLimiter1.tokens < 1
-        assert rateLimiter2.tokens >= 0 and rateLimiter2.tokens < 1
+        assert rateLimiter1.getTokens() >= 0 and rateLimiter1.getTokens() < 1
+        assert rateLimiter2.getTokens() >= 0 and rateLimiter2.getTokens() < 1
 
 
 class TestServerLoop(unittest.TestCase):
@@ -175,7 +190,7 @@ class TestServerLoop(unittest.TestCase):
     # First check if a single task is being executed correctly
     # by a server, then check for two tasks being executed
     # one after the other.
-    def testBackPressureLoopSingleServer(self):
+    def testBackPressureLoopSingleServer1(self):
         Simulation.initialize()
         s1 = server.Server(1,
                            resourceCapacity=1,
@@ -196,7 +211,57 @@ class TestServerLoop(unittest.TestCase):
                            demandWeight=1.0)
         observer = Observer([s1], c1)
         Simulation.activate(observer,
-                            observer.testBackPressureLoopSingleServer(),
+                            observer.testBackPressureLoopSingleServer1(),
+                            at=0.1)
+        Simulation.simulate(until=100)
+
+    def testBackPressureLoopSingleServer2(self):
+        Simulation.initialize()
+        s1 = server.Server(1,
+                           resourceCapacity=1,
+                           serviceTime=4,
+                           serviceTimeModel="constant")
+        c1 = client.Client(id_="Client1",
+                           serverList=[s1],
+                           replicaSelectionStrategy="expDelay",
+                           accessPattern="uniform",
+                           replicationFactor=1,
+                           backpressure=True,
+                           shadowReadRatio=0.0,
+                           rateInterval=20,
+                           cubicC=0.000004,
+                           cubicSmax=10,
+                           cubicBeta=0.2,
+                           hysterisisFactor=2,
+                           demandWeight=1.0)
+        observer = Observer([s1], c1)
+        Simulation.activate(observer,
+                            observer.testBackPressureLoopSingleServer2(),
+                            at=0.1)
+        Simulation.simulate(until=100)
+
+    def testBackPressureLoopSingleServer3(self):
+        Simulation.initialize()
+        s1 = server.Server(1,
+                           resourceCapacity=1,
+                           serviceTime=4,
+                           serviceTimeModel="constant")
+        c1 = client.Client(id_="Client1",
+                           serverList=[s1],
+                           replicaSelectionStrategy="expDelay",
+                           accessPattern="uniform",
+                           replicationFactor=1,
+                           backpressure=True,
+                           shadowReadRatio=0.0,
+                           rateInterval=20,
+                           cubicC=0.000004,
+                           cubicSmax=10,
+                           cubicBeta=0.2,
+                           hysterisisFactor=2,
+                           demandWeight=1.0)
+        observer = Observer([s1], c1)
+        Simulation.activate(observer,
+                            observer.testBackPressureLoopSingleServer3(),
                             at=0.1)
         Simulation.simulate(until=100)
 
