@@ -44,10 +44,6 @@ class Client():
         self.taskSentTimeTracker = {}
         self.taskArrivalTimeTracker = {}
 
-        # This is needed to prevent the initial state from blowing up
-        # Probably not needed on an actual implementation
-        self.outstandingRequests = []
-
         # Record waiting and service times as relayed by the server
         self.expectedDelayMap = {node: {} for node in serverList}
         self.lastSeen = {node: 0 for node in serverList}
@@ -152,7 +148,6 @@ class Client():
             "%s %s" % (replicaToServe.id,
                        self.pendingRequestsMap[replicaToServe]))
         self.taskSentTimeTracker[task] = Simulation.now()
-        self.outstandingRequests.append(task)
 
     def sort(self, originalReplicaSet):
 
@@ -193,7 +188,6 @@ class Client():
                     i += 1
                 assert nodeToSelect is not None
 
-                # Swap i'th element
                 replicaSet[0], replicaSet[i] = replicaSet[i], replicaSet[0]
         elif(self.REPLICA_SELECTION_STRATEGY == "primary"):
             pass
@@ -250,11 +244,7 @@ class Client():
                                          theta,
                                          total))
         else:
-            if (len(self.outstandingRequests) != 0):
-                sentTime = self.taskSentTimeTracker[self.outstandingRequests[0]]
-                return sentTime
-            else:
-                return 0
+            return 0
         return total
 
     def maybeSendShadowReads(self, replicaToServe, replicaSet):
@@ -356,7 +346,6 @@ class ResponseHandler(Simulation.Process):
         yield Simulation.hold, self, delay
 
         # OMG request completed. Time for some book-keeping
-        client.outstandingRequests.remove(task)
         client.pendingRequestsMap[replicaThatServed] -= 1
         client.pendingXserviceMap[replicaThatServed] = \
             (1 + client.pendingRequestsMap[replicaThatServed]) \
@@ -473,6 +462,7 @@ class RateLimiter():
             self.tokens = tokens
             return 0
         else:
+            assert self.tokens < 1
             timetowait = (1 - self.tokens) * self.rateInterval/self.rate
             return timetowait
 

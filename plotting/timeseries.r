@@ -12,8 +12,8 @@ colnames(latency)[3] <- "Latency"
 colnames(latency)[4] <- "ClientId"
 
 # latency <- latency[10:NROW(latency),]
-latency <- latency[latency$Timestamp > 1000,]
-print(summary(latency[latency$Timestamp > 1000,]))
+latency <- latency[latency$Timestamp > 2000,]
+print(summary(latency[latency$Timestamp > 2000,]))
 latency.dt <- data.table(latency)
 lat50.by.client <- latency.dt[,quantile(Latency,c(0.50)),by=list(ClientId)]
 lat95.by.client <- latency.dt[,quantile(Latency,c(0.95)),by=list(ClientId)]
@@ -136,7 +136,13 @@ colnames(rate)[3] <- "Tick"
 
 rate <- data.table(rate)
 
-ggplot(rate) + geom_histogram(aes(x=Timestamp), binwidth=20) + facet_grid(ServerId ~ .)
+p1 <- ggplot(rate[rate$ServerId == "13",]) +
+	  geom_histogram(aes(x=Timestamp), binwidth=20) +
+	  facet_grid(ServerId ~ .) + 
+	  ggtitle(paste(prefix, "ServerSideRate")) +
+	  theme(text = element_text(size=15), 
+	  		axis.text = element_text(size=20))
+ggsave(p1, file=paste(prefix, "_ServerSideRate.pdf", sep=""), height=30, width=50, limitsize=FALSE)
 
 # rate <- rate[rate$ClientId == "Client1",]
 
