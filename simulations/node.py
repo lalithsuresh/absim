@@ -9,7 +9,8 @@ class Node():
     Generic class that defines switches and/or end-hosts
     '''
     htype_values = {"client":0, "server":1, "edge":2, "aggr":3, "core":4}
-    def __init__(self, htype):
+    def __init__(self, id_, htype):
+        self.id = id_
         self.neighbors = {}
         self.htype = htype
       

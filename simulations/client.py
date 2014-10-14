@@ -3,13 +3,14 @@ import random
 import numpy
 import constants
 import task
+from misc import DeliverMessageWithDelay
+from node import Node
 
-
-class Client():
+class Client(Node):
     def __init__(self, id_, serverList, replicaSelectionStrategy,
                  accessPattern, replicationFactor, backpressure,
                  shadowReadRatio):
-        self.id = id_
+        Node.__init__(self, id_, "client")
         self.serverList = serverList
         self.accessPattern = accessPattern
         self.replicationFactor = replicationFactor
@@ -19,27 +20,27 @@ class Client():
         self.movingAverageWindow = 10
         self.backpressure = backpressure    # True/Flase
         self.shadowReadRatio = shadowReadRatio
-
+        
         # Book-keeping and metrics to be recorded follow...
 
         # Number of outstanding requests at the client
-        self.pendingRequestsMap = {node: 0 for node in serverList}
-
+        self.pendingRequestsMap = {node: 0 for node in self.serverList}
+        #print 'number of servers', len(self.serverList)
+        #print 'pending requests', self.pendingRequestsMap
         # Number of outstanding requests times oracle-service time of replica
-        self.pendingXserviceMap = {node: 0 for node in serverList}
-
+        self.pendingXserviceMap = {node: 0 for node in self.serverList}
         # Last-received response time of server
-        self.responseTimesMap = {node: 0 for node in serverList}
+        self.responseTimesMap = {node: 0 for node in self.serverList}
 
         # Used to track response time from the perspective of the client
         self.taskSentTimeTracker = {}
         self.taskArrivalTimeTracker = {}
 
         # Record waiting and service times as relayed by the server
-        self.expectedDelayMap = {node: [] for node in serverList}
+        self.expectedDelayMap = {node: [] for node in self.serverList}
 
         # Queue size thresholds per replica
-        self.queueSizeThresholds = {node: 1 for node in serverList}
+        self.queueSizeThresholds = {node: 1 for node in self.serverList}
 
         # Backpressure related initialization
         self.backpressureSchedulers =\
@@ -72,6 +73,7 @@ class Client():
         if(self.backpressure is False):
             sortedReplicaSet = self.sort(replicaSet)
             replicaToServe = sortedReplicaSet[0]
+            task.setDestination(replicaToServe)
             self.sendRequest(task, replicaToServe)
             self.maybeSendShadowReads(replicaToServe, replicaSet)
         else:
@@ -83,12 +85,20 @@ class Client():
             random.normalvariate(constants.NW_LATENCY_MU,
                                  constants.NW_LATENCY_SIGMA)
 
+
+        # Get switch I'm delivering to
+        #print 'neighbors', self.getNeighbors(), 'for client', self.id
+        nextSwitch = self.getNeighbors().keys()[0]
+        # Get port I'm delivering through
+        egress = self.getPort(nextSwitch)
+        print 'client', self.id, 'sending to switch:', nextSwitch.id, 'dst:', task.dst.id
+        #print 'test0', egress
         # Immediately send out request
         messageDeliveryProcess = DeliverMessageWithDelay()
         Simulation.activate(messageDeliveryProcess,
                             messageDeliveryProcess.run(task,
                                                        delay,
-                                                       replicaToServe),
+                                                       egress),
                             at=Simulation.now())
 
         latencyTracker = LatencyTracker()
@@ -96,6 +106,8 @@ class Client():
                             latencyTracker.run(self, task, replicaToServe),
                             at=Simulation.now())
 
+        #print 'server list', self.serverList
+        #print 'pending requests', self.pendingRequestsMap
         # Book-keeping for metrics
         self.pendingRequestsMap[replicaToServe] += 1
         self.pendingXserviceMap[replicaToServe] = \
@@ -163,15 +175,6 @@ class Client():
                     shadowReadTask = task.Task("ShadowRead", None)
                     self.taskTimeSentTracker[shadowReadTask] = Simulation.now()
                     self.sendRequest(shadowReadTask, replica)
-
-
-class DeliverMessageWithDelay(Simulation.Process):
-    def __init__(self):
-        Simulation.Process.__init__(self, name='DeliverMessageWithDelay')
-
-    def run(self, task, delay, replicaToServe):
-        yield Simulation.hold, self, delay
-        replicaToServe.enqueueTask(task)
 
 
 class LatencyTracker(Simulation.Process):

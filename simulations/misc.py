@@ -1,7 +1,19 @@
 from collections import namedtuple
+from datatask import DataTask
+import SimPy.Simulation as Simulation
 
+class DeliverMessageWithDelay(Simulation.Process):
+    def __init__(self):
+        Simulation.Process.__init__(self, name='DeliverMessageWithDelay')
 
+    def run(self, task, delay, port):
+        yield Simulation.hold, self, delay
+        port.enqueueTask(task)
 
+def cloneDataTask(task):
+    newTask = DataTask(task.id, task.latencyMonitor, task.src, task.dst, task.size, task.response, task.seqN, task.total)
+    return newTask
+    
 def parse_graph(name='default'):
   graph = {}
   g = open('graph/%s'%name,'r')

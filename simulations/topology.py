@@ -6,37 +6,36 @@ Created on Oct 11, 2014
 
 from link import Link
 from switch import Switch
-from muUpdater import MuUpdater
 from server import Server
 from client import Client
 
 class Topology():
     CoreSwitchList = []
-    AggSwitchList = []
+    AggrSwitchList = []
     EdgeSwitchList = []
     HostList = []
-    iNUMBER = 0
-    def __init__(self, iNUMBER, coreAggrBW, aggrEdgeBW, edgeHostBW, placementStrategy, args):
-        iNUMBER = 4 #temporarily hardcoding this
-        self.iNUMBER = iNUMBER
-        self.iCoreLayerSwitch = iNUMBER
-        self.iAggrLayerSwitch = iNUMBER * 2
-        self.iEdgeLayerSwitch = iNUMBER * 2
-        self.iHost = self.iEdgeLayerSwitch * 2
-        self.coreAggrBW = coreAggrBW
-        self.aggrEdgeBW = aggrEdgeBW
-        self.edgeHostBW = edgeHostBW
-        self.links = {}
+    ClientList = []
+    ServerList = []
+    def __init__(self, args):
+        print 'starting topo..'
         self.args = args
-        self.placementStrategy = placementStrategy  #Defines how clients and servers are placed with
-                                                    #respect to the topology
+        self.iNUMBER = self.args.iNumber
+        self.iCoreLayerSwitch = self.iNUMBER
+        self.iAggrLayerSwitch = self.iNUMBER * 2
+        self.iEdgeLayerSwitch = self.iNUMBER * 2
+        self.iHost = self.iEdgeLayerSwitch * 2
+        self.links = {}
 
     def createTopo(self):    
         self.createCoreLayerSwitch(self.iCoreLayerSwitch)
-        self.createAggLayerSwitch(self.iAggLayerSwitch)
+        self.createAggrLayerSwitch(self.iAggrLayerSwitch)
         self.createEdgeLayerSwitch(self.iEdgeLayerSwitch)
-        self.createClient(self.iHost)
-        self.createServer(self.iHost)
+        if(self.args.placementStrategy == 'interleave'):                        
+            self.createServer(self.iHost/2)
+            self.createClient(self.iHost/2)
+            for i in xrange(0, self.iHost/2):
+                self.HostList.append(self.ClientList[i])
+                self.HostList.append(self.ServerList[i])
         self.createLink()
         self.updateConnections()
         
@@ -49,7 +48,7 @@ class Topology():
             c = Switch(id_="Core%s" % (x), htype="core", procTime=self.args.procTime)
             self.CoreSwitchList.append(c)
 
-    def createAggLayerSwitch(self, NUMBER):
+    def createAggrLayerSwitch(self, NUMBER):
         for x in range(1, NUMBER+1):
             c = Switch(id_="Aggr%s" % (x), htype="aggr", procTime=self.args.procTime)
             self.AggrSwitchList.append(c)
@@ -61,61 +60,58 @@ class Topology():
     
     def createClient(self, NUMBER):
         for x in range(1, NUMBER+1):
+            print 'server list', self.ServerList
             c = Client(id_="Client%s" % (x),
-                              replicaSelectionStrategy=self.args.selectionStrategy,
-                              accessPattern=self.args.accessPattern,
-                              replicationFactor=self.args.replicationFactor,
-                              backpressure=self.args.backpressure,
-                              shadowReadRatio=self.args.shadowReadRatio,
-                              rateInterval=self.args.rateInterval,
-                              cubicC=self.args.cubicC,
-                              cubicSmax=self.args.cubicSmax,
-                              cubicBeta=self.args.cubicBeta,
-                              hysterisisFactor=self.args.hysterisisFactor,
-                              demandWeight=self.clientWeights[x])
-            #self.HostList.append(h) 
+                          serverList=self.ServerList,
+                          replicaSelectionStrategy=self.args.selectionStrategy,
+                          accessPattern=self.args.accessPattern,
+                          replicationFactor=self.args.replicationFactor,
+                          backpressure=self.args.backpressure,
+                          shadowReadRatio=self.args.shadowReadRatio)
+            self.ClientList.append(c) 
 
     def createServer(self, NUMBER):
         # Start the servers
-        for x in range(NUMBER):
+        for x in range(1, NUMBER+1):
             serv = Server(id_="Server%s" % (x),
                              resourceCapacity=self.args.serverConcurrency,
-                             serviceTime=(self.serviceTime),
-                             serviceTimeModel=self.serviceTimeModel)
+                             serviceTime=(self.args.serviceTime),
+                             serviceTimeModel=self.args.serviceTimeModel)
             #Simulation.activate(mup, mup.run(), at=0.0) #no need to have service times as a rv
-            #self.HostList.append(serv)
+            self.ServerList.append(serv)
     """
     Create Link 
     """
     def createLink(self):
-        for x in range(0, self.iAggLayerSwitch, 2):
-            self.addLink(self.CoreSwitchList[0], self.AggSwitchList[x], bw=self.coreAggrBW)
-            self.addLink(self.CoreSwitchList[1], self.AggSwitchList[x], bw=self.coreAggrBW)
-        for x in range(1, self.iAggLayerSwitch, 2):
-            self.addLink(self.CoreSwitchList[2], self.AggSwitchList[x], bw=self.coreAggrBW)
-            self.addLink(self.CoreSwitchList[3], self.AggSwitchList[x], bw=self.coreAggrBW)
+        for x in range(0, self.iAggrLayerSwitch, 2):
+            self.addLink(self.CoreSwitchList[0], self.AggrSwitchList[x], bw=self.args.coreAggrBW)
+            self.addLink(self.CoreSwitchList[1], self.AggrSwitchList[x], bw=self.args.coreAggrBW)
+        for x in range(1, self.iAggrLayerSwitch, 2):
+            self.addLink(self.CoreSwitchList[2], self.AggrSwitchList[x], bw=self.args.coreAggrBW)
+            self.addLink(self.CoreSwitchList[3], self.AggrSwitchList[x], bw=self.args.coreAggrBW)
         
-        for x in range(0, self.iAggLayerSwitch, 2):
-            self.addLink(self.AggSwitchList[x], self.EdgeSwitchList[x], bw=self.aggrEdgeBW)
-            self.addLink(self.AggSwitchList[x], self.EdgeSwitchList[x+1], bw=self.aggrEdgeBW)
-            self.addLink(self.AggSwitchList[x+1], self.EdgeSwitchList[x], bw=self.aggrEdgeBW)
-            self.addLink(self.AggSwitchList[x+1], self.EdgeSwitchList[x+1], bw=self.aggrEdgeBW)
+        for x in range(0, self.iAggrLayerSwitch, 2):
+            self.addLink(self.AggrSwitchList[x], self.EdgeSwitchList[x], bw=self.args.aggrEdgeBW)
+            self.addLink(self.AggrSwitchList[x], self.EdgeSwitchList[x+1], bw=self.args.aggrEdgeBW)
+            self.addLink(self.AggrSwitchList[x+1], self.EdgeSwitchList[x], bw=self.args.aggrEdgeBW)
+            self.addLink(self.AggrSwitchList[x+1], self.EdgeSwitchList[x+1], bw=self.args.aggrEdgeBW)
 
         for x in range(0, self.iEdgeLayerSwitch):
             ## limit = 2 * x + 1 
-            self.addLink(self.EdgeSwitchList[x], self.HostList[2 * x])
-            self.addLink(self.EdgeSwitchList[x], self.HostList[2 * x + 1])
+            self.addLink(self.EdgeSwitchList[x], self.HostList[2 * x], bw=self.args.edgeHostBW)
+            self.addLink(self.EdgeSwitchList[x], self.HostList[2 * x + 1], bw=self.args.edgeHostBW)
 
     def addLink(self, n1, n2, bw):
+        print "Adding link between %s:%s and %s:%s"%(n1.id, n1.htype, n2.id, n2.htype)
         if(n1 not in self.links):
             self.links[n1] = [Link(bw, n2)]
         else:
             self.links[n1].append(Link(bw, n2))
-        n1.addNeighbor(n2)
         if(n2 not in self.links):
             self.links[n2] = [Link(bw, n1)]
         else:
             self.links[n2].append(Link(bw, n1))
+        n1.addNeighbor(n2, bw)
         n2.addNeighbor(n1, bw)
 
         #=======================================================================
@@ -129,12 +125,17 @@ class Topology():
     Update connections (from lower to higher switches)
     """
     def updateConnections(self):
+        for h in self.HostList:
+            usws = h.getUppers()
+            for usw in usws:
+                usw.addConnectedHosts(False, [h]) #no intermediary
+                
         for esw in self.EdgeSwitchList:
             usws = esw.getUppers()
             for usw in usws:
                 usw.addConnectedHosts(esw, esw.getConnectedHosts())
                 
-        for asw in self.AggSwitchList:
+        for asw in self.AggrSwitchList:
             usws = asw.getUppers()
             for usw in usws:
                 usw.addConnectedHosts(asw, asw.getConnectedHosts())

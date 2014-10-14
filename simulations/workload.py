@@ -2,7 +2,7 @@ import SimPy.Simulation as Simulation
 import random
 import task
 import numpy
-
+import datatask
 
 class Workload(Simulation.Process):
 
@@ -23,14 +23,16 @@ class Workload(Simulation.Process):
             #     random.normalvariate(constants.NW_LATENCY_MU,
             #                          constants.NW_LATENCY_SIGMA)
             # yield Simulation.hold, self, delay
-            taskToSchedule = task.Task("Task" + str(taskCounter),
+            taskToSchedule = datatask.DataTask("Task" + str(taskCounter),
                                        self.latencyMonitor)
             taskCounter += 1
 
             # Push out a task...
             randomClientIndex = random.randint(0, len(clientList) - 1)
             clientNode = clientList[randomClientIndex]
-
+            #print clientList
+            #print 'chosen node:', clientNode.id
+            taskToSchedule.src = clientNode
             clientNode.schedule(taskToSchedule)
 
             # Simulate client delay

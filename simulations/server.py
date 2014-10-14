@@ -2,13 +2,16 @@ import SimPy.Simulation as Simulation
 import math
 import random
 import sys
+import misc
+import constants
+from node import Node
+from scipy.stats import genpareto
 
-
-class Server():
+class Server(Node):
     """A representation of a physical server that holds resources"""
     def __init__(self, id_, resourceCapacity,
                  serviceTime, serviceTimeModel):
-        self.id = id_
+        Node.__init__(self, id_, "server")
         self.serviceTime = serviceTime
         self.serviceTimeModel = serviceTimeModel
         self.queueResource = Simulation.Resource(capacity=resourceCapacity,
@@ -35,6 +38,12 @@ class Server():
 
         return serviceTime
 
+    def getResponsePacketCount(self):
+        if(self.valueSizeModel == "paper"):
+            r = genpareto.rvs(loc=0, scale=16.02, c=0.15)
+            return int(r)
+        else:
+            return 5
 
 class Executor(Simulation.Process):
 
@@ -58,3 +67,25 @@ class Executor(Simulation.Process):
                                    "serviceTime": serviceTime,
                                    "queueSizeBefore": queueSizeBefore,
                                    "queueSizeAfter": queueSizeAfter})
+        
+        delay = constants.NW_LATENCY_BASE + \
+        random.normalvariate(constants.NW_LATENCY_MU,
+                            constants.NW_LATENCY_SIGMA)
+        for i in xrange(1, self.getResponsePacketCount()):
+            respPacket = misc.cloneDataTask(self.task)
+            respPacket.count = self.getResponsePacketCount()
+            respPacket.seqN = i
+            respPacket.dst = self.task.src
+            respPacket.src = self.task.dst
+            # Get switch I'm delivering to
+            nextSwitch = self.getNeighbors()[0]
+            # Get port I'm delivering through
+            egress = self.getPort(nextSwitch)
+            #print 'test1', egress
+            # Immediately send out request
+            messageDeliveryProcess = misc.DeliverMessageWithDelay()
+            Simulation.activate(messageDeliveryProcess,
+                                messageDeliveryProcess.run(respPacket,
+                                                           delay,
+                                                           egress),
+                                at=Simulation.now())
