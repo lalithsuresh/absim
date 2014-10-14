@@ -42,8 +42,11 @@ class Server(Node):
         return serviceTime
 
     def getResponsePacketCount(self):
-        if(self.valueSizeModel == "paper"):
-            r = genpareto.rvs(loc=0, scale=16.02, c=0.15)
+        if(self.valueSizeModel == "pareto"):
+            numargs = genpareto.numargs
+            [ c ] = [0.15,]*numargs
+            r = genpareto.rvs(c, loc=0, scale=16.02)
+            #print int(r)
             return int(r)
         else:
             return 5
@@ -71,10 +74,11 @@ class Executor(Simulation.Process):
                                    "queueSizeBefore": queueSizeBefore,
                                    "queueSizeAfter": queueSizeAfter})
         
+        packet_count = self.server.getResponsePacketCount()
         copyReceivedEvent = False #For the server, we want to create new events (since the client shouldn't care about response drops)
-        for i in xrange(1, self.server.getResponsePacketCount()+1):
+        for i in xrange(1, packet_count+1):
             respPacket = misc.cloneDataTask(self.task, copyReceivedEvent)
-            respPacket.count = self.server.getResponsePacketCount()
+            respPacket.count = packet_count
             respPacket.seqN = i
             respPacket.dst = self.task.src
             respPacket.src = self.task.dst

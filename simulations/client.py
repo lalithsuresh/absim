@@ -95,7 +95,7 @@ class Client(Node):
         if(retransmit):
             task.receivedEvent = Simulation.SimEvent("PacketReceipt")
         egress.enqueueTask(task)
-        
+        #print self.id, 'sending request:', task.id, 'to server:', replicaToServe.id
 
         #print 'server list', self.serverList
         #print 'pending requests', self.pendingRequestsMap
@@ -113,8 +113,10 @@ class Client(Node):
 
     def receiveResponse(self, packet):
         packet.sigTaskReceived(False)
-        #print 'Client received response with ID:', packet.id
+        #print 'Client received response with ID:', packet.id, 'seqN:', packet.seqN
+        #print 'Client has', len(self.requestStatus.keys()), 'pending requests'
         if packet.id in self.requestStatus:
+            #print packet.id, self.requestStatus[packet.id]
             status = self.requestStatus[packet.id]
             status.remove(packet.seqN)
             if(len(status)==0):
@@ -125,6 +127,7 @@ class Client(Node):
             if packet.count <= 1:
                 #Response received in full
                 #print self.id, 'successfully received packet'
+                self.requestStatus[packet.id] = []
                 self.updateStats(packet, packet.src)
             else:
                 required_pieces = [i for i in xrange(1, packet.count+1)]
@@ -241,6 +244,7 @@ class Client(Node):
 
         del self.taskSentTimeTracker[task.id]
         del self.taskArrivalTimeTracker[task.id]
+        #print 'received task:', task.id, 'seqN:', task.seqN, 'count:', task.count
         del self.requestStatus[task.id]
         # Does not make sense to record shadow read latencies
         # as a latency measurement

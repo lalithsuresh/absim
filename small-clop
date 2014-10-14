@@ -25,6 +25,7 @@ cd simulations;
     --placementStrategy interleave\
     --interarrivalModel poisson\
     --switchBuffer 20\
+    --valueSizeModel pareto\
 	--numRequests 100;
 
 # python experiment.py  \
