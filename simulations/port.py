@@ -7,7 +7,7 @@ Created on Oct 9, 2014
 import SimPy.Simulation as Simulation
 import constants
 import random
-from misc import DeliverMessageWithDelay
+
 class Port():
     def __init__(self, src, dst, bw):
         self.src = src
@@ -19,6 +19,14 @@ class Port():
         self.latencyTrackerMonitor = Simulation.Monitor(name="LatencyTracker")
       
     def enqueueTask(self, task):
+        #Check whether the dst is a switch (since we don't add buffer restrictions to clients/servers)
+        if(self.dst.htype != "client" and self.dst.htype != "server"):
+            #Check whether queue size threshold has been reached
+            if(len(self.buffer.waitQ)>= constants.SWITCH_BUFFER_SIZE):
+                #Drop packet
+                task.sigTaskReceived(True)
+                #print '>>>>PACKET DROPPED!, dst:', task.dst.id
+                return
         executor = Executor(self, task)
         Simulation.activate(executor, executor.run(), Simulation.now())
 

@@ -17,10 +17,12 @@ class Server(Node):
         self.queueResource = Simulation.Resource(capacity=resourceCapacity,
                                                  monitored=True)
         self.valueSizeModel = valueSizeModel
+        self.sentResponses = []
 
     def enqueueTask(self, task):
         executor = Executor(self, task)
         Simulation.activate(executor, executor.run(), Simulation.now())
+        task.sigTaskReceived(False)
 
     def getServiceTime(self):
         serviceTime = 0.0
@@ -69,8 +71,9 @@ class Executor(Simulation.Process):
                                    "queueSizeBefore": queueSizeBefore,
                                    "queueSizeAfter": queueSizeAfter})
         
+        copyReceivedEvent = False #For the server, we want to create new events (since the client shouldn't care about response drops)
         for i in xrange(1, self.server.getResponsePacketCount()+1):
-            respPacket = misc.cloneDataTask(self.task)
+            respPacket = misc.cloneDataTask(self.task, copyReceivedEvent)
             respPacket.count = self.server.getResponsePacketCount()
             respPacket.seqN = i
             respPacket.dst = self.task.src
@@ -82,3 +85,28 @@ class Executor(Simulation.Process):
             #print 'test1', egress
             # Immediately send out request
             egress.enqueueTask(respPacket)
+            self.server.sentResponses.append(respPacket)
+            receiptTracker = ReceiptTracker()
+            Simulation.activate(receiptTracker,
+                            receiptTracker.run(self.server, respPacket),
+                            at=Simulation.now())
+            
+class ReceiptTracker(Simulation.Process):
+    def __init__(self):
+        Simulation.Process.__init__(self, name="ReceiptTracker")
+        
+    def run(self, server, task):
+        yield Simulation.hold, self,
+        yield Simulation.waitevent, self, task.receivedEvent
+        server.sentResponses.remove(task)
+        
+        if(task.receivedEvent.signalparam): #This means that the packet has been dropped
+            #print 'Server is resending response with ID:', task.id
+            nextSwitch = server.getNeighbors().keys()[0]
+            # Get port I'm delivering through
+            egress = server.getPort(nextSwitch)
+            #print 'test1', egress
+            # Immediately send out request
+            task.receivedEvent = Simulation.SimEvent("PacketReceipt")
+            egress.enqueueTask(task)
+            server.sentResponses.append(task)

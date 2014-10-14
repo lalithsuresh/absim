@@ -10,10 +10,14 @@ class DeliverMessageWithDelay(Simulation.Process):
         yield Simulation.hold, self, delay
         port.enqueueTask(task)
 
-def cloneDataTask(task):
+def cloneDataTask(task, copyReceivedEvent):
+    if(copyReceivedEvent):
+        receivedEvent = task.receivedEvent
+    else:
+        receivedEvent = False
     newTask = DataTask(task.id, task.latencyMonitor, task.src, task.dst,\
                         task.size, task.response, task.seqN, task.count, \
-                        task.start, task.completionEvent)
+                        task.start, task.completionEvent, receivedEvent, task.replicas)
     return newTask
     
 def parse_graph(name='default'):

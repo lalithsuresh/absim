@@ -21,6 +21,7 @@ class Client(Node):
         self.backpressure = backpressure    # True/Flase
         self.shadowReadRatio = shadowReadRatio
         self.requestStatus = {} #request/response mappings to keep track of response status
+        self.sentRequests = []
         # Book-keeping and metrics to be recorded follow...
 
         # Number of outstanding requests at the client
@@ -69,29 +70,30 @@ class Client(Node):
                                      self.replicationFactor)]
         startTime = Simulation.now()
         self.taskArrivalTimeTracker[task.id] = startTime
-
+        receiptTracker = ReceiptTracker()
+        Simulation.activate(receiptTracker,
+                            receiptTracker.run(self, task, replicaToServe),
+                            at=Simulation.now())
         if(self.backpressure is False):
             sortedReplicaSet = self.sort(replicaSet)
             replicaToServe = sortedReplicaSet[0]
+            task.replicas = replicaSet
             task.setDestination(replicaToServe)
-            self.sendRequest(task, replicaToServe)
+            self.sendRequest(task, replicaToServe, False)
             self.maybeSendShadowReads(replicaToServe, replicaSet)
         else:
             firstReplica = self.serverList[firstReplicaIndex]
             self.backpressureSchedulers[firstReplica].enqueue(task, replicaSet)
 
-    def sendRequest(self, task, replicaToServe):
-        delay = constants.NW_LATENCY_BASE + \
-            random.normalvariate(constants.NW_LATENCY_MU,
-                                 constants.NW_LATENCY_SIGMA)
-
-
+    def sendRequest(self, task, replicaToServe, retransmit):
         # Get switch I'm delivering to
         #print 'neighbors', self.getNeighbors(), 'for client', self.id
         nextSwitch = self.getNeighbors().keys()[0]
         # Get port I'm delivering through
         egress = self.getPort(nextSwitch)
         #print 'client', self.id, 'sending to switch:', nextSwitch.id, 'dst:', task.dst.id
+        if(retransmit):
+            task.receivedEvent = Simulation.SimEvent("PacketReceipt")
         egress.enqueueTask(task)
         
 
@@ -105,9 +107,13 @@ class Client(Node):
         self.pendingRequestsMonitor.observe(
             "%s %s" % (replicaToServe.id,
                        self.pendingRequestsMap[replicaToServe]))
-        self.taskSentTimeTracker[task.id] = Simulation.now()
+        if not retransmit:
+            self.taskSentTimeTracker[task.id] = Simulation.now()
+        self.sentRequests.append(task)
 
     def receiveResponse(self, packet):
+        packet.sigTaskReceived(False)
+        #print 'Client received response with ID:', packet.id
         if packet.id in self.requestStatus:
             status = self.requestStatus[packet.id]
             status.remove(packet.seqN)
@@ -183,7 +189,6 @@ class Client(Node):
                     self.taskTimeSentTracker[shadowReadTask] = Simulation.now()
                     self.sendRequest(shadowReadTask, replica)
 
-
     def updateStats(self, task, replicaToServe):
 
         # OMG request completed. Time for some book-keeping
@@ -245,6 +250,23 @@ class Client(Node):
             task.latencyMonitor.observe(Simulation.now() - task.start)
 
 
+class ReceiptTracker(Simulation.Process):
+    def __init__(self):
+        Simulation.Process.__init__(self, name="ReceiptTracker")
+        
+    def run(self, client, task, replicaToServe):
+        yield Simulation.hold, self,
+        yield Simulation.waitevent, self, task.receivedEvent
+        client.sentRequests.remove(task)
+        
+        if(task.receivedEvent.signalparam): #This means that the packet has been dropped
+            client.pendingRequestsMap[replicaToServe] -= 1
+            client.pendingXserviceMap[replicaToServe] = \
+                (1 + client.pendingRequestsMap[replicaToServe]) \
+                * replicaToServe.serviceTime
+            newReplica = client.sort(task.replicas)[0]
+            client.sendRequest(task, newReplica, True)
+            #print 'Client is resending dropped packet with ID:', task.id
 class BackpressureScheduler(Simulation.Process):
     def __init__(self, id_, client):
         self.id = id_

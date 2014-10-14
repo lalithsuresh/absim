@@ -24,7 +24,8 @@ cd simulations;
     --edgeHostBW 1\
     --placementStrategy interleave\
     --interarrivalModel poisson\
-	--numRequests 10;
+    --switchBuffer 20\
+	--numRequests 100;
 
 # python experiment.py  \
 # 	--numClients 2 \
@@ -155,6 +156,6 @@ cd plotting;
 # Rscript timeseries.r rp;
 # Rscript timeseries.r pending;
 # Rscript timeseries.r pendingXserviceTime;
-Rscript timeseries.r oracle;
-Rscript timeseries.r expDelay;
+#Rscript timeseries.r oracle;
+#Rscript timeseries.r expDelay;
 cd ..

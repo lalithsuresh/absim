@@ -67,6 +67,8 @@ if __name__ == '__main__':
                         type=str, default="constant")
     parser.add_argument('--valueSizeModel', nargs='?',
                         type=str, default="blabla")
+    parser.add_argument('--switchBuffer', nargs='?',
+                        type=int, default=5)
     parser.add_argument('--placementStrategy', nargs='?',
                         type=str, default="interleave")    
     args = parser.parse_args()
@@ -82,6 +84,7 @@ if __name__ == '__main__':
     constants.NW_LATENCY_BASE = args.nwLatencyBase
     constants.NW_LATENCY_MU = args.nwLatencyMu
     constants.NW_LATENCY_SIGMA = args.nwLatencySigma
+    constants.SWITCH_BUFFER_SIZE = args.switchBuffer
 
     #Construct topology and start clients/servers
     topo = Topology(args)

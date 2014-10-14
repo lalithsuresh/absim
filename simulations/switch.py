@@ -83,8 +83,9 @@ class Executor(Simulation.Process):
 
         queueSizeAfter = len(self.switch.queueResource.waitQ)
         
+        copyReceivedEvent = True #we should keep the dropped event maintained in order to signal dropped packets
         #Make the next hop
-        newTask = cloneDataTask(self.task)
+        newTask = cloneDataTask(self.task, copyReceivedEvent)
         #print newTask.dst
         #print self.switch.neighbors
         egress = self.switch.getNextHop(newTask.dst)
