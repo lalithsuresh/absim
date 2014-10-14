@@ -4,10 +4,16 @@ import SimPy.Simulation as Simulation
 class Task():
     """A simple Task. Applications may subclass this
        for holding specific attributes if need be"""
-    def __init__(self, id_, latencyMonitor):
+    def __init__(self, id_, latencyMonitor, start=False, completionEvent=False):
         self.id = id_
-        self.start = Simulation.now()
-        self.completionEvent = Simulation.SimEvent("ClientToServerCompletion")
+        if not start:
+            self.start = Simulation.now()
+        else:
+            self.start = start
+        if not completionEvent:
+            self.completionEvent = Simulation.SimEvent("ClientToServerCompletion")
+        else:
+            self.completionEvent = completionEvent
         self.latencyMonitor = latencyMonitor
 
     # Used as a notifier mechanism

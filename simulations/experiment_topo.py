@@ -63,6 +63,10 @@ if __name__ == '__main__':
                         type=int, default=1)
     parser.add_argument('--procTime', nargs='?',
                         type=float, default=1)
+    parser.add_argument('--interarrivalModel', nargs='?',
+                        type=str, default="constant")
+    parser.add_argument('--valueSizeModel', nargs='?',
+                        type=str, default="blabla")
     parser.add_argument('--placementStrategy', nargs='?',
                         type=str, default="interleave")    
     args = parser.parse_args()
@@ -89,7 +93,7 @@ if __name__ == '__main__':
         #print 'client list (before):', topo.ClientList
         w = workload.Workload(i, latencyMonitor)
         Simulation.activate(w, w.run(topo.ClientList,
-                                     "constant",
+                                     args.interarrivalModel,
                                      args.workloadParam,
                                      args.numRequests/args.numWorkload),
                             at=0.0),

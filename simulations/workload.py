@@ -26,7 +26,6 @@ class Workload(Simulation.Process):
             taskToSchedule = datatask.DataTask("Task" + str(taskCounter),
                                        self.latencyMonitor)
             taskCounter += 1
-
             # Push out a task...
             randomClientIndex = random.randint(0, len(clientList) - 1)
             clientNode = clientList[randomClientIndex]

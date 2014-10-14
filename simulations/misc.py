@@ -11,7 +11,9 @@ class DeliverMessageWithDelay(Simulation.Process):
         port.enqueueTask(task)
 
 def cloneDataTask(task):
-    newTask = DataTask(task.id, task.latencyMonitor, task.src, task.dst, task.size, task.response, task.seqN, task.total)
+    newTask = DataTask(task.id, task.latencyMonitor, task.src, task.dst,\
+                        task.size, task.response, task.seqN, task.count, \
+                        task.start, task.completionEvent)
     return newTask
     
 def parse_graph(name='default'):

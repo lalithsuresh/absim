@@ -16,6 +16,7 @@ class Server(Node):
         self.serviceTimeModel = serviceTimeModel
         self.queueResource = Simulation.Resource(capacity=resourceCapacity,
                                                  monitored=True)
+        self.valueSizeModel = valueSizeModel
 
     def enqueueTask(self, task):
         executor = Executor(self, task)
@@ -68,24 +69,16 @@ class Executor(Simulation.Process):
                                    "queueSizeBefore": queueSizeBefore,
                                    "queueSizeAfter": queueSizeAfter})
         
-        delay = constants.NW_LATENCY_BASE + \
-        random.normalvariate(constants.NW_LATENCY_MU,
-                            constants.NW_LATENCY_SIGMA)
-        for i in xrange(1, self.server.getResponsePacketCount()):
+        for i in xrange(1, self.server.getResponsePacketCount()+1):
             respPacket = misc.cloneDataTask(self.task)
             respPacket.count = self.server.getResponsePacketCount()
             respPacket.seqN = i
             respPacket.dst = self.task.src
             respPacket.src = self.task.dst
             # Get switch I'm delivering to
-            nextSwitch = self.getNeighbors()[0]
+            nextSwitch = self.server.getNeighbors().keys()[0]
             # Get port I'm delivering through
-            egress = self.getPort(nextSwitch)
+            egress = self.server.getPort(nextSwitch)
             #print 'test1', egress
             # Immediately send out request
-            messageDeliveryProcess = misc.DeliverMessageWithDelay()
-            Simulation.activate(messageDeliveryProcess,
-                                messageDeliveryProcess.run(respPacket,
-                                                           delay,
-                                                           egress),
-                                at=Simulation.now())
+            egress.enqueueTask(respPacket)

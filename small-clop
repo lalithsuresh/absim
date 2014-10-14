@@ -23,7 +23,8 @@ cd simulations;
     --procTime 2.00\
     --edgeHostBW 1\
     --placementStrategy interleave\
-	--numRequests 1000;
+    --interarrivalModel poisson\
+	--numRequests 10;
 
 # python experiment.py  \
 # 	--numClients 2 \
@@ -106,46 +107,46 @@ cd simulations;
 # 	--seed 434\
 # 	--numRequests 1000;
 
-python experiment.py  \
-	--numClients 2 \
-	--numServers 3 \
-	--numWorkload 1 \
-	--serverConcurrency 1 \
-	--serviceTime 4.00 \
-	--workloadParam 2.1818181818 \
-	--serviceTimeModel constant \
-	--replicationFactor 3 \
-	--selectionStrategy pendingXserviceTimeOracle \
-	--shadowReadRatio 0.0 \
-	--accessPattern uniform \
-	--nwLatencyBase 0.00 \
-	--nwLatencyMu 0.0 \
-	--nwLatencySigma 0.0 \
-	--expPrefix oracle\
-	--simulationDuration 100000\
-	--seed 434\
-	--numRequests 1000;
+#python experiment.py  \
+#	--numClients 2 \
+#	--numServers 3 \
+#	--numWorkload 1 \
+#	--serverConcurrency 1 \
+#	--serviceTime 4.00 \
+#	--workloadParam 2.1818181818 \
+#	--serviceTimeModel constant \
+#	--replicationFactor 3 \
+#	--selectionStrategy pendingXserviceTimeOracle \
+#	--shadowReadRatio 0.0 \
+#	--accessPattern uniform \
+#	--nwLatencyBase 0.00 \
+#	--nwLatencyMu 0.0 \
+#	--nwLatencySigma 0.0 \
+#	--expPrefix oracle\
+#	--simulationDuration 100000\
+#	--seed 434\
+#	--numRequests 1000;
 
-python experiment.py  \
-	--numClients 2 \
-	--numServers 3 \
-	--numWorkload 1 \
-	--serverConcurrency 1 \
-	--serviceTime 4.00 \
-	--workloadParam 2.1818181818 \
-	--serviceTimeModel constant \
-	--replicationFactor 3 \
-	--backpressure \
-	--selectionStrategy expDelay \
-	--shadowReadRatio 0.0 \
-	--accessPattern uniform \
-	--nwLatencyBase 0.00 \
-	--nwLatencyMu 0.0 \
-	--nwLatencySigma 0.0 \
-	--expPrefix expDelay \
-	--simulationDuration 100000 \
-	--seed 434 \
-	--numRequests 1000;
+#python experiment.py  \
+#	--numClients 2 \
+#	--numServers 3 \
+#	--numWorkload 1 \
+#	--serverConcurrency 1 \
+#	--serviceTime 4.00 \
+#	--workloadParam 2.1818181818 \
+#	--serviceTimeModel constant \
+#	--replicationFactor 3 \
+#	--backpressure \
+#	--selectionStrategy expDelay \
+#	--shadowReadRatio 0.0 \
+#	--accessPattern uniform \
+#	--nwLatencyBase 0.00 \
+#	--nwLatencyMu 0.0 \
+#	--nwLatencySigma 0.0 \
+#	--expPrefix expDelay \
+#	--simulationDuration 100000 \
+#	--seed 434 \
+#	--numRequests 1000;
 
 
 cd ..

@@ -1,9 +1,5 @@
 import SimPy.Simulation as Simulation
-import math
 import random
-import sys
-import experiment
-from port import Port
 from node import Node
 from misc import DeliverMessageWithDelay
 from misc import cloneDataTask
@@ -45,7 +41,7 @@ class Switch(Node):
         #Dynamic Load-Balaning algorithm (DLB) from OpenFlow based Load Balancing for Fat-Tree Networks with Multipath Support
     def getNextHop(self, dst):
         #check if I'm direct neighbors with dst
-        print self.getIntermediary(dst)
+        #print self.getIntermediary(dst)
         if(self.isNeighbor(dst)):
             egressPort = self.getPort(dst)
         #check if I'm connected to dst through intermediary node
@@ -86,25 +82,13 @@ class Executor(Simulation.Process):
         yield Simulation.release, self, self.switch.queueResource
 
         queueSizeAfter = len(self.switch.queueResource.waitQ)
-        self.task.sigTaskComplete({"waitTime": waitTime,
-                                   "serviceTime": serviceTime,
-                                   "queueSizeBefore": queueSizeBefore,
-                                   "queueSizeAfter": queueSizeAfter})
         
         #Make the next hop
         newTask = cloneDataTask(self.task)
-        delay = constants.NW_LATENCY_BASE + \
-        random.normalvariate(constants.NW_LATENCY_MU,
-                                 constants.NW_LATENCY_SIGMA)
         #print newTask.dst
         #print self.switch.neighbors
         egress = self.switch.getNextHop(newTask.dst)
-        print len(self.switch.getConnectedHosts())
-        print 'switch', self.switch.id, 'sending to:', egress.dst.id
+        #print len(self.switch.getConnectedHosts())
+        #print 'switch', self.switch.id, 'sending to:', egress.dst.id
         #print 'test2', egress
-        messageDeliveryProcess = DeliverMessageWithDelay()
-        Simulation.activate(messageDeliveryProcess,
-                            messageDeliveryProcess.run(newTask,
-                                                       delay,
-                                                       egress),
-                            at=Simulation.now())
+        egress.enqueueTask(newTask)

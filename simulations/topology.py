@@ -60,7 +60,7 @@ class Topology():
     
     def createClient(self, NUMBER):
         for x in range(1, NUMBER+1):
-            print 'server list', self.ServerList
+            #print 'server list', self.ServerList
             c = Client(id_="Client%s" % (x),
                           serverList=self.ServerList,
                           replicaSelectionStrategy=self.args.selectionStrategy,
@@ -76,7 +76,8 @@ class Topology():
             serv = Server(id_="Server%s" % (x),
                              resourceCapacity=self.args.serverConcurrency,
                              serviceTime=(self.args.serviceTime),
-                             serviceTimeModel=self.args.serviceTimeModel)
+                             serviceTimeModel=self.args.serviceTimeModel,
+                             valueSizeModel = self.args.valueSizeModel)
             #Simulation.activate(mup, mup.run(), at=0.0) #no need to have service times as a rv
             self.ServerList.append(serv)
     """
@@ -102,7 +103,7 @@ class Topology():
             self.addLink(self.EdgeSwitchList[x], self.HostList[2 * x + 1], bw=self.args.edgeHostBW)
 
     def addLink(self, n1, n2, bw):
-        print "Adding link between %s:%s and %s:%s"%(n1.id, n1.htype, n2.id, n2.htype)
+        #print "Adding link between %s:%s and %s:%s"%(n1.id, n1.htype, n2.id, n2.htype)
         if(n1 not in self.links):
             self.links[n1] = [Link(bw, n2)]
         else:

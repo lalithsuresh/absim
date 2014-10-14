@@ -20,7 +20,7 @@ class Client(Node):
         self.movingAverageWindow = 10
         self.backpressure = backpressure    # True/Flase
         self.shadowReadRatio = shadowReadRatio
-        
+        self.requestStatus = {} #request/response mappings to keep track of response status
         # Book-keeping and metrics to be recorded follow...
 
         # Number of outstanding requests at the client
@@ -68,7 +68,7 @@ class Client(Node):
                                      firstReplicaIndex +
                                      self.replicationFactor)]
         startTime = Simulation.now()
-        self.taskArrivalTimeTracker[task] = startTime
+        self.taskArrivalTimeTracker[task.id] = startTime
 
         if(self.backpressure is False):
             sortedReplicaSet = self.sort(replicaSet)
@@ -91,20 +91,9 @@ class Client(Node):
         nextSwitch = self.getNeighbors().keys()[0]
         # Get port I'm delivering through
         egress = self.getPort(nextSwitch)
-        print 'client', self.id, 'sending to switch:', nextSwitch.id, 'dst:', task.dst.id
-        #print 'test0', egress
-        # Immediately send out request
-        messageDeliveryProcess = DeliverMessageWithDelay()
-        Simulation.activate(messageDeliveryProcess,
-                            messageDeliveryProcess.run(task,
-                                                       delay,
-                                                       egress),
-                            at=Simulation.now())
-
-        latencyTracker = LatencyTracker()
-        Simulation.activate(latencyTracker,
-                            latencyTracker.run(self, task, replicaToServe),
-                            at=Simulation.now())
+        #print 'client', self.id, 'sending to switch:', nextSwitch.id, 'dst:', task.dst.id
+        egress.enqueueTask(task)
+        
 
         #print 'server list', self.serverList
         #print 'pending requests', self.pendingRequestsMap
@@ -116,8 +105,26 @@ class Client(Node):
         self.pendingRequestsMonitor.observe(
             "%s %s" % (replicaToServe.id,
                        self.pendingRequestsMap[replicaToServe]))
-        self.taskSentTimeTracker[task] = Simulation.now()
+        self.taskSentTimeTracker[task.id] = Simulation.now()
 
+    def receiveResponse(self, packet):
+        if packet.id in self.requestStatus:
+            status = self.requestStatus[packet.id]
+            status.remove(packet.seqN)
+            if(len(status)==0):
+                #Response received in full
+                #print self.id, 'successfully received packet'
+                self.updateStats(packet, packet.src)
+        else:
+            if packet.count <= 1:
+                #Response received in full
+                #print self.id, 'successfully received packet'
+                self.updateStats(packet, packet.src)
+            else:
+                required_pieces = [i for i in xrange(1, packet.count+1)]
+                required_pieces.remove(packet.seqN)
+                self.requestStatus[packet.id] = required_pieces
+                
     def sort(self, originalReplicaSet):
 
         replicaSet = originalReplicaSet[0:]
@@ -177,73 +184,64 @@ class Client(Node):
                     self.sendRequest(shadowReadTask, replica)
 
 
-class LatencyTracker(Simulation.Process):
-    def __init__(self):
-        Simulation.Process.__init__(self, name='LatencyTracker')
-
-    def run(self, client, task, replicaToServe):
-        yield Simulation.hold, self,
-        yield Simulation.waitevent, self, task.completionEvent
-
-        delay = constants.NW_LATENCY_BASE + \
-            random.normalvariate(constants.NW_LATENCY_MU,
-                                 constants.NW_LATENCY_SIGMA)
-        yield Simulation.hold, self, delay
+    def updateStats(self, task, replicaToServe):
 
         # OMG request completed. Time for some book-keeping
-        client.pendingRequestsMap[replicaToServe] -= 1
-        client.pendingXserviceMap[replicaToServe] = \
-            (1 + client.pendingRequestsMap[replicaToServe]) \
+        self.pendingRequestsMap[replicaToServe] -= 1
+        self.pendingXserviceMap[replicaToServe] = \
+            (1 + self.pendingRequestsMap[replicaToServe]) \
             * replicaToServe.serviceTime
 
-        client.pendingRequestsMonitor.observe(
+        self.pendingRequestsMonitor.observe(
             "%s %s" % (replicaToServe.id,
-                       client.pendingRequestsMap[replicaToServe]))
+                       self.pendingRequestsMap[replicaToServe]))
 
-        client.responseTimesMap[replicaToServe] = \
-            Simulation.now() - client.taskSentTimeTracker[task]
-        client.latencyTrackerMonitor\
+        self.responseTimesMap[replicaToServe] = \
+            Simulation.now() - self.taskSentTimeTracker[task.id]
+        self.latencyTrackerMonitor\
               .observe("%s %s" % (replicaToServe.id,
-                       Simulation.now() - client.taskSentTimeTracker[task]))
+                       Simulation.now() - self.taskSentTimeTracker[task.id]))
         expDelayMap = task.completionEvent.signalparam
-        expDelayMap["responseTime"] = client.responseTimesMap[replicaToServe]
-        client.expectedDelayMap[replicaToServe]\
+        expDelayMap["responseTime"] = self.responseTimesMap[replicaToServe]
+        self.expectedDelayMap[replicaToServe]\
             .append(expDelayMap)
 
         # TODO: Threshold
-        if (len(client.expectedDelayMap[replicaToServe])
-           > client.movingAverageWindow):
-            client.expectedDelayMap[replicaToServe].pop(0)
+        if (len(self.expectedDelayMap[replicaToServe])
+           > self.movingAverageWindow):
+            self.expectedDelayMap[replicaToServe].pop(0)
 
         # Backpressure related book-keeping
-        if (client.backpressure):
+        if (self.backpressure):
             mus = []
-            for replica in client.serverList:
+            for replica in self.serverList:
                 mus.append(sum([entry.get("serviceTime")
-                                for entry in client.expectedDelayMap[replica]]))
-            client.muMax = max(mus)
+                                for entry in self.expectedDelayMap[replica]]))
+            self.muMax = max(mus)
 
-            shuffledNodeList = client.serverList[0:]
+            shuffledNodeList = self.serverList[0:]
             random.shuffle(shuffledNodeList)
             for node in shuffledNodeList:
-                client.backpressureSchedulers[node].congestionEvent.signal()
+                self.backpressureSchedulers[node].congestionEvent.signal()
 
-            expDelay = client.computeExpectedDelay(replicaToServe)
-            if (client.muMax > expDelay):
-                client.queueSizeThresholds[replicaToServe] += 1
-            elif (client.muMax < expDelay):
-                client.queueSizeThresholds[replicaToServe] /= 2
+            expDelay = self.computeExpectedDelay(replicaToServe)
+            if (self.muMax > expDelay):
+                self.queueSizeThresholds[replicaToServe] += 1
+            elif (self.muMax < expDelay):
+                self.queueSizeThresholds[replicaToServe] /= 2
 
-            if (client.queueSizeThresholds[replicaToServe] < 1
-               and client.pendingRequestsMap[replicaToServe] == 0):
-                client.queueSizeThresholds[replicaToServe] = 1
+            if (self.queueSizeThresholds[replicaToServe] < 1
+               and self.pendingRequestsMap[replicaToServe] == 0):
+                self.queueSizeThresholds[replicaToServe] = 1
 
-        del client.taskSentTimeTracker[task]
-        del client.taskArrivalTimeTracker[task]
-
+        del self.taskSentTimeTracker[task.id]
+        del self.taskArrivalTimeTracker[task.id]
+        del self.requestStatus[task.id]
         # Does not make sense to record shadow read latencies
         # as a latency measurement
         if (task.latencyMonitor is not None):
+            #print 'Task ID:', task.id
+            #print 'Start Time:', task.start, ', Sim. Time:', Simulation.now()
             task.latencyMonitor.observe(Simulation.now() - task.start)
 
 

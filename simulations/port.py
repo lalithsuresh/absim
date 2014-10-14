@@ -5,6 +5,8 @@ Created on Oct 9, 2014
 '''
 
 import SimPy.Simulation as Simulation
+import constants
+import random
 from misc import DeliverMessageWithDelay
 class Port():
     def __init__(self, src, dst, bw):
@@ -14,12 +16,13 @@ class Port():
         #Used to model link bandwidth simply as multiple queues processing tasks concurrently
         #TODO: Requires more sophisticated modeling
         self.buffer = Simulation.Resource(capacity=1, monitored=True)
+        self.latencyTrackerMonitor = Simulation.Monitor(name="LatencyTracker")
       
     def enqueueTask(self, task):
         executor = Executor(self, task)
         Simulation.activate(executor, executor.run(), Simulation.now())
 
-    def getServiceTime(self, task):
+    def getTravelTime(self, task):
         serviceTime = task.size/self.bw
         return serviceTime
     
@@ -35,19 +38,28 @@ class Executor(Simulation.Process):
 
     def run(self):
         start = Simulation.now()
+        #Some random delay caused by the stochastic nature of communication signals
+        delay = constants.NW_LATENCY_BASE + \
+        random.normalvariate(constants.NW_LATENCY_MU,
+                            constants.NW_LATENCY_SIGMA)
+        yield Simulation.hold, self, delay
         queueSizeBefore = len(self.port.buffer.waitQ)
         yield Simulation.hold, self
         yield Simulation.request, self, self.port.buffer
-        waitTime = Simulation.now() - start
-        serviceTime = self.port.getServiceTime(self.task)
-        yield Simulation.hold, self, serviceTime
+        waitingTime = Simulation.now() - start
+        travelTime = self.port.getTravelTime(self.task)
+        yield Simulation.hold, self, travelTime
         yield Simulation.release, self, self.port.buffer
-
+        latency = waitingTime + travelTime
         queueSizeAfter = len(self.port.buffer.waitQ)
-        self.task.sigTaskComplete({"waitTime": waitTime,
-                                   "serviceTime": serviceTime,
-                                   "queueSizeBefore": queueSizeBefore,
-                                   "queueSizeAfter": queueSizeAfter})
-        
-        #Start running the queue task
-        self.port.dst.enqueueTask(self.task)
+
+        #Tracks link waiting times (which is directly correlated if not synonymous with congestion)
+        self.port.latencyTrackerMonitor\
+            .observe("%s %s" % (self.port.dst.id,
+             waitingTime))
+                             
+        #Forward to the next device
+        if(self.port.dst.htype == "client"):
+            self.port.dst.receiveResponse(self.task)
+        else:
+            self.port.dst.enqueueTask(self.task)
