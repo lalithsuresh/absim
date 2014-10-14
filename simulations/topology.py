@@ -134,11 +134,13 @@ class Topology():
             usws = esw.getUppers()
             for usw in usws:
                 usw.addConnectedHosts(esw, esw.getConnectedHosts())
-                
+
         for asw in self.AggrSwitchList:
             usws = asw.getUppers()
             for usw in usws:
                 usw.addConnectedHosts(asw, asw.getConnectedHosts())
+        #for c in self.CoreSwitchList:
+        #    print c.getConnectedHosts()
             
     def getBW(self, n1, n2):
         if(type(n1).__name__ == 'Host' or type(n2).__name__ == 'Host'):

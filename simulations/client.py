@@ -6,6 +6,7 @@ import task
 from misc import DeliverMessageWithDelay
 from node import Node
 
+
 class Client(Node):
     def __init__(self, id_, serverList, replicaSelectionStrategy,
                  accessPattern, replicationFactor, backpressure,

@@ -29,11 +29,9 @@ class Switch(Node):
     def getConnectedHosts(self):
         return self.connectedHosts.keys()
           
-    def getIntermediary(self, n):
-        for k in self.connectedHosts.keys():
-            if n in self.connectedHosts[k]:
-                return k
-        return False
+    def getIntermediary(self, h):
+        if h in self.connectedHosts.keys():
+            return self.connectedHosts[h]
      
     def enqueueTask(self, task):
         executor = Executor(self, task)
@@ -47,6 +45,7 @@ class Switch(Node):
         #Dynamic Load-Balaning algorithm (DLB) from OpenFlow based Load Balancing for Fat-Tree Networks with Multipath Support
     def getNextHop(self, dst):
         #check if I'm direct neighbors with dst
+        print self.getIntermediary(dst)
         if(self.isNeighbor(dst)):
             egressPort = self.getPort(dst)
         #check if I'm connected to dst through intermediary node
