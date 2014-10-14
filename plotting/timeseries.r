@@ -136,7 +136,7 @@ colnames(rate)[3] <- "Tick"
 
 rate <- data.table(rate)
 
-p1 <- ggplot(rate[rate$ServerId == "13",]) +
+p1 <- ggplot(rate) +
 	  geom_histogram(aes(x=Timestamp), binwidth=20) +
 	  facet_grid(ServerId ~ .) + 
 	  ggtitle(paste(prefix, "ServerSideRate")) +

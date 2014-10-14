@@ -3,7 +3,7 @@
 cd simulations;
 
 # Run tests
-python -m unittest discover . '*Test*.py'
+python -m unittest discover . '*test*.py'
 
 # python experiment.py  \
 # 	--numClients 150 \
@@ -38,12 +38,12 @@ python -m unittest discover . '*Test*.py'
 # # python -m cProfile -o output.txt experiment.py \"
 
 python experiment.py  \
- 	--numClients 150 \
+ 	--numClients 300 \
 	--numServers 50 \
 	--numWorkload 200 \
 	--workloadModel poisson \
 	--serverConcurrency 4 \
-	--serviceTime 4.00 \
+	--serviceTime 4 \
 	--utilization 0.99 \
 	--serviceTimeModel random.expovariate \
 	--replicationFactor 3 \
@@ -60,9 +60,9 @@ python experiment.py  \
 	--nwLatencyMu 0.0\
 	--nwLatencySigma 0.00 \
 	--expPrefix expDelay \
-	--simulationDuration 50000 \
+	--simulationDuration 1000000 \
 	--seed 2 \
-	--numRequests 1000000\
+	--numRequests 100000\
 	--logFolder logs\
 	--expScenario timeVaryingServiceTimeServers\
 	--demandSkew 0.0\
@@ -79,6 +79,6 @@ cd plotting;
 # Rscript timeseries.r rp;
 # Rscript timeseries.r pending;
 # Rscript timeseries.r pendingXserviceTime;
-Rscript timeseries.r oracle;
+# Rscript timeseries.r oracle;
 Rscript timeseries.r expDelay;
 cd ..

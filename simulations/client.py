@@ -256,7 +256,7 @@ class Client():
                         Simulation.now()
                     self.taskSentTimeTracker[shadowReadTask] = Simulation.now()
                     self.sendRequest(shadowReadTask, replica)
-                    self.rateLimiters[replica].update()
+                    self.rateLimiters[replica].forceUpdates()
 
     def updateEma(self, replica, metricMap):
         alpha = 0.9
@@ -313,6 +313,7 @@ class Client():
             self.rateLimiters[replica].rate = \
                 max(self.rateLimiters[replica].rate, 0.0001)
             self.lastRateDecrease[replica] = Simulation.now()
+
         assert (self.rateLimiters[replica].rate > 0)
         alphaObservation = (replica.id,
                             self.rateLimiters[replica].rate)
@@ -363,12 +364,12 @@ class ResponseHandler(Simulation.Process):
         metricMap["responseTime"] = client.responseTimesMap[replicaThatServed]
         metricMap["nw"] = metricMap["responseTime"] - metricMap["serviceTime"]
         client.updateEma(replicaThatServed, metricMap)
+        client.receiveRate[replicaThatServed].add(1)
 
         # Backpressure related book-keeping
         if (client.backpressure):
             client.updateRates(replicaThatServed, metricMap, task)
 
-        client.receiveRate[replicaThatServed].add(1)
         client.lastSeen[replicaThatServed] = Simulation.now()
 
         if (client.REPLICA_SELECTION_STRATEGY == "ds"):
@@ -425,7 +426,6 @@ class BackpressureScheduler(Simulation.Process):
                         assert self.client.rateLimiters[replica].tokens < 1
 
                 if (not sent):
-                    print 'BP', Simulation.now(), minDurationToWait
                     # Backpressure mode. Wait for the least amount of time
                     # necessary until at least one rate limiter is expected
                     # to be available
@@ -466,6 +466,9 @@ class RateLimiter():
             timetowait = (1 - tokens) * self.rateInterval/self.rate
             return timetowait + 1
 
+    def forceUpdates(self):
+        self.tokens -= 1
+
     def getTokens(self):
         return min(self.maxTokens, self.tokens
                    + self.rate/float(self.rateInterval)
@@ -486,10 +489,11 @@ class ReceiveRate():
 
     def add(self, requests):
         now = int(Simulation.now()/self.interval)
-        if (now - self.last <= 1):
+        if (now - self.last < self.interval):
             self.count += requests
             if (now > self.last):
-                alpha = (now - self.last)/float(self.interval)
+                # alpha = (now - self.last)/float(self.interval)
+                alpha = 0.9
                 self.rate = alpha * self.count + (1 - alpha) * self.rate
                 self.last = now
                 self.count = 0
