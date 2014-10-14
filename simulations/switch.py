@@ -99,8 +99,7 @@ class Executor(Simulation.Process):
         #print newTask.dst
         #print self.switch.neighbors
         egress = self.switch.getNextHop(newTask.dst)
-        for h in self.switch.getConnectedHosts():
-            print 'hosts:', h.id
+        print len(self.switch.getConnectedHosts())
         print 'switch', self.switch.id, 'sending to:', egress.dst.id
         #print 'test2', egress
         messageDeliveryProcess = DeliverMessageWithDelay()

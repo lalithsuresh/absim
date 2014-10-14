@@ -10,7 +10,7 @@ from scipy.stats import genpareto
 class Server(Node):
     """A representation of a physical server that holds resources"""
     def __init__(self, id_, resourceCapacity,
-                 serviceTime, serviceTimeModel):
+                 serviceTime, serviceTimeModel, valueSizeModel):
         Node.__init__(self, id_, "server")
         self.serviceTime = serviceTime
         self.serviceTimeModel = serviceTimeModel
@@ -71,9 +71,9 @@ class Executor(Simulation.Process):
         delay = constants.NW_LATENCY_BASE + \
         random.normalvariate(constants.NW_LATENCY_MU,
                             constants.NW_LATENCY_SIGMA)
-        for i in xrange(1, self.getResponsePacketCount()):
+        for i in xrange(1, self.server.getResponsePacketCount()):
             respPacket = misc.cloneDataTask(self.task)
-            respPacket.count = self.getResponsePacketCount()
+            respPacket.count = self.server.getResponsePacketCount()
             respPacket.seqN = i
             respPacket.dst = self.task.src
             respPacket.src = self.task.dst
