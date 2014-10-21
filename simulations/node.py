@@ -45,7 +45,7 @@ class Node():
         return downers   
      
     def isHost(self):
-        if(self.htype == 'client' | self.htype == 'server'):
+        if(self.htype == 'client' or self.htype == 'server'):
             return True
         else:
             return False

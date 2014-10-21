@@ -1,9 +1,7 @@
 import SimPy.Simulation as Simulation
-import random
 from node import Node
 from misc import DeliverMessageWithDelay
 from misc import cloneDataTask
-import constants
 
 class Switch(Node):
     """A representation of a physical switch that disperses requests and responses
@@ -13,7 +11,6 @@ class Switch(Node):
         Node.__init__(self, id_, htype)
         self.procTime = procTime
         self.connectedHosts = {} #Equivalent to switch routing table
-        self.queueResource = Simulation.Resource(capacity=1, monitored=True)
     
     def addConnectedHosts(self, n, nHosts):
         for h in nHosts:         
@@ -41,28 +38,17 @@ class Switch(Node):
         #Dynamic Load-Balaning algorithm (DLB) from OpenFlow based Load Balancing for Fat-Tree Networks with Multipath Support
     def getNextHop(self, dst):
         #check if I'm direct neighbors with dst
-        #print self.getIntermediary(dst)
         if(self.isNeighbor(dst)):
             egressPort = self.getPort(dst)
         #check if I'm connected to dst through intermediary node
         elif(self.getIntermediary(dst)):
             possible_hops = self.getIntermediary(dst)
-            egressPort = self.getPortWithLowestQueue(possible_hops)
+            egressPort = min(possible_hops, key=lambda n: self.getPort(n).getQueueSize())
         else: 
             #We're going up!
             possible_hops = self.getUppers()
-            egressPort = self.getPortWithLowestQueue(possible_hops)
+            egressPort = min(possible_hops, key=lambda n: self.getPort(n).getQueueSize())
         return egressPort
-     
-    def getPortWithLowestQueue(self, nodes):
-        queue_size = 99999999
-        egress = None
-        for n in nodes:
-            port = self.getPort(n)
-            if(port.getQueueSize() < queue_size):
-                queue_size = port.getQueueSize()
-                egress = self.getPort(n)
-        return egress
     
 class Executor(Simulation.Process):
     
@@ -72,24 +58,7 @@ class Executor(Simulation.Process):
         Simulation.Process.__init__(self, name='Executor')
 
     def run(self):
-        start = Simulation.now()
-        queueSizeBefore = len(self.switch.queueResource.waitQ)
-        yield Simulation.hold, self
-        yield Simulation.request, self, self.switch.queueResource
-        waitTime = Simulation.now() - start
-        serviceTime = self.switch.getServiceTime()
-        yield Simulation.hold, self, serviceTime
-        yield Simulation.release, self, self.switch.queueResource
-
-        queueSizeAfter = len(self.switch.queueResource.waitQ)
-        
-        copyReceivedEvent = True #we should keep the dropped event maintained in order to signal dropped packets
         #Make the next hop
-        newTask = cloneDataTask(self.task, copyReceivedEvent)
-        #print newTask.dst
-        #print self.switch.neighbors
-        egress = self.switch.getNextHop(newTask.dst)
-        #print len(self.switch.getConnectedHosts())
-        #print 'switch', self.switch.id, 'sending to:', egress.dst.id
-        #print 'test2', egress
-        egress.enqueueTask(newTask)
+        yield Simulation.hold, self, self.switch.procTime
+        egress = self.switch.getNextHop(self.task.dst)
+        egress.enqueueTask(self.task)

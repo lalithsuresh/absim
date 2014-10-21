@@ -7,7 +7,7 @@ import random
 import constants
 import numpy
 from topology import Topology
-
+from simpletopo import SimpleTopology
 def printMonitorTimeSeriesToFile(fileDesc, prefix, monitor):
     for entry in monitor:
         fileDesc.write("%s %s %s\n" % (prefix, entry[0], entry[1]))
@@ -69,6 +69,8 @@ if __name__ == '__main__':
                         type=str, default="blabla")
     parser.add_argument('--switchBuffer', nargs='?',
                         type=int, default=5)
+    parser.add_argument('--packetSize', nargs='?',
+                        type=int, default=5)
     parser.add_argument('--placementStrategy', nargs='?',
                         type=str, default="interleave")    
     args = parser.parse_args()
@@ -85,11 +87,11 @@ if __name__ == '__main__':
     constants.NW_LATENCY_MU = args.nwLatencyMu
     constants.NW_LATENCY_SIGMA = args.nwLatencySigma
     constants.SWITCH_BUFFER_SIZE = args.switchBuffer
-
+    constants.PACKET_SIZE = args.packetSize
     #Construct topology and start clients/servers
-    topo = Topology(args)
+    topo = SimpleTopology(args)
     topo.createTopo()
-    
+    #topo.draw()
     # Start workload generators (analogous to YCSB)
     latencyMonitor = Simulation.Monitor(name="Latency")
     for i in range(args.numWorkload):
@@ -110,8 +112,9 @@ if __name__ == '__main__':
     #
     pendingRequestsFD = open("../logs/%s_PendingRequests" %
                              (args.expPrefix), 'w')
-    waitMonFD = open("../logs/%s_WaitMon" % (args.expPrefix), 'w')
-    actMonFD = open("../logs/%s_ActMon" % (args.expPrefix), 'w')
+    srvWaitMonFD = open("../logs/%s_srvWaitMon" % (args.expPrefix), 'w')
+    srvActMonFD = open("../logs/%s_srvActMon" % (args.expPrefix), 'w')
+    portWaitMonFD = open("../logs/%s_srvportWaitMon" % (args.expPrefix), 'w')
     latencyFD = open("../logs/%s_Latency" % (args.expPrefix), 'w')
     latencyTrackerFD = open("../logs/%s_LatencyTracker" % (args.expPrefix), 'w')
 
@@ -122,11 +125,22 @@ if __name__ == '__main__':
         printMonitorTimeSeriesToFile(latencyTrackerFD,
                                      clientNode.id,
                                      clientNode.latencyTrackerMonitor)
+
+    for sw in topo.EdgeSwitchList:
+        for h in sw.getConnectedHosts():
+            if h.isServer():
+                p = sw.getPort(h)
+                printMonitorTimeSeriesToFile(portWaitMonFD,
+                                             p.src.id+':'+p.dst.id,
+                                             p.buffer.waitMon)
+                print "------- Port:%s %s ------" % (p.src.id+":"+p.dst.id, "WaitMon")
+                print "Mean:", p.buffer.waitMon.mean()
+        
     for serv in topo.ServerList:
-        printMonitorTimeSeriesToFile(waitMonFD,
+        printMonitorTimeSeriesToFile(srvWaitMonFD,
                                      serv.id,
                                      serv.queueResource.waitMon)
-        printMonitorTimeSeriesToFile(actMonFD,
+        printMonitorTimeSeriesToFile(srvActMonFD,
                                      serv.id,
                                      serv.queueResource.actMon)
         print "------- Server:%s %s ------" % (serv.id, "WaitMon")

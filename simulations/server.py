@@ -3,7 +3,6 @@ import math
 import random
 import sys
 import misc
-import constants
 from node import Node
 from scipy.stats import genpareto
 
@@ -46,10 +45,10 @@ class Server(Node):
             numargs = genpareto.numargs
             [ c ] = [0.15,]*numargs
             r = genpareto.rvs(c, loc=0, scale=16.02)
-            #print int(r)
+            print int(r)
             return int(r)
         else:
-            return 5
+            return 15
 
 class Executor(Simulation.Process):
 
@@ -61,7 +60,7 @@ class Executor(Simulation.Process):
     def run(self):
         start = Simulation.now()
         queueSizeBefore = len(self.server.queueResource.waitQ)
-        yield Simulation.hold, self
+        #yield Simulation.hold, self
         yield Simulation.request, self, self.server.queueResource
         waitTime = Simulation.now() - start         # W_i
         serviceTime = self.server.getServiceTime()  # Mu_i
@@ -86,7 +85,6 @@ class Executor(Simulation.Process):
             nextSwitch = self.server.getNeighbors().keys()[0]
             # Get port I'm delivering through
             egress = self.server.getPort(nextSwitch)
-            #print 'test1', egress
             # Immediately send out request
             egress.enqueueTask(respPacket)
             self.server.sentResponses.append(respPacket)
@@ -110,7 +108,12 @@ class ReceiptTracker(Simulation.Process):
             # Get port I'm delivering through
             egress = server.getPort(nextSwitch)
             #print 'test1', egress
-            # Immediately send out request
+            # resend request after a small delay
             task.receivedEvent = Simulation.SimEvent("PacketReceipt")
+            yield Simulation.hold, self, 0.1
             egress.enqueueTask(task)
             server.sentResponses.append(task)
+            receiptTracker = ReceiptTracker()
+            Simulation.activate(receiptTracker,
+                            receiptTracker.run(server, task),
+                            at=Simulation.now())

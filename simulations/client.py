@@ -95,7 +95,7 @@ class Client(Node):
         if(retransmit):
             task.receivedEvent = Simulation.SimEvent("PacketReceipt")
         egress.enqueueTask(task)
-        #print self.id, 'sending request:', task.id, 'to server:', replicaToServe.id
+        print self.id, 'sending request:', task.id, 'to server:', replicaToServe.id
 
         #print 'server list', self.serverList
         #print 'pending requests', self.pendingRequestsMap
@@ -113,7 +113,7 @@ class Client(Node):
 
     def receiveResponse(self, packet):
         packet.sigTaskReceived(False)
-        #print 'Client received response with ID:', packet.id, 'seqN:', packet.seqN
+        print 'Client received response with ID:', packet.id, 'seqN:', packet.seqN, 'count:', packet.count
         #print 'Client has', len(self.requestStatus.keys()), 'pending requests'
         if packet.id in self.requestStatus:
             #print packet.id, self.requestStatus[packet.id]
@@ -121,12 +121,12 @@ class Client(Node):
             status.remove(packet.seqN)
             if(len(status)==0):
                 #Response received in full
-                #print self.id, 'successfully received packet'
+                print self.id, 'successfully received packet'
                 self.updateStats(packet, packet.src)
         else:
             if packet.count <= 1:
                 #Response received in full
-                #print self.id, 'successfully received packet'
+                print self.id, 'successfully received packet'
                 self.requestStatus[packet.id] = []
                 self.updateStats(packet, packet.src)
             else:
@@ -252,7 +252,7 @@ class Client(Node):
             #print 'Task ID:', task.id
             #print 'Start Time:', task.start, ', Sim. Time:', Simulation.now()
             task.latencyMonitor.observe(Simulation.now() - task.start)
-
+            print '>>>>>DEBUG', task.id
 
 class ReceiptTracker(Simulation.Process):
     def __init__(self):

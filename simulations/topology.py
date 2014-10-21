@@ -8,6 +8,10 @@ from link import Link
 from switch import Switch
 from server import Server
 from client import Client
+import networkx as nx
+import matplotlib.pyplot as plt
+import pylab
+import math
 
 class Topology():
     CoreSwitchList = []
@@ -152,6 +156,7 @@ class Topology():
             return self.aggrEdgeBW
         
     #Dynamic Load-Balaning algorithm (DLB) from OpenFlow based Load Balancing for Fat-Tree Networks with Multipath Support
+    #[MOVED TO SWITCH CLASS]
     def getNextHop(self, src, dst):
         #check if I'm direct neighbors with dst
         if(src.isNeighbor(dst)):
@@ -167,3 +172,28 @@ class Topology():
             nextHop = possible_hops[0]
             egressPort = src.getPort(nextHop)
         return egressPort
+    
+    #Draws the specified Fat-Tree using the NetworkX library
+    def draw(self):
+        val_map = {
+            'core': 1.0,
+            'edge': 1.0,
+            'aggr': 1.0,
+            'client': 0.8,
+            'server': 0.9}
+        G = nx.Graph()
+        for n in self.links.keys():
+            G.add_node(n.id, type=n.htype)      
+        for n in self.links.keys():
+            for l in self.links[n]:
+                G.add_edge(n.id, l.dst.id, weight=l.bw)
+        pos=nx.spring_layout(G)
+        edge_labels=dict([((u,v,),'bw='+str(d['weight']))
+             for u,v,d in G.edges(data=True)])
+        values = [val_map.get(node[1]['type'], 0.1) for node in G.nodes(True)]
+        # use one of the edge properties to control line thickness
+        edgewidth = [ math.log(d['weight'], 2) for (u,v,d) in G.edges(data=True)]
+        nx.draw_networkx_edges(G, pos, width=edgewidth,)
+        nx.draw(G, pos, cmap = plt.get_cmap('jet'), node_color = values, with_labels=True, node_size = 500, font_size =5)
+        #nx.draw_networkx_edge_labels(G,pos,edge_labels=edge_labels)
+        pylab.show()

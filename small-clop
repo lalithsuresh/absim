@@ -20,13 +20,15 @@ cd simulations;
     --iNumber 4\
     --coreAggrBW 100\
     --aggrEdgeBW 10\
-    --procTime 2.00\
+    --procTime 0.00\
     --edgeHostBW 1\
     --placementStrategy interleave\
-    --interarrivalModel poisson\
-    --switchBuffer 20\
+    --interarrivalModel constant\
+    --workloadParam 0.6 \
+    --switchBuffer 2\
     --valueSizeModel pareto\
-	--numRequests 100;
+    --packetSize 1\
+	--numRequests 5;
 
 # python experiment.py  \
 # 	--numClients 2 \
