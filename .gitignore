@@ -1,0 +1,22 @@
+############################
+#Eclipse Specific GitIgnore#
+############################
+*.pydevproject
+.project
+.metadata
+.DS_Store
+logs/**
+bin/**
+tmp/**
+tmp/**/*
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.classpath
+.settings/
+.loadpath
+ 
+# CDT-specific
+.cproject
