@@ -14,7 +14,7 @@ class Observer(Simulation.Process):
 
     def addNtasks(self, cli, N):
         for i in range(N):  # A burst that uses up all tokens
-            taskToSchedule = task.Task("Task%s" % i, self.monitor)
+            taskToSchedule = task.Task("Task%s" % i, self.monitor, self.client)
             cli.schedule(taskToSchedule, self.serverList)
 
     def testBackPressureLoopSingleServer1(self):

@@ -17,7 +17,7 @@ class Server():
 
     def enqueueTask(self, task):
         executor = Executor(self, task)
-        self.serverRRMonitor.observe(1)
+        self.serverRRMonitor.observe("%s %s" % (1, task.sendingClient.id))
         Simulation.activate(executor, executor.run(), Simulation.now())
 
     def getServiceTime(self):

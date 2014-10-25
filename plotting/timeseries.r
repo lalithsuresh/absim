@@ -133,12 +133,16 @@ rate <- read.table(paste("../logs/", prefix, "_serverRR", sep=""))
 colnames(rate)[1] <- "ServerId"
 colnames(rate)[2] <- "Timestamp"
 colnames(rate)[3] <- "Tick"
+colnames(rate)[4] <- "ClientId"
 
 rate <- data.table(rate)
 
 p1 <- ggplot(rate) +
-	  geom_histogram(aes(x=Timestamp), binwidth=20) +
-	  facet_grid(ServerId ~ .) + 
+	  geom_histogram(aes(x=Timestamp, alpha = 0.5), binwidth=20) +
+	  ylim(c(0, 30)) +
+	  ylab("Requests per 20ms") +
+	  xlab("Time (ms)") +
+	  facet_grid(ClientId ~ ServerId) + 
 	  ggtitle(paste(prefix, "ServerSideRate")) +
 	  theme(text = element_text(size=15), 
 	  		axis.text = element_text(size=20))

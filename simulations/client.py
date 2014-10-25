@@ -251,7 +251,7 @@ class Client():
         if (random.uniform(0, 1.0) < self.shadowReadRatio):
             for replica in replicaSet:
                 if (replica is not replicaToServe):
-                    shadowReadTask = task.Task("ShadowRead", None)
+                    shadowReadTask = task.Task("ShadowRead", None, self)
                     self.taskArrivalTimeTracker[shadowReadTask] =\
                         Simulation.now()
                     self.taskSentTimeTracker[shadowReadTask] = Simulation.now()
@@ -492,7 +492,6 @@ class ReceiveRate():
         if (now - self.last < self.interval):
             self.count += requests
             if (now > self.last):
-                # alpha = (now - self.last)/float(self.interval)
                 alpha = 0.9
                 self.rate = alpha * self.count + (1 - alpha) * self.rate
                 self.last = now

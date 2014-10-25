@@ -25,12 +25,13 @@ class Workload(Simulation.Process):
         while(self.numRequests != 0):
             yield Simulation.hold, self,
 
-            taskToSchedule = task.Task("Task" + str(taskCounter),
-                                       self.latencyMonitor)
-            taskCounter += 1
-
             # Push out a task...
             clientNode = self.weightedChoice()
+
+            taskToSchedule = task.Task("Task" + str(taskCounter),
+                                       self.latencyMonitor,
+                                       clientNode)
+            taskCounter += 1
 
             clientNode.schedule(taskToSchedule)
 
