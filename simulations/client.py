@@ -442,7 +442,7 @@ class BackpressureScheduler(Simulation.Process):
 class RateLimiter():
     def __init__(self, id_, client, maxTokens, rateInterval):
         self.id = id_
-        self.rate = 5
+        self.rate = 100
         self.lastSent = 0
         self.client = client
         self.tokens = 0
@@ -467,7 +467,8 @@ class RateLimiter():
             return timetowait + 1
 
     def forceUpdates(self):
-        self.tokens -= 1
+        # self.tokens -= 1
+        pass
 
     def getTokens(self):
         return min(self.maxTokens, self.tokens
@@ -477,7 +478,7 @@ class RateLimiter():
 
 class ReceiveRate():
     def __init__(self, id, interval):
-        self.rate = 10
+        self.rate = 100
         self.id = id
         self.interval = int(interval)
         self.last = 0

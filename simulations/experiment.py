@@ -202,6 +202,8 @@ def runExperiment(args):
             (args.utilization * args.serverConcurrency *
              1/float(args.serviceTime))
         interArrivalTime = 1/float(arrivalRate)
+        print "serviceTime", args.serviceTime
+        print "interArrivalTime", interArrivalTime
 
     for i in range(args.numWorkload):
         w = workload.Workload(i, latencyMonitor,
