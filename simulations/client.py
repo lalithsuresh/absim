@@ -25,9 +25,16 @@ class Client():
         self.receiveRateMonitor = Simulation.Monitor(name="ReceiveRateMonitor")
         self.tokenMonitor = Simulation.Monitor(name="TokenMonitor")
         self.edScoreMonitor = Simulation.Monitor(name="edScoreMonitor")
+        self.qErrorMonitor = Simulation.Monitor(name="QueueErrorMonitor")
+        self.selErrorMonitor = Simulation.Monitor(name="SelectionErrorMonitor")
+        self.backlogMonitor = Simulation.Monitor(name="BacklogMonitor")
+        self.pdf = Simulation.Monitor(name="")
         self.backpressure = backpressure    # True/Flase
         self.shadowReadRatio = shadowReadRatio
         self.demandWeight = demandWeight
+        self.responsesReceived = 0
+        self.pendingRequestsPerServer = {node: Simulation.Monitor(name="PendingRequests"+str(node.id)) for node in serverList}
+        self.queueSizePerServer = {node: Simulation.Monitor(name="PendingRequests"+str(node.id)) for node in serverList}
 
         # Book-keeping and metrics to be recorded follow...
 
@@ -116,6 +123,14 @@ class Client():
         if(self.backpressure is False):
             sortedReplicaSet = self.sort(replicaSet)
             replicaToServe = sortedReplicaSet[0]
+            if (len(self.expectedDelayMap[replicaToServe]) != 0):
+                queueSizeEst = self.pendingRequestsMap[replicaToServe] \
+                        * constants.NUMBER_OF_CLIENTS \
+                        + self.expectedDelayMap[replicaToServe]["queueSizeAfter"]
+            else:
+                queueSizeEst = 0
+            task.addQueueSizeEst(queueSizeEst)
+            task.addReplicaSet(sortedReplicaSet)
             self.sendRequest(task, replicaToServe)
             self.maybeSendShadowReads(replicaToServe, replicaSet)
         else:
@@ -149,23 +164,26 @@ class Client():
                        self.pendingRequestsMap[replicaToServe]))
         self.taskSentTimeTracker[task] = Simulation.now()
 
-    def sort(self, originalReplicaSet):
+    def sort(self, originalReplicaSet, forceStrategy=False):
 
         replicaSet = originalReplicaSet[0:]
-
-        if(self.REPLICA_SELECTION_STRATEGY == "random"):
+        if(forceStrategy):
+            selectionStrategy = forceStrategy
+        else:
+            selectionStrategy = self.REPLICA_SELECTION_STRATEGY
+        if(selectionStrategy == "random"):
             # Pick a random node for the request.
             # Represents SimpleSnitch + uniform request access.
             # Ignore scores and everything else.
             random.shuffle(replicaSet)
 
-        elif(self.REPLICA_SELECTION_STRATEGY == "pending"):
+        elif(selectionStrategy == "pending"):
             # Sort by number of pending requests
             replicaSet.sort(key=self.pendingRequestsMap.get)
-        elif(self.REPLICA_SELECTION_STRATEGY == "response_time"):
+        elif(selectionStrategy == "response_time"):
             # Sort by response times
             replicaSet.sort(key=self.responseTimesMap.get)
-        elif(self.REPLICA_SELECTION_STRATEGY == "weighted_response_time"):
+        elif(selectionStrategy == "weighted_response_time"):
             # Weighted random proportional to response times
             m = {}
             for each in replicaSet:
@@ -189,24 +207,24 @@ class Client():
                 assert nodeToSelect is not None
 
                 replicaSet[0], replicaSet[i] = replicaSet[i], replicaSet[0]
-        elif(self.REPLICA_SELECTION_STRATEGY == "primary"):
+        elif(selectionStrategy == "primary"):
             pass
-        elif(self.REPLICA_SELECTION_STRATEGY == "pendingXserviceTime"):
+        elif(selectionStrategy == "pendingXserviceTime"):
             # Sort by response times * client-local-pending-requests
             replicaSet.sort(key=self.pendingXserviceMap.get)
-        elif(self.REPLICA_SELECTION_STRATEGY == "clairvoyant"):
+        elif(selectionStrategy == "clairvoyant"):
             # Sort by response times * pending-requests
             oracleMap = {replica: (1 + len(replica.queueResource.activeQ
                                    + replica.queueResource.waitQ))
                          * replica.serviceTime
                          for replica in originalReplicaSet}
             replicaSet.sort(key=oracleMap.get)
-        elif(self.REPLICA_SELECTION_STRATEGY == "expDelay"):
+        elif(selectionStrategy == "expDelay"):
             sortMap = {}
             for replica in originalReplicaSet:
                 sortMap[replica] = self.computeExpectedDelay(replica)
             replicaSet.sort(key=sortMap.get)
-        elif(self.REPLICA_SELECTION_STRATEGY == "ds"):
+        elif(selectionStrategy == "ds"):
             firstNode = replicaSet[0]
             firstNodeScore = self.dsScores[firstNode]
             badnessThreshold = 0.0
@@ -218,7 +236,7 @@ class Client():
                        > badnessThreshold):
                         replicaSet.sort(key=self.dsScores.get)
         else:
-            print self.REPLICA_SELECTION_STRATEGY
+            print selectionStrategy
             assert False, "REPLICA_SELECTION_STRATEGY isn't set or is invalid"
 
         return replicaSet
@@ -265,9 +283,13 @@ class Client():
             return
 
         for metric in metricMap:
-            self.expectedDelayMap[replica][metric] \
-                = alpha * metricMap[metric] + (1 - alpha) \
-                * self.expectedDelayMap[replica][metric]
+            if(not (metric == "idealReplicaSet" or metric == "totalQueueSizeBefore")):
+                self.expectedDelayMap[replica][metric] \
+                    = alpha * metricMap[metric] + (1 - alpha) \
+                    * self.expectedDelayMap[replica][metric]
+            else:
+                self.expectedDelayMap[replica][metric] \
+                    = metricMap[metric]
 
     def updateRates(self, replica, metricMap, task):
         # Cubic Parameters go here
@@ -322,7 +344,16 @@ class Client():
         self.rateMonitor.observe("%s %s" % alphaObservation)
         self.receiveRateMonitor.observe("%s %s" % receiveRateObs)
 
-
+    def compareQSizes(self, replica):
+        if self.expectedDelayMap[replica].keys():
+            qserv = self.expectedDelayMap[replica]["queueSizeAfter"]
+        else:
+            qserv = 0
+        qest = (self.pendingRequestsMap[replica]-1) * constants.NUMBER_OF_CLIENTS + qserv
+        qact = len(replica.queueResource.activeQ + replica.queueResource.waitQ)
+        error = (qest - qact)**2
+        return qest, qact, error
+    
 class DeliverMessageWithDelay(Simulation.Process):
     def __init__(self):
         Simulation.Process.__init__(self, name='DeliverMessageWithDelay')
@@ -339,7 +370,27 @@ class ResponseHandler(Simulation.Process):
     def run(self, client, task, replicaThatServed):
         yield Simulation.hold, self,
         yield Simulation.waitevent, self, task.completionEvent
-
+        
+        #Lets ignore shadowreads for reporting simulation results
+        if(not task.id == "ShadowRead"):
+            client.responsesReceived += 1
+            
+            #Queue Size and outstanding requests book-keeping
+            client.pendingRequestsPerServer[replicaThatServed].observe(client.pendingRequestsMap[replicaThatServed]-1, client.taskSentTimeTracker[task])
+            client.queueSizePerServer[replicaThatServed].observe(task.completionEvent.signalparam["totalQueueSizeBefore"])
+            
+            #Scoring-related book-keeping
+            replicaSetEst = task.replicaSet
+            replicaSetAct = task.completionEvent.signalparam["idealReplicaSet"]
+            selectionErrorDist = replicaSetAct.index(replicaSetEst[0])
+            client.selErrorMonitor.observe(selectionErrorDist, client.taskSentTimeTracker[task])
+            
+            #Report queue size relative error (between client and server)
+            qEst = task.queueSizeEst
+            qAct = task.completionEvent.signalparam["totalQueueSizeBefore"]
+            qError = (qEst - qAct)**2
+            client.qErrorMonitor.observe("%s %s %s"%(qAct, qEst, qError), client.taskSentTimeTracker[task])
+            
         delay = constants.NW_LATENCY_BASE + \
             random.normalvariate(constants.NW_LATENCY_MU,
                                  constants.NW_LATENCY_SIGMA)
@@ -386,7 +437,6 @@ class ResponseHandler(Simulation.Process):
                                         (Simulation.now() - task.start,
                                          client.id))
 
-
 class BackpressureScheduler(Simulation.Process):
     def __init__(self, id_, client):
         self.id = id_
@@ -399,7 +449,7 @@ class BackpressureScheduler(Simulation.Process):
     def run(self):
         while(1):
             yield Simulation.hold, self,
-
+            self.client.backlogMonitor.observe(len(self.backlogQueue))
             if (len(self.backlogQueue) != 0):
                 task, replicaSet = self.backlogQueue[0]
                 sortedReplicaSet = self.client.sort(replicaSet)
@@ -415,6 +465,18 @@ class BackpressureScheduler(Simulation.Process):
                     if (durationToWait == 0):
                         assert self.client.rateLimiters[replica].tokens >= 1
                         self.backlogQueue.pop(0)
+                        replicaIndex = sortedReplicaSet.index(replica)
+                        if(not replicaIndex == 0):
+                            sortedReplicaSet[replicaIndex], sortedReplicaSet[0] =\
+                            sortedReplicaSet[0], sortedReplicaSet[replicaIndex]
+                        task.addReplicaSet(sortedReplicaSet)
+                        if (len(self.client.expectedDelayMap[replica]) != 0):
+                            queueSizeEst = self.client.pendingRequestsMap[replica] \
+                                    * constants.NUMBER_OF_CLIENTS \
+                                    + self.client.expectedDelayMap[replica]["queueSizeAfter"]
+                        else:
+                            queueSizeEst = 0
+                        task.addQueueSizeEst(queueSizeEst)
                         self.client.sendRequest(task, replica)
                         self.client.maybeSendShadowReads(replica, replicaSet)
                         sent = True

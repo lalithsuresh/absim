@@ -9,8 +9,16 @@ class Task():
         self.start = Simulation.now()
         self.completionEvent = Simulation.SimEvent("ClientToServerCompletion")
         self.latencyMonitor = latencyMonitor
-
+        self.replicaSet = []
+        self.queueSizeEst = 0
+        
     # Used as a notifier mechanism
     def sigTaskComplete(self, piggyBack=None):
         if (self.completionEvent is not None):
             self.completionEvent.signal(piggyBack)
+            
+    def addReplicaSet(self, replicaSet):
+        self.replicaSet = replicaSet
+        
+    def addQueueSizeEst(self, queueSizeEst):
+        self.queueSizeEst = queueSizeEst

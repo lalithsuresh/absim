@@ -14,21 +14,21 @@ class Workload(Simulation.Process):
         self.model_param = model_param
         self.numRequests = numRequests
         self.total = sum(client.demandWeight for client in self.clientList)
+        self.backlogMonitor = Simulation.Monitor(name="BackLog")
+        self.taskCounter = 0
         Simulation.Process.__init__(self, name='Workload' + str(id_))
 
     # TODO: also need non-uniform client access
     # Need to pin workload to a client
     def run(self):
 
-        taskCounter = 0
-
         while(self.numRequests != 0):
             yield Simulation.hold, self,
 
-            taskToSchedule = task.Task("Task" + str(taskCounter),
+            taskToSchedule = task.Task("Task" + str(self.taskCounter),
                                        self.latencyMonitor)
-            taskCounter += 1
-
+            self.taskCounter += 1
+                
             # Push out a task...
             clientNode = self.weightedChoice()
 

@@ -38,15 +38,15 @@ python -m unittest discover . '*test*.py'
 # # python -m cProfile -o output.txt experiment.py \"
 
 python experiment.py  \
- 	--numClients 300 \
-	--numServers 50 \
-	--numWorkload 200 \
-	--workloadModel poisson \
+ 	--numClients 50 \
+	--numServers 25 \
+	--numWorkload 1 \
+	--workloadModel constant \
 	--serverConcurrency 4 \
-	--serviceTime 4 \
+	--serviceTime 2 \
 	--utilization 0.99 \
 	--serviceTimeModel random.expovariate \
-	--replicationFactor 3 \
+	--replicationFactor 10 \
 	--backpressure \
 	--rateInterval 20\
 	--cubicC 0.000004\
@@ -60,11 +60,11 @@ python experiment.py  \
 	--nwLatencyMu 0.0\
 	--nwLatencySigma 0.00 \
 	--expPrefix expDelay \
-	--simulationDuration 1000000 \
+	--simulationDuration 10000000 \
 	--seed 2 \
-	--numRequests 100000\
+	--numRequests 1000\
 	--logFolder logs\
-	--expScenario timeVaryingServiceTimeServers\
+	--expScenario base\
 	--demandSkew 0.0\
 	--highDemandFraction 0.0\
 	--slowServerFraction 0.0\
@@ -73,12 +73,12 @@ python experiment.py  \
 	--timeVaryingDrift 5;
 
 
-cd ..
-cd plotting;
+#cd ..
+#cd plotting;
 # Rscript timeseries.r primary;
 # Rscript timeseries.r rp;
 # Rscript timeseries.r pending;
 # Rscript timeseries.r pendingXserviceTime;
 # Rscript timeseries.r oracle;
-Rscript timeseries.r expDelay;
-cd ..
+#Rscript timeseries.r expDelay;
+#cd ..

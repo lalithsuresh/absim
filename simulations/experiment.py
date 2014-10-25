@@ -8,7 +8,10 @@ import constants
 import numpy
 import sys
 import muUpdater
-
+import statcollector
+from scipy.stats.kde import gaussian_kde
+from matplotlib import pyplot as plt
+from matplotlib.font_manager import FontProperties
 
 def printMonitorTimeSeriesToFile(fileDesc, prefix, monitor):
     for entry in monitor:
@@ -45,6 +48,11 @@ class ClientAdder(Simulation.Process):
     def run(self, clientToAdd):
         yield Simulation.hold, self,
 
+#misc statistics functions
+def movingAverage (values, window):
+    weights = numpy.repeat(1.0, window)/window
+    sma = numpy.convolve(values, weights, 'valid')
+    return sma
 
 def runExperiment(args):
 
@@ -212,7 +220,10 @@ def runExperiment(args):
         Simulation.activate(w, w.run(),
                             at=0.0),
         workloadGens.append(w)
-
+    
+    sc = statcollector.StatCollector(clients, servers, workloadGens)
+    Simulation.activate(sc, sc.run(5), at=0.0)
+    
     # Begin simulation
     Simulation.simulate(until=args.simulationDuration)
 
@@ -241,7 +252,13 @@ def runExperiment(args):
     serverRRFD = open("../%s/%s_serverRR" % (args.logFolder,
                                              args.expPrefix), 'w')
 
+    clientQErr = open("../%s/%s_clientQErr" % (args.logFolder,
+                                           args.expPrefix), 'w')
+    
     for clientNode in clients:
+        printMonitorTimeSeriesToFile(clientQErr,
+                                     clientNode.id,
+                                     clientNode.qErrorMonitor)
         printMonitorTimeSeriesToFile(pendingRequestsFD,
                                      clientNode.id,
                                      clientNode.pendingRequestsMonitor)
@@ -276,6 +293,109 @@ def runExperiment(args):
         print "------- Server:%s %s ------" % (serv.id, "ActMon")
         print "Mean:", serv.queueResource.actMon.mean()
 
+
+    data1 = [] #queue size errors
+    data2 = [] #selection errors
+    data3 = [] #backlog queue size
+    for c in clients:
+        if(not len(c.qErrorMonitor) == 0):
+            data1.append((c.qErrorMonitor.tseries(), c.qErrorMonitor.yseries()))
+            data2.append((c.selErrorMonitor.tseries(), c.selErrorMonitor.yseries()))
+            data3.append((c.backlogMonitor.tseries(), c.backlogMonitor.yseries()))
+    
+    #Get max and min points for the tseries  
+    tmin = min(min(clients, key=lambda c: min(c.qErrorMonitor.tseries())).qErrorMonitor.tseries())
+    tmax = max(max(clients, key=lambda c: max(c.qErrorMonitor.tseries())).qErrorMonitor.tseries())
+    steps = 100
+
+    #100 points evenly spaced along the x axis
+    x_points = numpy.linspace(tmin,tmax,steps)
+
+    #interpolate values to the evenly spaced points
+    bsize_interpolated = [numpy.interp(x_points,d[0],d[1]) for d in data3]
+    selerr_interpolated = [numpy.interp(x_points,d[0],d[1]) for d in data2]
+    qerr_interpolated = [numpy.interp(x_points,d[0],[float(y.split()[2]) for y in d[1]]) for d in data1]
+    qest_interpolated = [numpy.interp(x_points,d[0],[float(y.split()[1]) for y in d[1]]) for d in data1]
+    qact_interpolated = [numpy.interp(x_points,d[0],[float(y.split()[0]) for y in d[1]]) for d in data1]
+    
+    #Find the corresponding averages and STDs.
+    selerr_averages = [numpy.average(x) for x in zip(*selerr_interpolated)]
+    selerr_moving_average = movingAverage(selerr_averages, 10)
+    qerr_averages = [numpy.average(x) for x in zip(*qerr_interpolated)]
+    qest_sd = [numpy.std(x) for x in zip(*qest_interpolated)]
+    bsize_averages = [numpy.average(x) for x in zip(*bsize_interpolated)]
+    bsize_sd = [numpy.std(x) for x in zip(*bsize_interpolated)]
+    qest_averages = [numpy.average(x) for x in zip(*qest_interpolated)]
+    qact_averages = [numpy.average(x) for x in zip(*qact_interpolated)]
+    
+    #Plot results
+    fontP = FontProperties()
+    fontP.set_size('small')
+    
+    plt.subplot2grid((3,3), (0,0), colspan=3)
+    plt.plot(x_points, qact_averages, label='q_act')
+    plt.errorbar(x_points, qest_averages, qest_sd, label='q_est')
+    plt.legend(prop = fontP)
+    plt.title("Queue Sizes")
+    plt.xlabel("Simulation time")
+    plt.ylabel("Avg. queue size")
+    plt.ylim(ymin=0)
+    
+    plt.subplot2grid((3,3), (1,0))
+    plt.plot(x_points, qerr_averages)
+    plt.title("Queue Size Error")
+    plt.xlabel("Simulation time")
+    plt.ylabel("Mean squared error")
+    
+    plt.subplot2grid((3,3), (1,1))
+    plt.plot(x_points, selerr_averages, label='error distance')
+    plt.plot(x_points[len(x_points)-len(selerr_moving_average):], selerr_moving_average, label='moving avg.')
+    plt.legend(prop = fontP, loc=9, bbox_to_anchor=(0.5, -0.1))
+    plt.title("Selection Error")
+    plt.xlabel("Simulation time")
+    plt.ylabel("Distance")
+    
+    plt.subplot2grid((3,3), (1,2))
+    plt.errorbar(x_points, bsize_averages, bsize_sd)
+    plt.plot(x_points, bsize_averages)
+    plt.title("Backlog Queue Size")
+    plt.xlabel("Simulation time")
+    plt.ylabel("Avg. queue size")
+    plt.ylim(ymin=0)
+    
+    plt.subplot2grid((3,3), (2,0), colspan=3)
+    plt.plot(sc.reqResDiff.tseries(), sc.reqResDiff.yseries())
+    plt.title("Workload gen - resp completed")
+    plt.xlabel("Simulation time")
+    plt.ylabel("Requests #")
+
+    plt.tight_layout()
+    
+    plt.show()
+    
+    #print "------- Outstanding Requests (Per Server) -----"
+    #data = {node: [] for node in servers}
+    #for s in servers:
+    #    for c in clients:
+            #print c.pendingRequestsPerServer[s]
+    #        if not len(c.pendingRequestsPerServer[s]) == 0:
+    #            data[s].append(c.pendingRequestsPerServer[s].mean())
+    #    kde = gaussian_kde(data[s])
+    #    dist_space = numpy.linspace(min(data[s]), max(data[s]), 100)
+        # plot the results
+        #plt.plot(dist_space, kde(dist_space))
+        #plt.show()
+    #print "------- Queue Size Distribution (Per Server) -----"
+    #data = {node: [] for node in servers}
+    #for s in servers:
+    #    for c in clients:
+    #        if not len(c.queueSizePerServer[s]) == 0:
+    #            data[s].append(c.queueSizePerServer[s].mean())
+    #    kde = gaussian_kde(data[s])
+    #    dist_space = numpy.linspace(min(data[s]), max(data[s]), 100)
+        # plot the results
+        #plt.plot(dist_space, kde(dist_space))
+        #plt.show()
     print "------- Latency ------"
     print "Mean Latency:",\
       sum([float(entry[1].split()[0]) for entry in latencyMonitor])/float(len(latencyMonitor))

@@ -47,6 +47,8 @@ class Executor(Simulation.Process):
     def run(self):
         start = Simulation.now()
         queueSizeBefore = len(self.server.queueResource.waitQ)
+        totalQueueSizeBefore = len(self.server.queueResource.waitQ + self.server.queueResource.activeQ)
+        ideallySortedReplicaSet = self.sort(self.task.replicaSet)
         yield Simulation.hold, self
         yield Simulation.request, self, self.server.queueResource
         waitTime = Simulation.now() - start         # W_i
@@ -58,4 +60,16 @@ class Executor(Simulation.Process):
         self.task.sigTaskComplete({"waitingTime": waitTime,
                                    "serviceTime": serviceTime,
                                    "queueSizeBefore": queueSizeBefore,
-                                   "queueSizeAfter": queueSizeAfter})
+                                   "queueSizeAfter": queueSizeAfter,
+                                   "totalQueueSizeBefore": totalQueueSizeBefore,
+                                   "idealReplicaSet": ideallySortedReplicaSet})
+        
+    #This is just used for reporting selection errors
+    def sort(self, replicaSet):
+            # Sort by response times * pending-requests
+            futureOracleMap = {replica: (1 + len(replica.queueResource.activeQ
+                                   + replica.queueResource.waitQ))
+                         * replica.serviceTime
+                         for replica in replicaSet}
+            sortedReplicaSet = sorted(replicaSet, key=futureOracleMap.get)
+            return sortedReplicaSet
