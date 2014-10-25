@@ -54,7 +54,7 @@ python experiment.py  \
 	--cubicBeta 0.2\
 	--hysterisisFactor 2\
 	--selectionStrategy expDelay \
-	--shadowReadRatio 0.1 \
+	--shadowReadRatio 0.0 \
 	--accessPattern uniform \
 	--nwLatencyBase 2.00 \
 	--nwLatencyMu 0.0\
@@ -62,7 +62,7 @@ python experiment.py  \
 	--expPrefix expDelay \
 	--simulationDuration 10000000 \
 	--seed 2 \
-	--numRequests 1000\
+	--numRequests 10000\
 	--logFolder logs\
 	--expScenario base\
 	--demandSkew 0.0\

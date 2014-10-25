@@ -507,7 +507,7 @@ class RateLimiter():
         self.rate = 5
         self.lastSent = 0
         self.client = client
-        self.tokens = 0
+        self.tokens = maxTokens
         self.rateInterval = rateInterval
         self.maxTokens = maxTokens
 
