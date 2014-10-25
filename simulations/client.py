@@ -405,6 +405,7 @@ class BackpressureScheduler(Simulation.Process):
                 sortedReplicaSet = self.client.sort(replicaSet)
                 sent = False
                 minDurationToWait = 1e10   # arbitrary large value
+                minReplica = None
                 for replica in sortedReplicaSet:
                     currentTokens = self.client.rateLimiters[replica].tokens
                     self.client.tokenMonitor.observe("%s %s"
@@ -421,8 +422,9 @@ class BackpressureScheduler(Simulation.Process):
                         self.client.rateLimiters[replica].update()
                         break
                     else:
-                        minDurationToWait = min(minDurationToWait,
-                                                durationToWait)
+                        if durationToWait < minDurationToWait:
+                            minDurationToWait = durationToWait
+                            minReplica = replica
                         assert self.client.rateLimiters[replica].tokens < 1
 
                 if (not sent):
@@ -430,6 +432,15 @@ class BackpressureScheduler(Simulation.Process):
                     # necessary until at least one rate limiter is expected
                     # to be available
                     yield Simulation.hold, self, minDurationToWait
+                    # NOTE: In principle, these 2 lines below would not be
+                    # necessary because the rate limiter would have exactly 1
+                    # token after minDurationWait. However, due to
+                    # floating-point arithmetic precision we might not have 1
+                    # token and this would cause the simulation to enter an
+                    # almost infinite loop. These 2 lines by-pass this problem.
+                    self.client.rateLimiters[minReplica].tokens = 1
+                    self.client.rateLimiters[minReplica].lastSent = Simulation.now()
+                    minReplica = None
             else:
                 yield Simulation.waitevent, self, self.backlogReadyEvent
                 self.backlogReadyEvent = Simulation.SimEvent("BacklogReady")
@@ -464,7 +475,7 @@ class RateLimiter():
         else:
             assert self.tokens < 1
             timetowait = (1 - tokens) * self.rateInterval/self.rate
-            return timetowait + 1
+            return timetowait
 
     def forceUpdates(self):
         self.tokens -= 1
