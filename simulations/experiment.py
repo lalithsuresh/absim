@@ -371,6 +371,7 @@ def runExperiment(args):
 
     plt.tight_layout()
     
+    plt.savefig('../plotting/simresults.png')
     plt.show()
     
     #print "------- Outstanding Requests (Per Server) -----"
