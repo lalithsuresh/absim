@@ -10,6 +10,10 @@ import sys
 import muUpdater
 import statcollector
 from scipy.stats.kde import gaussian_kde
+import matplotlib
+import os
+if os.environ.get('C9_PROJECT'):
+    matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 from matplotlib.font_manager import FontProperties
 

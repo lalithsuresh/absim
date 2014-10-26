@@ -48,7 +48,7 @@ python experiment.py  \
 	--serviceTimeModel constant \
 	--replicationFactor 1 \
 	--backpressure \
-	--rateInterval 1\
+	--rateInterval 10\
 	--cubicC 0.000004\
 	--cubicSmax 10\
 	--cubicBeta 0.2\
@@ -62,7 +62,7 @@ python experiment.py  \
 	--expPrefix expDelay \
 	--simulationDuration 10000000 \
 	--seed 2 \
-	--numRequests 200\
+	--numRequests 1000\
 	--logFolder logs\
 	--expScenario base\
 	--demandSkew 0.0\

@@ -303,7 +303,9 @@ class Client():
         currentSendingRate = self.rateLimiters[replica].rate
         currentReceiveRate = self.receiveRate[replica].getRate()
 
-        if (currentSendingRate < currentReceiveRate):
+        # XXX: The following check is too sharp, consider a threshold
+        # around the receive rate within which the sending rate should be in
+        if (currentSendingRate < currentReceiveRate * 1.05):
             # This means that we need to bump up our own rate.
             # For this, increase the rate according to a cubic
             # window. Rmax is the sending-rate at which we last
@@ -321,6 +323,9 @@ class Client():
                 self.rateLimiters[replica].rate += Smax
             else:
                 self.rateLimiters[replica].rate = newSendingRate
+        elif (currentReceiveRate == 0):
+            # Give receive-rate some time to warm up
+            pass
         elif (currentSendingRate > currentReceiveRate
               and Simulation.now() - self.lastRateIncrease[replica]
               > self.rateInterval * hysterisisFactor):
@@ -332,8 +337,10 @@ class Client():
             # Multiplicatively decrease the rate by a factor of beta.
             self.valueOfLastDecrease[replica] = currentSendingRate
             self.rateLimiters[replica].rate *= beta
+            
+            
             self.rateLimiters[replica].rate = \
-                max(self.rateLimiters[replica].rate, 0.0001)
+                max(self.rateLimiters[replica].rate, 0.01)
             self.lastRateDecrease[replica] = Simulation.now()
 
         assert (self.rateLimiters[replica].rate > 0)
@@ -515,10 +522,10 @@ class BackpressureScheduler(Simulation.Process):
 class RateLimiter():
     def __init__(self, id_, client, maxTokens, rateInterval):
         self.id = id_
-        self.rate = 5.0
+        self.rate = maxTokens
         self.lastSent = 0
         self.client = client
-        self.tokens = maxTokens / 2.0 # TODO: remove / 2.0
+        self.tokens = maxTokens
         self.rateInterval = rateInterval
         self.maxTokens = maxTokens
 
@@ -546,32 +553,40 @@ class RateLimiter():
                    * (Simulation.now() - self.lastSent))
 
 
-class ReceiveRate():
+class ReceiveRate(Simulation.Process):
     def __init__(self, id, interval):
-        self.rate = 10
+        self.rate = 0
         self.id = id
-        self.interval = int(interval)
-        self.last = 0
+        self.interval = interval
         self.count = 0
+        Simulation.Process.__init__(self, name=self.id)
+        Simulation.activate(self, self.run(), at=Simulation.now())
 
     def getRate(self):
-        self.add(0)
         return self.rate
 
-    def add(self, requests):
-        now = int(Simulation.now()/self.interval)
-        if (now - self.last < self.interval):
-            self.count += requests
-            if (now > self.last):
-                # alpha = (now - self.last)/float(self.interval)
-                alpha = 0.9
-                self.rate = alpha * self.count + (1 - alpha) * self.rate
-                self.last = now
-                self.count = 0
-        else:
-            self.rate = self.count
-            self.last = now
+    def run(self):
+        while(1):
+            yield Simulation.hold, self, self.interval
+            alpha = 0.9
+            self.rate = alpha * self.count + (1 - alpha) * self.rate
             self.count = 0
+
+    def add(self, requests):
+        self.count += requests
+        # now = int(Simulation.now()/self.interval)
+        # if (now - self.last <= 1):
+        #     self.count += requests
+        #     if (now > self.last):
+        #         # alpha = (now - self.last)/float(self.interval)
+        #         alpha = 0.9
+        #         self.rate = alpha * self.count + (1 - alpha) * self.rate
+        #         self.last = now
+        #         self.count = 0
+        # else:
+        #     self.rate = self.count
+        #     self.last = now
+        #     self.count = 0
 
 
 class DynamicSnitch(Simulation.Process):
