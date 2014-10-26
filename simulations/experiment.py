@@ -254,7 +254,9 @@ def runExperiment(args):
 
     clientQErr = open("../%s/%s_clientQErr" % (args.logFolder,
                                            args.expPrefix), 'w')
-    
+    backlogQFD = open("../%s/%s_BacklogQ" % (args.logFolder,
+                                           args.expPrefix), 'w')
+
     for clientNode in clients:
         printMonitorTimeSeriesToFile(clientQErr,
                                      clientNode.id,
@@ -277,6 +279,10 @@ def runExperiment(args):
         printMonitorTimeSeriesToFile(edScoreFD,
                                      clientNode.id,
                                      clientNode.edScoreMonitor)
+        printMonitorTimeSeriesToFile(backlogQFD,
+                                     clientNode.id,
+                                     clientNode.backlogMonitor)
+
     for serv in servers:
         printMonitorTimeSeriesToFile(waitMonFD,
                                      serv.id,
@@ -301,7 +307,8 @@ def runExperiment(args):
         if(not len(c.qErrorMonitor) == 0):
             data1.append((c.qErrorMonitor.tseries(), c.qErrorMonitor.yseries()))
             data2.append((c.selErrorMonitor.tseries(), c.selErrorMonitor.yseries()))
-            data3.append((c.backlogMonitor.tseries(), c.backlogMonitor.yseries()))
+            if args.backpressure:
+                data3.append((c.backlogMonitor.tseries(), c.backlogMonitor.yseries()))
     
     #Get max and min points for the tseries  
     tmin = min(min(clients, key=lambda c: min(c.qErrorMonitor.tseries())).qErrorMonitor.tseries())
@@ -354,14 +361,15 @@ def runExperiment(args):
     plt.title("Selection Error")
     plt.xlabel("Simulation time")
     plt.ylabel("Distance")
-    
-    plt.subplot2grid((3,3), (1,2))
-    plt.errorbar(x_points, bsize_averages, bsize_sd)
-    plt.plot(x_points, bsize_averages)
-    plt.title("Backlog Queue Size")
-    plt.xlabel("Simulation time")
-    plt.ylabel("Avg. queue size")
-    plt.ylim(ymin=0)
+
+    if args.backpressure:
+        plt.subplot2grid((3,3), (1,2))
+        plt.errorbar(x_points, bsize_averages, bsize_sd)
+        plt.plot(x_points, bsize_averages)
+        plt.title("Backlog Queue Size")
+        plt.xlabel("Simulation time")
+        plt.ylabel("Avg. queue size")
+        plt.ylim(ymin=0)
     
     plt.subplot2grid((3,3), (2,0), colspan=3)
     plt.plot(sc.reqResDiff.tseries(), sc.reqResDiff.yseries())

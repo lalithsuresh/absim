@@ -57,7 +57,7 @@ class Client():
 
         # Rate limiters per replica
         self.rateLimiters = {node: RateLimiter("RL-%s" % node.id,
-                                               self, 50, rateInterval)
+                                               self, 10.0, rateInterval)
                              for node in serverList}
         self.lastRateDecrease = {node: 0 for node in serverList}
         self.valueOfLastDecrease = {node: 10 for node in serverList}
@@ -449,7 +449,6 @@ class BackpressureScheduler(Simulation.Process):
     def run(self):
         while(1):
             yield Simulation.hold, self,
-            self.client.backlogMonitor.observe(len(self.backlogQueue))
             if (len(self.backlogQueue) != 0):
                 task, replicaSet = self.backlogQueue[0]
                 sortedReplicaSet = self.client.sort(replicaSet)
@@ -464,10 +463,10 @@ class BackpressureScheduler(Simulation.Process):
                     durationToWait = \
                         self.client.rateLimiters[replica].tryAcquire()
                     if (durationToWait == 0):
-                        assert self.client.rateLimiters[replica].tokens >= 1
+                        assert self.client.rateLimiters[replica].tokens >= 1.0
                         self.backlogQueue.pop(0)
                         replicaIndex = sortedReplicaSet.index(replica)
-                        if(not replicaIndex == 0):
+                        if (not replicaIndex == 0):
                             sortedReplicaSet[replicaIndex], sortedReplicaSet[0] =\
                             sortedReplicaSet[0], sortedReplicaSet[replicaIndex]
                         task.addReplicaSet(sortedReplicaSet)
@@ -506,6 +505,7 @@ class BackpressureScheduler(Simulation.Process):
             else:
                 yield Simulation.waitevent, self, self.backlogReadyEvent
                 self.backlogReadyEvent = Simulation.SimEvent("BacklogReady")
+            self.client.backlogMonitor.observe(len(self.backlogQueue))
 
     def enqueue(self, task, replicaSet):
         self.backlogQueue.append((task, replicaSet))
@@ -515,23 +515,21 @@ class BackpressureScheduler(Simulation.Process):
 class RateLimiter():
     def __init__(self, id_, client, maxTokens, rateInterval):
         self.id = id_
-        self.rate = 5
+        self.rate = 5.0
         self.lastSent = 0
         self.client = client
-        self.tokens = maxTokens
+        self.tokens = maxTokens / 2.0 # TODO: remove / 2.0
         self.rateInterval = rateInterval
         self.maxTokens = maxTokens
 
     # These updates can be forced due to shadowReads
     def update(self):
         self.lastSent = Simulation.now()
-        self.tokens -= 1
+        self.tokens -= 1.0
 
     def tryAcquire(self):
-        tokens = min(self.maxTokens, self.tokens
-                     + self.rate/float(self.rateInterval)
-                     * (Simulation.now() - self.lastSent))
-        if (tokens >= 1):
+        tokens = self.getTokens()
+        if (tokens >= 1.0):
             self.tokens = tokens
             return 0
         else:
@@ -540,7 +538,7 @@ class RateLimiter():
             return timetowait
 
     def forceUpdates(self):
-        self.tokens -= 1
+        self.tokens -= 1.0
 
     def getTokens(self):
         return min(self.maxTokens, self.tokens

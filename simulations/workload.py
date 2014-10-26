@@ -14,7 +14,7 @@ class Workload(Simulation.Process):
         self.model_param = model_param
         self.numRequests = numRequests
         self.total = sum(client.demandWeight for client in self.clientList)
-        self.backlogMonitor = Simulation.Monitor(name="BackLog")
+        #self.backlogMonitor = Simulation.Monitor(name="BackLog")
         self.taskCounter = 0
         Simulation.Process.__init__(self, name='Workload' + str(id_))
 
