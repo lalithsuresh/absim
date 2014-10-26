@@ -12,8 +12,8 @@ colnames(latency)[3] <- "Latency"
 colnames(latency)[4] <- "ClientId"
 
 # latency <- latency[10:NROW(latency),]
-latency <- latency[latency$Timestamp > 2000,]
-print(summary(latency[latency$Timestamp > 2000,]))
+latency <- latency[latency$Timestamp > 0,]
+print(summary(latency[latency$Timestamp > 0,]))
 latency.dt <- data.table(latency)
 lat50.by.client <- latency.dt[,quantile(Latency,c(0.50)),by=list(ClientId)]
 lat95.by.client <- latency.dt[,quantile(Latency,c(0.95)),by=list(ClientId)]
@@ -50,7 +50,7 @@ colnames(latency.samples)[3] <- "ServerId"
 colnames(latency.samples)[4] <- "LatencySample"
 
 
-p1 <- ggplot(latency[latency$ClientId == "Client1",]) + 
+p1 <- ggplot(latency) + 
 	  geom_point(aes(y=Latency, x=Timestamp), size=4) + 
 	  facet_grid(ServerId ~ .) +
 	  ggtitle(paste(prefix, "Latency")) +
@@ -75,7 +75,7 @@ p1 <- ggplot(wait.mon) +
 	  		axis.text = element_text(size=20))
 ggsave(p1, file=paste(prefix, "_wait.mon.pdf", sep=""), width=15)
 
-p1 <- ggplot(pending.requests[pending.requests$ClientId == "Client1",]) + 
+p1 <- ggplot(pending.requests) + 
 	  geom_point(aes(y=PendingRequests, x=Timestamp), size=4) + 
 	  facet_grid(ServerId ~ ClientId) +
 	  ggtitle(paste(prefix, "Pending")) +

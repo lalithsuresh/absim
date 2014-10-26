@@ -544,8 +544,8 @@ class RateLimiter():
             return timetowait
 
     def forceUpdates(self):
-        # self.tokens -= 1.0
-        pass
+        self.tokens -= 1.0
+        self.tokens = max(self.tokens, 0)
 
     def getTokens(self):
         return min(self.maxTokens, self.tokens
