@@ -305,7 +305,7 @@ class Client():
 
         # XXX: The following check is too sharp, consider a threshold
         # around the receive rate within which the sending rate should be in
-        if (currentSendingRate < currentReceiveRate * 1.05):
+        if (currentSendingRate < currentReceiveRate):
             # This means that we need to bump up our own rate.
             # For this, increase the rate according to a cubic
             # window. Rmax is the sending-rate at which we last
@@ -337,8 +337,7 @@ class Client():
             # Multiplicatively decrease the rate by a factor of beta.
             self.valueOfLastDecrease[replica] = currentSendingRate
             self.rateLimiters[replica].rate *= beta
-            
-            
+
             self.rateLimiters[replica].rate = \
                 max(self.rateLimiters[replica].rate, 0.01)
             self.lastRateDecrease[replica] = Simulation.now()
@@ -360,7 +359,7 @@ class Client():
         qact = len(replica.queueResource.activeQ + replica.queueResource.waitQ)
         error = (qest - qact)**2
         return qest, qact, error
-    
+
 class DeliverMessageWithDelay(Simulation.Process):
     def __init__(self):
         Simulation.Process.__init__(self, name='DeliverMessageWithDelay')
@@ -377,27 +376,27 @@ class ResponseHandler(Simulation.Process):
     def run(self, client, task, replicaThatServed):
         yield Simulation.hold, self,
         yield Simulation.waitevent, self, task.completionEvent
-        
+
         #Lets ignore shadowreads for reporting simulation results
         if(not task.id == "ShadowRead"):
             client.responsesReceived += 1
-            
+
             #Queue Size and outstanding requests book-keeping
             client.pendingRequestsPerServer[replicaThatServed].observe(client.pendingRequestsMap[replicaThatServed]-1, client.taskSentTimeTracker[task])
             client.queueSizePerServer[replicaThatServed].observe(task.completionEvent.signalparam["totalQueueSizeBefore"])
-            
+
             #Scoring-related book-keeping
             replicaSetEst = task.replicaSet
             replicaSetAct = task.completionEvent.signalparam["idealReplicaSet"]
             selectionErrorDist = replicaSetAct.index(replicaSetEst[0])
             client.selErrorMonitor.observe(selectionErrorDist, client.taskSentTimeTracker[task])
-            
+
             #Report queue size relative error (between client and server)
             qEst = task.queueSizeEst
             qAct = task.completionEvent.signalparam["totalQueueSizeBefore"]
             qError = (qEst - qAct)**2
             client.qErrorMonitor.observe("%s %s %s"%(qAct, qEst, qError), client.taskSentTimeTracker[task])
-            
+
         delay = constants.NW_LATENCY_BASE + \
             random.normalvariate(constants.NW_LATENCY_MU,
                                  constants.NW_LATENCY_SIGMA)
@@ -545,7 +544,8 @@ class RateLimiter():
             return timetowait
 
     def forceUpdates(self):
-        self.tokens -= 1.0
+        # self.tokens -= 1.0
+        pass
 
     def getTokens(self):
         return min(self.maxTokens, self.tokens

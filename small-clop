@@ -39,14 +39,14 @@ python -m unittest discover . '*test*.py'
 
 python experiment.py  \
  	--numClients 1 \
-	--numServers 1 \
-	--numWorkload 1 \
+	--numServers 3 \
+	--numWorkload 20 \
 	--workloadModel constant \
 	--serverConcurrency 1 \
 	--serviceTime 1 \
-	--utilization 1 \
+	--utilization 0.80 \
 	--serviceTimeModel constant \
-	--replicationFactor 1 \
+	--replicationFactor 3 \
 	--backpressure \
 	--rateInterval 10\
 	--cubicC 0.000004\
@@ -54,7 +54,7 @@ python experiment.py  \
 	--cubicBeta 0.2\
 	--hysterisisFactor 2\
 	--selectionStrategy expDelay \
-	--shadowReadRatio 0.0 \
+	--shadowReadRatio 0.1 \
 	--accessPattern uniform \
 	--nwLatencyBase 2.00 \
 	--nwLatencyMu 0.0\
@@ -62,7 +62,7 @@ python experiment.py  \
 	--expPrefix expDelay \
 	--simulationDuration 10000000 \
 	--seed 2 \
-	--numRequests 1000\
+	--numRequests 30000\
 	--logFolder logs\
 	--expScenario base\
 	--demandSkew 0.0\
@@ -71,6 +71,7 @@ python experiment.py  \
 	--slowServerSlowness 0.0\
 	--intervalParam 500\
 	--timeVaryingDrift 5;
+
 
 
 #cd ..
