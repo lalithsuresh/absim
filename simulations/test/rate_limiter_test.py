@@ -91,15 +91,15 @@ class Observer(Simulation.Process):
         timeToWait1 = rl.tryAcquire()
         # We're now at zero tokens. The time
         # to reach one token is 4ms.
-        assert timeToWait1 == 5.0, timeToWait1
+        assert timeToWait1 == 4.0, timeToWait1
         yield Simulation.hold, self, 1
 
         timeToWait2 = rl.tryAcquire()
-        assert timeToWait2 == 4.0
+        assert timeToWait2 == 3.0
 
         self.forceConsumeNTokens(rl, 1)
         timeToWait3 = rl.tryAcquire()
-        assert timeToWait3 == 9.0, timeToWait3
+        assert timeToWait3 == 8.0, timeToWait3
 
 
 class RateLimiterTest(unittest.TestCase):

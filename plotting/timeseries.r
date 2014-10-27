@@ -11,9 +11,11 @@ colnames(latency)[2] <- "Timestamp"
 colnames(latency)[3] <- "Latency"
 colnames(latency)[4] <- "ClientId"
 
+trim <- 0
+
 # latency <- latency[10:NROW(latency),]
-latency <- latency[latency$Timestamp > 2000,]
-print(summary(latency[latency$Timestamp > 2000,]))
+latency <- latency[latency$Timestamp > trim,]
+print(summary(latency[latency$Timestamp > trim,]))
 latency.dt <- data.table(latency)
 lat50.by.client <- latency.dt[,quantile(Latency,c(0.50)),by=list(ClientId)]
 lat95.by.client <- latency.dt[,quantile(Latency,c(0.95)),by=list(ClientId)]
@@ -50,7 +52,7 @@ colnames(latency.samples)[3] <- "ServerId"
 colnames(latency.samples)[4] <- "LatencySample"
 
 
-p1 <- ggplot(latency[latency$ClientId == "Client1",]) + 
+p1 <- ggplot(latency[latency$ClientId == "Client0",]) + 
 	  geom_point(aes(y=Latency, x=Timestamp), size=4) + 
 	  facet_grid(ServerId ~ .) +
 	  ggtitle(paste(prefix, "Latency")) +
@@ -75,7 +77,7 @@ p1 <- ggplot(wait.mon) +
 	  		axis.text = element_text(size=20))
 ggsave(p1, file=paste(prefix, "_wait.mon.pdf", sep=""), width=15)
 
-p1 <- ggplot(pending.requests[pending.requests$ClientId == "Client1",]) + 
+p1 <- ggplot(pending.requests[pending.requests$ClientId == "Client0",]) + 
 	  geom_point(aes(y=PendingRequests, x=Timestamp), size=4) + 
 	  facet_grid(ServerId ~ ClientId) +
 	  ggtitle(paste(prefix, "Pending")) +
@@ -92,41 +94,41 @@ p1 <- ggplot(latency.samples) +
 ggsave(p1, file=paste(prefix, "_latency.samples.pdf", sep=""), width=15)
 
 
-# rate <- read.table(paste("../logs/", prefix, "_Rate", sep=""))
-# colnames(rate)[1] <- "ClientId"
-# colnames(rate)[2] <- "Timestamp"
-# colnames(rate)[3] <- "ServerId"
-# colnames(rate)[4] <- "Rate"
+rate <- read.table(paste("../logs/", prefix, "_Rate", sep=""))
+colnames(rate)[1] <- "ClientId"
+colnames(rate)[2] <- "Timestamp"
+colnames(rate)[3] <- "ServerId"
+colnames(rate)[4] <- "Rate"
 
-# # rate <- rate[rate$ClientId == "Client1",]
-# p1 <- ggplot(rate) + 
-# 	  geom_line(aes(y=Rate, x=Timestamp, colour=ClientId), linetype='dashed',size=1) + 
-# 	  # geom_point(aes(y=Rate, x=Timestamp, colour=ClientId), size=2) + 
-# 	  geom_smooth(aes(y=Rate, x=Timestamp, colour=ClientId), size=4) + 
-# 	  facet_grid(ServerId ~ .) +
-# 	  ggtitle(paste(prefix, "rate")) +
-# 	  theme(text = element_text(size=15), 
-# 	  		axis.text = element_text(size=20))
-# ggsave(p1, file=paste(prefix, "_rate.pdf", sep=""), height=30, width=50, limitsize=FALSE)
+# rate <- rate[rate$ClientId == "Client0",]
+p1 <- ggplot(rate) + 
+	  geom_line(aes(y=Rate, x=Timestamp, colour=ClientId), linetype='dashed',size=1) + 
+	  # geom_point(aes(y=Rate, x=Timestamp, colour=ClientId), size=2) + 
+	  geom_smooth(aes(y=Rate, x=Timestamp, colour=ClientId), size=4) + 
+	  facet_grid(ServerId ~ .) +
+	  ggtitle(paste(prefix, "rate")) +
+	  theme(text = element_text(size=15), 
+	  		axis.text = element_text(size=20))
+ggsave(p1, file=paste(prefix, "_rate.pdf", sep=""), height=30, width=50, limitsize=FALSE)
 
 
-# rate <- read.table(paste("../logs/", prefix, "_ReceiveRate", sep=""))
-# colnames(rate)[1] <- "ClientId"
-# colnames(rate)[2] <- "Timestamp"
-# colnames(rate)[3] <- "ServerId"
-# colnames(rate)[4] <- "Rate"
+rate <- read.table(paste("../logs/", prefix, "_ReceiveRate", sep=""))
+colnames(rate)[1] <- "ClientId"
+colnames(rate)[2] <- "Timestamp"
+colnames(rate)[3] <- "ServerId"
+colnames(rate)[4] <- "Rate"
 
-# # rate <- rate[rate$ClientId == "Client1",]
+# rate <- rate[rate$ClientId == "Client0",]
 
-# p1 <- ggplot(rate) + 
-# 	  geom_line(aes(y=Rate, x=Timestamp, colour=ClientId), size=1) + 
-# 	  geom_point(aes(y=Rate, x=Timestamp, colour=ClientId), size=2) + 
-# 	  geom_smooth(aes(y=Rate, x=Timestamp), size=2) + 
-# 	  facet_grid(ServerId ~ ClientId) +
-# 	  ggtitle(paste(prefix, "rate")) +
-# 	  theme(text = element_text(size=15), 
-# 	  		axis.text = element_text(size=20))
-# ggsave(p1, file=paste(prefix, "_ReceiveRate.pdf", sep=""), height=30, width=50, limitsize=FALSE)
+p1 <- ggplot(rate) + 
+	  geom_line(aes(y=Rate, x=Timestamp, colour=ClientId), size=1) + 
+	  geom_point(aes(y=Rate, x=Timestamp, colour=ClientId), size=2) + 
+	  geom_smooth(aes(y=Rate, x=Timestamp), size=2) + 
+	  facet_grid(ServerId ~ ClientId) +
+	  ggtitle(paste(prefix, "rate")) +
+	  theme(text = element_text(size=15), 
+	  		axis.text = element_text(size=20))
+ggsave(p1, file=paste(prefix, "_ReceiveRate.pdf", sep=""), height=30, width=50, limitsize=FALSE)
 
 
 rate <- read.table(paste("../logs/", prefix, "_serverRR", sep=""))
@@ -148,7 +150,7 @@ p1 <- ggplot(rate) +
 	  		axis.text = element_text(size=20))
 ggsave(p1, file=paste(prefix, "_ServerSideRate.pdf", sep=""), height=30, width=50, limitsize=FALSE)
 
-# rate <- rate[rate$ClientId == "Client1",]
+# rate <- rate[rate$ClientId == "Client0",]
 
 # p1 <- ggplot(rate) + 
 # 	  geom_line(aes(y=Rate, x=Timestamp, colour=ClientId), size=1) + 

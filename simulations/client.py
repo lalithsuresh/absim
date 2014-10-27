@@ -19,7 +19,8 @@ class Client():
         self.accessPattern = accessPattern
         self.replicationFactor = replicationFactor
         self.REPLICA_SELECTION_STRATEGY = replicaSelectionStrategy
-        self.pendingRequestsMonitor = Simulation.Monitor(name="PendingRequests")
+        self.pendingRequestsMonitor = \
+            Simulation.Monitor(name="PendingRequests")
         self.latencyTrackerMonitor = Simulation.Monitor(name="ResponseHandler")
         self.rateMonitor = Simulation.Monitor(name="AlphaMonitor")
         self.receiveRateMonitor = Simulation.Monitor(name="ReceiveRateMonitor")
@@ -50,7 +51,7 @@ class Client():
 
         # Rate limiters per replica
         self.rateLimiters = {node: RateLimiter("RL-%s" % node.id,
-                                               self, 50, rateInterval)
+                                               self, 10, rateInterval)
                              for node in serverList}
         self.lastRateDecrease = {node: 0 for node in serverList}
         self.valueOfLastDecrease = {node: 10 for node in serverList}
@@ -119,7 +120,8 @@ class Client():
             self.sendRequest(task, replicaToServe)
             self.maybeSendShadowReads(replicaToServe, replicaSet)
         else:
-            self.backpressureSchedulers[replicaSet[0]].enqueue(task, replicaSet)
+            self.backpressureSchedulers[replicaSet[0]].enqueue(task,
+                                                               replicaSet)
 
     def sendRequest(self, task, replicaToServe):
         delay = constants.NW_LATENCY_BASE + \
@@ -299,6 +301,8 @@ class Client():
                 self.rateLimiters[replica].rate += Smax
             else:
                 self.rateLimiters[replica].rate = newSendingRate
+        elif (currentReceiveRate == 0):
+            pass
         elif (currentSendingRate > currentReceiveRate
               and Simulation.now() - self.lastRateIncrease[replica]
               > self.rateInterval * hysterisisFactor):
@@ -311,7 +315,7 @@ class Client():
             self.valueOfLastDecrease[replica] = currentSendingRate
             self.rateLimiters[replica].rate *= beta
             self.rateLimiters[replica].rate = \
-                max(self.rateLimiters[replica].rate, 0.0001)
+                max(self.rateLimiters[replica].rate, 0.01)
             self.lastRateDecrease[replica] = Simulation.now()
 
         assert (self.rateLimiters[replica].rate > 0)
@@ -439,7 +443,8 @@ class BackpressureScheduler(Simulation.Process):
                     # token and this would cause the simulation to enter an
                     # almost infinite loop. These 2 lines by-pass this problem.
                     self.client.rateLimiters[minReplica].tokens = 1
-                    self.client.rateLimiters[minReplica].lastSent = Simulation.now()
+                    self.client.rateLimiters[minReplica].lastSent =\
+                        Simulation.now()
                     minReplica = None
             else:
                 yield Simulation.waitevent, self, self.backlogReadyEvent
@@ -453,23 +458,21 @@ class BackpressureScheduler(Simulation.Process):
 class RateLimiter():
     def __init__(self, id_, client, maxTokens, rateInterval):
         self.id = id_
-        self.rate = 100
+        self.rate = maxTokens
         self.lastSent = 0
         self.client = client
-        self.tokens = 0
+        self.tokens = maxTokens
         self.rateInterval = rateInterval
         self.maxTokens = maxTokens
 
     # These updates can be forced due to shadowReads
     def update(self):
         self.lastSent = Simulation.now()
-        self.tokens -= 1
+        self.tokens -= 1.0
 
     def tryAcquire(self):
-        tokens = min(self.maxTokens, self.tokens
-                     + self.rate/float(self.rateInterval)
-                     * (Simulation.now() - self.lastSent))
-        if (tokens >= 1):
+        tokens = self.getTokens()
+        if (tokens >= 1.0):
             self.tokens = tokens
             return 0
         else:
@@ -478,8 +481,8 @@ class RateLimiter():
             return timetowait
 
     def forceUpdates(self):
-        # self.tokens -= 1
-        pass
+        self.tokens -= 1.0
+        self.tokens = max(self.tokens, 0)
 
     def getTokens(self):
         return min(self.maxTokens, self.tokens
@@ -487,31 +490,27 @@ class RateLimiter():
                    * (Simulation.now() - self.lastSent))
 
 
-class ReceiveRate():
+class ReceiveRate(Simulation.Process):
     def __init__(self, id, interval):
-        self.rate = 100
+        self.rate = 0
         self.id = id
-        self.interval = int(interval)
-        self.last = 0
+        self.interval = interval
         self.count = 0
+        Simulation.Process.__init__(self, name=self.id)
+        Simulation.activate(self, self.run(), at=Simulation.now())
 
     def getRate(self):
-        self.add(0)
         return self.rate
 
-    def add(self, requests):
-        now = int(Simulation.now()/self.interval)
-        if (now - self.last < self.interval):
-            self.count += requests
-            if (now > self.last):
-                alpha = 0.9
-                self.rate = alpha * self.count + (1 - alpha) * self.rate
-                self.last = now
-                self.count = 0
-        else:
-            self.rate = self.count
-            self.last = now
+    def run(self):
+        while(1):
+            yield Simulation.hold, self, self.interval
+            alpha = 0.1
+            self.rate = alpha * self.count + (1 - alpha) * self.rate
             self.count = 0
+
+    def add(self, requests):
+        self.count += requests
 
 
 class DynamicSnitch(Simulation.Process):
@@ -534,10 +533,12 @@ class DynamicSnitch(Simulation.Process):
             maxPenalty = 1.0
             latencies = [entry.get_snapshot().get_median()
                          for entry in self.client.latencyEdma.values()]
-            latenciesGtOne = [latency for latency in latencies if latency > 1.0]
+            latenciesGtOne = [latency for latency
+                              in latencies if latency > 1.0]
             if (len(latencies) == 0):  # nothing to see here
                 continue
-            maxLatency = max(latenciesGtOne) if len(latenciesGtOne) > 0 else 1.0
+            maxLatency = max(latenciesGtOne) if len(latenciesGtOne) > 0 \
+                else 1.0
             penalties = {}
             for peer in self.client.serverList:
                 penalties[peer] = self.client.lastSeen[peer]

@@ -280,7 +280,8 @@ def runExperiment(args):
 
     print "------- Latency ------"
     print "Mean Latency:",\
-      sum([float(entry[1].split()[0]) for entry in latencyMonitor])/float(len(latencyMonitor))
+        sum([float(entry[1].split()[0]) for entry in latencyMonitor])\
+        / float(len(latencyMonitor))
 
     printMonitorTimeSeriesToFile(latencyFD, "0",
                                  latencyMonitor)
