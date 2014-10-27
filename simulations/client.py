@@ -568,7 +568,7 @@ class ReceiveRate(Simulation.Process):
     def run(self):
         while(1):
             yield Simulation.hold, self, self.interval
-            alpha = 0.9
+            alpha = 0.1
             self.rate = alpha * self.count + (1 - alpha) * self.rate
             self.count = 0
 
