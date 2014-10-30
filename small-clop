@@ -38,14 +38,14 @@ python -m unittest discover . '*test*.py'
 # # python -m cProfile -o output.txt experiment.py \"
 
 python experiment.py  \
- 	--numClients 1 \
-	--numServers 3 \
-	--numWorkload 1 \
-	--workloadModel constant \
+ 	--numClients 50 \
+	--numServers 25 \
+	--numWorkload 200 \
+	--workloadModel poisson \
 	--serverConcurrency 1 \
-	--serviceTime 1 \
-	--utilization 0.80 \
-	--serviceTimeModel constant \
+	--serviceTime 2.7 \
+	--utilization 0.10 \
+	--serviceTimeModel random.expovariate \
 	--replicationFactor 3 \
 	--backpressure \
 	--rateInterval 10\
@@ -56,20 +56,20 @@ python experiment.py  \
 	--selectionStrategy expDelay \
 	--shadowReadRatio 0.1 \
 	--accessPattern uniform \
-	--nwLatencyBase 2.00 \
+	--nwLatencyBase 0.01 \
 	--nwLatencyMu 0.0\
 	--nwLatencySigma 0.00 \
 	--expPrefix expDelay \
-	--simulationDuration 500000 \
+	--simulationDuration 1000000 \
 	--seed 3 \
-	--numRequests 100000\
+	--numRequests 600000\
 	--logFolder logs\
 	--expScenario base\
 	--demandSkew 0.0\
 	--highDemandFraction 0.0\
 	--slowServerFraction 0.0\
 	--slowServerSlowness 0.0\
-	--intervalParam 500\
+	--intervalParam 1000\
 	--timeVaryingDrift 5;
 
 

@@ -11,7 +11,7 @@ colnames(latency)[2] <- "Timestamp"
 colnames(latency)[3] <- "Latency"
 colnames(latency)[4] <- "ClientId"
 
-trim <- 0
+trim <- 10
 
 # latency <- latency[10:NROW(latency),]
 latency <- latency[latency$Timestamp > trim,]
@@ -59,7 +59,7 @@ p1 <- ggplot(latency[latency$ClientId == "Client0",]) +
 	  ylim(c(0, 200)) +
 	  theme(text = element_text(size=15), 
 	  		axis.text = element_text(size=20))
-ggsave(p1, file=paste(prefix, "_latency.pdf", sep=""), width=15)
+ggsave(p1, file=paste(prefix, "_latency.png", sep=""), width=15)
 
 p1 <- ggplot(act.mon) + 
 	  geom_line(aes(y=ActiveRequests, x=Timestamp), size=2) + 
