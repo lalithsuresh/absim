@@ -20,7 +20,7 @@ class Topology():
     HostList = []
     ClientList = []
     ServerList = []
-    def __init__(self, args):
+    def __init__(self, args, ClientList, ServerList):
         print 'starting topo..'
         self.args = args
         self.iNUMBER = self.args.iNumber
@@ -29,14 +29,15 @@ class Topology():
         self.iEdgeLayerSwitch = self.iNUMBER * 2
         self.iHost = self.iEdgeLayerSwitch * 2
         self.links = {}
-
+        self.ClientList = ClientList
+        self.ServerList = ServerList
     def createTopo(self):    
         self.createCoreLayerSwitch(self.iCoreLayerSwitch)
         self.createAggrLayerSwitch(self.iAggrLayerSwitch)
         self.createEdgeLayerSwitch(self.iEdgeLayerSwitch)
         if(self.args.placementStrategy == 'interleave'):                        
-            self.createServer(self.iHost/2)
-            self.createClient(self.iHost/2)
+            #self.createServer(self.iHost/2)
+            #self.createClient(self.iHost/2)
             for i in xrange(0, self.iHost/2):
                 self.HostList.append(self.ClientList[i])
                 self.HostList.append(self.ServerList[i])
