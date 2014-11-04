@@ -4,13 +4,16 @@ import SimPy.Simulation as Simulation
 class Task():
     """A simple Task. Applications may subclass this
        for holding specific attributes if need be"""
-    def __init__(self, id_, latencyMonitor):
+    def __init__(self, id_, latencyMonitor, start=False, replicaSet=[], queueSizeEst=0):
         self.id = id_
-        self.start = Simulation.now()
+        if not start:
+            self.start = Simulation.now()
+        else:
+            self.start = start
         self.completionEvent = Simulation.SimEvent("ClientToServerCompletion")
         self.latencyMonitor = latencyMonitor
-        self.replicaSet = []
-        self.queueSizeEst = 0
+        self.replicaSet = replicaSet
+        self.queueSizeEst = queueSizeEst
         
     # Used as a notifier mechanism
     def sigTaskComplete(self, piggyBack=None):
