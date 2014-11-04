@@ -4,16 +4,18 @@ import numpy
 import constants
 import task
 import math
-
+import sys
+from node import Node
 from yunomi.stats.exp_decay_sample import ExponentiallyDecayingSample
 
 
-class Client():
+class Client(Node):
     def __init__(self, id_, serverList, replicaSelectionStrategy,
                  accessPattern, replicationFactor, backpressure,
                  shadowReadRatio, rateInterval,
                  cubicC, cubicSmax, cubicBeta, hysterisisFactor,
                  demandWeight):
+        Node.__init__(self, id_, "client")
         self.id = id_
         self.serverList = serverList
         self.accessPattern = accessPattern
@@ -33,6 +35,8 @@ class Client():
         self.shadowReadRatio = shadowReadRatio
         self.demandWeight = demandWeight
         self.responsesReceived = 0
+        self.requestStatus = {} #request/response mappings to keep track of a request's status (in terms of received packets)
+        self.request = {} #mapping of request ID to request object
         self.pendingRequestsPerServer = {node: Simulation.Monitor(name="PendingRequests"+str(node.id)) for node in serverList}
         self.queueSizePerServer = {node: Simulation.Monitor(name="PendingRequests"+str(node.id)) for node in serverList}
 
@@ -131,28 +135,30 @@ class Client():
                 queueSizeEst = 0
             task.addQueueSizeEst(queueSizeEst)
             task.addReplicaSet(sortedReplicaSet)
-            self.sendRequest(task, replicaToServe)
+            self.sendRequest(task, replicaToServe, False)
             self.maybeSendShadowReads(replicaToServe, replicaSet)
         else:
             self.backpressureSchedulers[replicaSet[0]].enqueue(task, replicaSet)
 
-    def sendRequest(self, task, replicaToServe):
-        delay = constants.NW_LATENCY_BASE + \
-            random.normalvariate(constants.NW_LATENCY_MU,
-                                 constants.NW_LATENCY_SIGMA)
+    def sendRequest(self, task, replicaToServe, retransmit):
+        task.setDestination(replicaToServe)
+        # Map request ID to request object
+        self.request[task.id] = task    
+        # Add response packets to be received
+        self.requestStatus[task] = [i for i in xrange(1, task.count+1)]
+        # Get switch I'm delivering to
+        nextSwitch = self.getNeighbors().keys()[0]
+        # Get port I'm delivering through
+        egress = self.getPort(nextSwitch)
 
         # Immediately send out request
-        messageDeliveryProcess = DeliverMessageWithDelay()
-        Simulation.activate(messageDeliveryProcess,
-                            messageDeliveryProcess.run(task,
-                                                       delay,
-                                                       replicaToServe),
-                            at=Simulation.now())
+        egress.enqueueTask(task)
 
-        responseHandler = ResponseHandler()
-        Simulation.activate(responseHandler,
-                            responseHandler.run(self, task, replicaToServe),
-                            at=Simulation.now())
+        # Set timer for packet
+        #packetTimer = PacketTimer()
+        #Simulation.activate(packetTimer,
+        #                    packetTimer.run(self, task, replicaToServe),
+        #                    at=Simulation.now())
 
         # Book-keeping for metrics
         self.pendingRequestsMap[replicaToServe] += 1
@@ -162,7 +168,9 @@ class Client():
         self.pendingRequestsMonitor.observe(
             "%s %s" % (replicaToServe.id,
                        self.pendingRequestsMap[replicaToServe]))
-        self.taskSentTimeTracker[task] = Simulation.now()
+        if not retransmit:
+            self.taskSentTimeTracker[task] = Simulation.now()
+        #self.taskSentTimeTracker[task] = Simulation.now()
 
     def sort(self, originalReplicaSet, forceStrategy=False):
 
@@ -241,6 +249,26 @@ class Client():
 
         return replicaSet
 
+    def receiveResponse(self, packet):
+        if(packet.isCut):
+            #This is a notification of a packet drop
+            #Resend packet
+            self.sendRequest(self.request[packet.id], packet.src, True)
+            return
+        print 'Client received response with ID:', packet.id, 'seqN:', packet.seqN, 'count:', packet.count
+        #print 'Client has', len(self.requestStatus.keys()), 'pending requests'
+        if self.request[packet.id] in self.requestStatus:
+            #print packet.id, self.requestStatus[packet.id]
+            status = self.requestStatus[self.request[packet.id]]
+            status.remove(packet.seqN)
+            if(len(status)==0):
+                #Response received in full
+                print self.id, 'successfully received response'
+                self.updateStats(self.request[packet.id], packet.src)
+        else:
+            print 'Something wrong happend!'
+            sys.exit(-1)
+                
     def metricDecay(self, replica):
         return math.exp(-(Simulation.now() - self.lastSeen[replica])
                         / (2 * self.rateInterval))
@@ -273,7 +301,7 @@ class Client():
                     self.taskArrivalTimeTracker[shadowReadTask] =\
                         Simulation.now()
                     self.taskSentTimeTracker[shadowReadTask] = Simulation.now()
-                    self.sendRequest(shadowReadTask, replica)
+                    self.sendRequest(shadowReadTask, replica, False)
                     self.rateLimiters[replica].forceUpdates()
 
     def updateEma(self, replica, metricMap):
@@ -344,98 +372,171 @@ class Client():
         self.rateMonitor.observe("%s %s" % alphaObservation)
         self.receiveRateMonitor.observe("%s %s" % receiveRateObs)
 
-    def compareQSizes(self, replica):
-        if self.expectedDelayMap[replica].keys():
-            qserv = self.expectedDelayMap[replica]["queueSizeAfter"]
-        else:
-            qserv = 0
-        qest = (self.pendingRequestsMap[replica]-1) * constants.NUMBER_OF_CLIENTS + qserv
-        qact = len(replica.queueResource.activeQ + replica.queueResource.waitQ)
-        error = (qest - qact)**2
-        return qest, qact, error
-    
-class DeliverMessageWithDelay(Simulation.Process):
-    def __init__(self):
-        Simulation.Process.__init__(self, name='DeliverMessageWithDelay')
-
-    def run(self, task, delay, replicaToServe):
-        yield Simulation.hold, self, delay
-        replicaToServe.enqueueTask(task)
-
-
-class ResponseHandler(Simulation.Process):
-    def __init__(self):
-        Simulation.Process.__init__(self, name='ResponseHandler')
-
-    def run(self, client, task, replicaThatServed):
-        yield Simulation.hold, self,
-        yield Simulation.waitevent, self, task.completionEvent
-        
+    def updateStats(self, task, replicaThatServed):
         #Lets ignore shadowreads for reporting simulation results
         if(not task.id == "ShadowRead"):
-            client.responsesReceived += 1
+            self.responsesReceived += 1
             
             #Queue Size and outstanding requests book-keeping
-            client.pendingRequestsPerServer[replicaThatServed].observe(client.pendingRequestsMap[replicaThatServed]-1, client.taskSentTimeTracker[task])
-            client.queueSizePerServer[replicaThatServed].observe(task.completionEvent.signalparam["totalQueueSizeBefore"])
+            self.pendingRequestsPerServer[replicaThatServed].observe(self.pendingRequestsMap[replicaThatServed]-1, self.taskSentTimeTracker[task])
+            self.queueSizePerServer[replicaThatServed].observe(task.completionEvent.signalparam["totalQueueSizeBefore"])
             
             #Scoring-related book-keeping
             replicaSetEst = task.replicaSet
             replicaSetAct = task.completionEvent.signalparam["idealReplicaSet"]
             selectionErrorDist = replicaSetAct.index(replicaSetEst[0])
-            client.selErrorMonitor.observe(selectionErrorDist, client.taskSentTimeTracker[task])
+            self.selErrorMonitor.observe(selectionErrorDist, self.taskSentTimeTracker[task])
             
-            #Report queue size relative error (between client and server)
+            #Report queue size relative error (between self and server)
             qEst = task.queueSizeEst
             qAct = task.completionEvent.signalparam["totalQueueSizeBefore"]
             qError = (qEst - qAct)**2
-            client.qErrorMonitor.observe("%s %s %s"%(qAct, qEst, qError), client.taskSentTimeTracker[task])
-            
-        delay = constants.NW_LATENCY_BASE + \
-            random.normalvariate(constants.NW_LATENCY_MU,
-                                 constants.NW_LATENCY_SIGMA)
-        yield Simulation.hold, self, delay
+            self.qErrorMonitor.observe("%s %s %s"%(qAct, qEst, qError), self.taskSentTimeTracker[task])
 
         # OMG request completed. Time for some book-keeping
-        client.pendingRequestsMap[replicaThatServed] -= 1
-        client.pendingXserviceMap[replicaThatServed] = \
-            (1 + client.pendingRequestsMap[replicaThatServed]) \
+        self.pendingRequestsMap[replicaThatServed] -= 1
+        self.pendingXserviceMap[replicaThatServed] = \
+            (1 + self.pendingRequestsMap[replicaThatServed]) \
             * replicaThatServed.serviceTime
 
-        client.pendingRequestsMonitor.observe(
+        self.pendingRequestsMonitor.observe(
             "%s %s" % (replicaThatServed.id,
-                       client.pendingRequestsMap[replicaThatServed]))
+                       self.pendingRequestsMap[replicaThatServed]))
 
-        client.responseTimesMap[replicaThatServed] = \
-            Simulation.now() - client.taskSentTimeTracker[task]
-        client.latencyTrackerMonitor\
+        self.responseTimesMap[replicaThatServed] = \
+            Simulation.now() - self.taskSentTimeTracker[task]
+        self.latencyTrackerMonitor\
               .observe("%s %s" % (replicaThatServed.id,
-                       Simulation.now() - client.taskSentTimeTracker[task]))
+                       Simulation.now() - self.taskSentTimeTracker[task]))
         metricMap = task.completionEvent.signalparam
-        metricMap["responseTime"] = client.responseTimesMap[replicaThatServed]
+        metricMap["responseTime"] = self.responseTimesMap[replicaThatServed]
         metricMap["nw"] = metricMap["responseTime"] - metricMap["serviceTime"]
-        client.updateEma(replicaThatServed, metricMap)
-        client.receiveRate[replicaThatServed].add(1)
+        self.updateEma(replicaThatServed, metricMap)
+        self.receiveRate[replicaThatServed].add(1)
 
         # Backpressure related book-keeping
-        if (client.backpressure):
-            client.updateRates(replicaThatServed, metricMap, task)
+        if (self.backpressure):
+            self.updateRates(replicaThatServed, metricMap, task)
 
-        client.lastSeen[replicaThatServed] = Simulation.now()
+        self.lastSeen[replicaThatServed] = Simulation.now()
 
-        if (client.REPLICA_SELECTION_STRATEGY == "ds"):
-            client.latencyEdma[replicaThatServed]\
+        if (self.REPLICA_SELECTION_STRATEGY == "ds"):
+            self.latencyEdma[replicaThatServed]\
                   .update(metricMap["responseTime"])
 
-        del client.taskSentTimeTracker[task]
-        del client.taskArrivalTimeTracker[task]
-
+        del self.taskSentTimeTracker[task]
+        del self.taskArrivalTimeTracker[task]
+        del self.requestStatus[task]
+        del self.request[task.id]
         # Does not make sense to record shadow read latencies
         # as a latency measurement
         if (task.latencyMonitor is not None):
             task.latencyMonitor.observe("%s %s" %
                                         (Simulation.now() - task.start,
-                                         client.id))
+                                         self.id))
+
+#===============================================================================
+# class PacketTimer(Simulation.Process):
+#     def __init__(self):
+#         Simulation.Process.__init__(self, name='PacketTimer')
+#         
+#     def run(self, client, task, replicaThatServed):
+#         #We'll wait for packets in a sequential manner (would be problematic in per-packet multipath routing)
+#         pendingPacket = min(client.requestStatus[task.id])
+#         while True:
+#             yield Simulation.hold, self, timeout
+#             if pendingPacket in client.requestStatus[task.id]:
+#                 #Packet hasn't been received yet --> TIMEOUT
+#                 if task.count == len(client.requestStatus[task.id]):
+#                     #No packets have been received for this response
+#                     #This means that it's likely that entire request wasn't received
+#                     #As such, we'll resend the request for the entire value
+#                     client.sendRequest(task, replicaThatServed, True)
+#                 else:
+#                     #We'll only request the specific packet that we timed-out on
+#                     #TODO this could cause problems (we should possibly clone this)
+#                     task.seqN = pendingPacket
+#                     client.sendRequest(task, replicaThatServed, True)
+#             else:
+#                 #Packet was received; return
+#                 return
+#===============================================================================
+
+#===============================================================================
+# class ResponseHandler(Simulation.Process):
+#     def __init__(self):
+#         Simulation.Process.__init__(self, name='ResponseHandler')
+# 
+#     def run(self, client, task, replicaThatServed):
+#         yield Simulation.hold, self,
+#         yield Simulation.waitevent, self, task.completionEvent
+#         
+#         #Lets ignore shadowreads for reporting simulation results
+#         if(not task.id == "ShadowRead"):
+#             client.responsesReceived += 1
+#             
+#             #Queue Size and outstanding requests book-keeping
+#             client.pendingRequestsPerServer[replicaThatServed].observe(client.pendingRequestsMap[replicaThatServed]-1, client.taskSentTimeTracker[task])
+#             client.queueSizePerServer[replicaThatServed].observe(task.completionEvent.signalparam["totalQueueSizeBefore"])
+#             
+#             #Scoring-related book-keeping
+#             replicaSetEst = task.replicaSet
+#             replicaSetAct = task.completionEvent.signalparam["idealReplicaSet"]
+#             selectionErrorDist = replicaSetAct.index(replicaSetEst[0])
+#             client.selErrorMonitor.observe(selectionErrorDist, client.taskSentTimeTracker[task])
+#             
+#             #Report queue size relative error (between client and server)
+#             qEst = task.queueSizeEst
+#             qAct = task.completionEvent.signalparam["totalQueueSizeBefore"]
+#             qError = (qEst - qAct)**2
+#             client.qErrorMonitor.observe("%s %s %s"%(qAct, qEst, qError), client.taskSentTimeTracker[task])
+#             
+#         delay = constants.NW_LATENCY_BASE + \
+#             random.normalvariate(constants.NW_LATENCY_MU,
+#                                  constants.NW_LATENCY_SIGMA)
+#         yield Simulation.hold, self, delay
+# 
+#         # OMG request completed. Time for some book-keeping
+#         client.pendingRequestsMap[replicaThatServed] -= 1
+#         client.pendingXserviceMap[replicaThatServed] = \
+#             (1 + client.pendingRequestsMap[replicaThatServed]) \
+#             * replicaThatServed.serviceTime
+# 
+#         client.pendingRequestsMonitor.observe(
+#             "%s %s" % (replicaThatServed.id,
+#                        client.pendingRequestsMap[replicaThatServed]))
+# 
+#         client.responseTimesMap[replicaThatServed] = \
+#             Simulation.now() - client.taskSentTimeTracker[task]
+#         client.latencyTrackerMonitor\
+#               .observe("%s %s" % (replicaThatServed.id,
+#                        Simulation.now() - client.taskSentTimeTracker[task]))
+#         metricMap = task.completionEvent.signalparam
+#         metricMap["responseTime"] = client.responseTimesMap[replicaThatServed]
+#         metricMap["nw"] = metricMap["responseTime"] - metricMap["serviceTime"]
+#         client.updateEma(replicaThatServed, metricMap)
+#         client.receiveRate[replicaThatServed].add(1)
+# 
+#         # Backpressure related book-keeping
+#         if (client.backpressure):
+#             client.updateRates(replicaThatServed, metricMap, task)
+# 
+#         client.lastSeen[replicaThatServed] = Simulation.now()
+# 
+#         if (client.REPLICA_SELECTION_STRATEGY == "ds"):
+#             client.latencyEdma[replicaThatServed]\
+#                   .update(metricMap["responseTime"])
+# 
+#         del client.taskSentTimeTracker[task]
+#         del client.taskArrivalTimeTracker[task]
+# 
+#         # Does not make sense to record shadow read latencies
+#         # as a latency measurement
+#         if (task.latencyMonitor is not None):
+#             task.latencyMonitor.observe("%s %s" %
+#                                         (Simulation.now() - task.start,
+#                                          client.id))
+#===============================================================================
 
 class BackpressureScheduler(Simulation.Process):
     def __init__(self, id_, client):
@@ -478,7 +579,7 @@ class BackpressureScheduler(Simulation.Process):
                         else:
                             queueSizeEst = 0
                         task.addQueueSizeEst(queueSizeEst)
-                        self.client.sendRequest(task, replica)
+                        self.client.sendRequest(task, replica, False)
                         self.client.maybeSendShadowReads(replica, replicaSet)
                         sent = True
                         self.client.rateLimiters[replica].update()
