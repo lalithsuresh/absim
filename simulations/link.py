@@ -1,7 +1,7 @@
 '''
 Created on Oct 9, 2014
 
-@author: Nagwa
+@author: reda
 '''
 
 class Link():
