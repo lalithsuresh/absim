@@ -38,8 +38,15 @@ python -m unittest discover . '*test*.py'
 # # python -m cProfile -o output.txt experiment.py \"
 
 python experiment.py  \
- 	--numClients 50 \
-	--numServers 25 \
+ 	--iNumber 4\
+    --coreAggrBW 100\
+    --aggrEdgeBW 10\
+    --edgeHostBW 10\
+    --procTime 0.00\
+    --switchBuffer 10\
+    --valueSizeModel pareto\
+    --packetSize 1\
+    --placementStrategy interleave\
 	--numWorkload 1 \
 	--workloadModel constant \
 	--serverConcurrency 4 \
@@ -62,7 +69,7 @@ python experiment.py  \
 	--expPrefix expDelay \
 	--simulationDuration 10000000 \
 	--seed 2 \
-	--numRequests 10000\
+	--numRequests 1000\
 	--logFolder logs\
 	--expScenario base\
 	--demandSkew 0.0\
