@@ -1,13 +1,14 @@
 import SimPy.Simulation as Simulation
 import random
 import task
+import datatask
 import numpy
-
+from scipy.stats import genpareto
 
 class Workload(Simulation.Process):
 
     def __init__(self, id_, latencyMonitor, clientList,
-                 model, model_param, numRequests):
+                 model, model_param, numRequests, valueSizeModel):
         self.latencyMonitor = latencyMonitor
         self.clientList = clientList
         self.model = model
@@ -16,6 +17,7 @@ class Workload(Simulation.Process):
         self.total = sum(client.demandWeight for client in self.clientList)
         self.backlogMonitor = Simulation.Monitor(name="BackLog")
         self.taskCounter = 0
+        self.valueSizeModel = valueSizeModel
         Simulation.Process.__init__(self, name='Workload' + str(id_))
 
     # TODO: also need non-uniform client access
@@ -25,13 +27,14 @@ class Workload(Simulation.Process):
         while(self.numRequests != 0):
             yield Simulation.hold, self,
 
-            taskToSchedule = task.Task("Task" + str(self.taskCounter),
+            taskToSchedule = datatask.DataTask("Task" + str(self.taskCounter),
                                        self.latencyMonitor)
             self.taskCounter += 1
                 
             # Push out a task...
             clientNode = self.weightedChoice()
-
+            taskToSchedule.count = self.getResponsePacketCount()
+            taskToSchedule.src = clientNode
             clientNode.schedule(taskToSchedule)
 
             # Simulate client delay
@@ -54,3 +57,12 @@ class Workload(Simulation.Process):
                 return client
             upto += client.demandWeight
         assert False, "Shouldn't get here"
+        
+    def getResponsePacketCount(self):
+        if(self.valueSizeModel == "pareto"):
+            numargs = genpareto.numargs
+            [ c ] = [0.15,]*numargs
+            r = genpareto.rvs(c, loc=0, scale=16.02)
+            return int(r)
+        else:
+            return 15
