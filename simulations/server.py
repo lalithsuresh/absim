@@ -2,12 +2,13 @@ import SimPy.Simulation as Simulation
 import math
 import random
 import sys
-
-
-class Server():
+import misc
+from node import Node
+class Server(Node):
     """A representation of a physical server that holds resources"""
     def __init__(self, id_, resourceCapacity,
                  serviceTime, serviceTimeModel):
+        Node.__init__(self, id_, "server")
         self.id = id_
         self.serviceTime = serviceTime
         self.serviceTimeModel = serviceTimeModel
@@ -16,6 +17,18 @@ class Server():
         self.serverRRMonitor = Simulation.Monitor(name="ServerMonitor")
 
     def enqueueTask(self, task):
+        if(task.isCut):
+            #This is a notification of a packet drop
+            #Resend packet
+            nextSwitch = self.getNeighbors().keys()[0]
+            # Get port I'm delivering through
+            egress = self.getPort(nextSwitch)
+            response = misc.cloneDataTask(task)
+            response.restorePacket()
+            # resend response
+            egress.enqueueTask(response)
+            return
+        
         executor = Executor(self, task)
         self.serverRRMonitor.observe(1)
         Simulation.activate(executor, executor.run(), Simulation.now())
@@ -64,6 +77,20 @@ class Executor(Simulation.Process):
                                    "totalQueueSizeBefore": totalQueueSizeBefore,
                                    "idealReplicaSet": ideallySortedReplicaSet})
         
+        for i in xrange(1, self.task.count+1):
+            respPacket = misc.cloneDataTask(self.task)
+            respPacket.count = self.task.count
+            respPacket.seqN = i
+            respPacket.dst = self.task.src
+            respPacket.src = self.task.dst
+            respPacket.setRequest(self.task)
+            # Get switch I'm delivering to
+            nextSwitch = self.server.getNeighbors().keys()[0]
+            # Get port I'm delivering through
+            egress = self.server.getPort(nextSwitch)
+            # Immediately send out request
+            egress.enqueueTask(respPacket)
+                  
     #This is just used for reporting selection errors
     def sort(self, replicaSet):
             # Sort by response times * pending-requests
