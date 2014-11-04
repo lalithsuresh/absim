@@ -9,6 +9,8 @@ import numpy
 import sys
 import muUpdater
 import statcollector
+import topology
+import simpletopo
 from scipy.stats.kde import gaussian_kde
 from matplotlib import pyplot as plt
 from matplotlib.font_manager import FontProperties
@@ -66,11 +68,16 @@ def runExperiment(args):
     clients = []
     workloadGens = []
 
+    #Set number of clients and servers to iNumber * 2 (necessary for our fat-tree topology setup)
+    args.numClients = args.iNumber * 2
+    args.numServers = args.iNumber * 2
+    
     constants.NW_LATENCY_BASE = args.nwLatencyBase
     constants.NW_LATENCY_MU = args.nwLatencyMu
     constants.NW_LATENCY_SIGMA = args.nwLatencySigma
     constants.NUMBER_OF_CLIENTS = args.numClients
-
+    constants.SWITCH_BUFFER_SIZE = args.switchBuffer
+    
     assert args.expScenario != ""
 
     serviceRatePerServer = []
@@ -83,7 +90,7 @@ def runExperiment(args):
                                  serviceTimeModel=args.serviceTimeModel)
             servers.append(serv)
     elif(args.expScenario == "multipleServiceTimeServers"):
-      # Start the servers
+        # Start the servers
         for i in range(args.numServers):
             serv = server.Server(i,
                                  resourceCapacity=args.serverConcurrency,
@@ -196,6 +203,12 @@ def runExperiment(args):
     # Start workload generators (analogous to YCSB)
     latencyMonitor = Simulation.Monitor(name="Latency")
 
+    #Construct topology and connect nodes
+    topo = topology.Topology(args, clients, servers)
+    #topo = simpletopo.SimpleTopo(args, clients, servers)
+    topo.createTopo()
+    #topo.draw()
+    
     # This is where we set the inter-arrival times based on
     # the required utilization level and the service time
     # of the overall server pool.
@@ -216,7 +229,7 @@ def runExperiment(args):
                               clients,
                               args.workloadModel,
                               interArrivalTime * args.numWorkload,
-                              args.numRequests/args.numWorkload)
+                              args.numRequests/args.numWorkload, args.valueSizeModel)
         Simulation.activate(w, w.run(),
                             at=0.0),
         workloadGens.append(w)
@@ -303,7 +316,7 @@ def runExperiment(args):
             data2.append((c.selErrorMonitor.tseries(), c.selErrorMonitor.yseries()))
             data3.append((c.backlogMonitor.tseries(), c.backlogMonitor.yseries()))
     
-    #Get max and min points for the tseries  
+    #Get max and min points for the tseries
     tmin = min(min(clients, key=lambda c: min(c.qErrorMonitor.tseries())).qErrorMonitor.tseries())
     tmax = max(max(clients, key=lambda c: max(c.qErrorMonitor.tseries())).qErrorMonitor.tseries())
     steps = 100
@@ -458,6 +471,8 @@ if __name__ == '__main__':
                         type=int, default=500)
     parser.add_argument('--numRequests', nargs='?',
                         type=int, default=100)
+    parser.add_argument('--switchBufferSize', nargs='?',
+                        type=int, default=10)
     parser.add_argument('--logFolder', nargs='?',
                         type=str, default="logs")
     parser.add_argument('--expScenario', nargs='?',
@@ -474,6 +489,24 @@ if __name__ == '__main__':
                         type=float, default=0.0)
     parser.add_argument('--timeVaryingDrift', nargs='?',
                         type=float, default=0.0)
+    parser.add_argument('--iNumber', nargs='?',
+                        type=int, default=4)
+    parser.add_argument('--coreAggrBW', nargs='?',
+                        type=int, default=100)
+    parser.add_argument('--aggrEdgeBW', nargs='?',
+                        type=int, default=10)
+    parser.add_argument('--edgeHostBW', nargs='?',
+                        type=int, default=1)
+    parser.add_argument('--procTime', nargs='?',
+                        type=float, default=1)
+    parser.add_argument('--valueSizeModel', nargs='?',
+                        type=str, default="blabla")
+    parser.add_argument('--switchBuffer', nargs='?',
+                        type=int, default=5)
+    parser.add_argument('--packetSize', nargs='?',
+                        type=int, default=5)
+    parser.add_argument('--placementStrategy', nargs='?',
+                        type=str, default="interleave")   
     args = parser.parse_args()
 
     runExperiment(args)
