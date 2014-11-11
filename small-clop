@@ -3,7 +3,7 @@
 cd simulations;
 
 # Run tests
-python -m unittest discover . '*test*.py'
+#python -m unittest discover . '*test*.py'
 
 # python experiment.py  \
 # 	--numClients 150 \
@@ -38,19 +38,22 @@ python -m unittest discover . '*test*.py'
 # # python -m cProfile -o output.txt experiment.py \"
 
 python experiment.py  \
- 	--iNumber 4\
-    --coreAggrBW 100\
-    --aggrEdgeBW 10\
-    --edgeHostBW 10\
-    --procTime 0.00\
-    --switchBuffer 10\
-    --valueSizeModel pareto\
-    --packetSize 1\
-    --placementStrategy interleave\
+ 	--numClients 2 \
+ 	--numServers 1 \
+ 	--iNumber 4 \
+    --coreAggrBW 500 \
+    --aggrEdgeBW 250 \
+    --edgeHostBW 125 \
+    --expScenario base\
+    --procTime 0.002 \
+    --valueSizeModel pareto \
+    --packetSize 0.00057 \
+    --switchBufferSize 1 \
+    --placementStrategy interleave \
 	--numWorkload 1 \
 	--workloadModel constant \
 	--serverConcurrency 4 \
-	--serviceTime 2 \
+	--serviceTime 0.15 \
 	--utilization 0.99 \
 	--serviceTimeModel random.expovariate \
 	--replicationFactor 10 \
@@ -61,9 +64,10 @@ python experiment.py  \
 	--cubicBeta 0.2\
 	--hysterisisFactor 2\
 	--selectionStrategy expDelay \
+	--switchSelectionStrategy hopDelay\
 	--shadowReadRatio 0.0 \
 	--accessPattern uniform \
-	--nwLatencyBase 2.00 \
+	--nwLatencyBase 0.0005 \
 	--nwLatencyMu 0.0\
 	--nwLatencySigma 0.00 \
 	--expPrefix expDelay \
@@ -71,7 +75,6 @@ python experiment.py  \
 	--seed 2 \
 	--numRequests 1000\
 	--logFolder logs\
-	--expScenario base\
 	--demandSkew 0.0\
 	--highDemandFraction 0.0\
 	--slowServerFraction 0.0\
@@ -80,12 +83,12 @@ python experiment.py  \
 	--timeVaryingDrift 5;
 
 
-#cd ..
-#cd plotting;
+cd ..
+cd plotting;
 # Rscript timeseries.r primary;
 # Rscript timeseries.r rp;
 # Rscript timeseries.r pending;
 # Rscript timeseries.r pendingXserviceTime;
 # Rscript timeseries.r oracle;
-#Rscript timeseries.r expDelay;
-#cd ..
+# Rscript timeseries.r expDelay;
+cd ..
