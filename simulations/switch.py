@@ -7,11 +7,11 @@ class Switch(Node):
     """A representation of a physical switch that disperses requests and responses
     Note: We're assuming that switches aren't bottle-necked by processing times"""
     def __init__(self, id_, htype,
-                 procTime):
+                 procTime, selectionStrategy="passive"):
         Node.__init__(self, id_, htype)
         self.procTime = procTime
         self.connectedHosts = {} #Equivalent to switch routing table
-    
+        self.selectionStrategy = selectionStrategy
     def addConnectedHosts(self, n, nHosts):
         for h in nHosts:         
             if h not in self.connectedHosts:
@@ -50,6 +50,21 @@ class Switch(Node):
             egressPort = min(possible_hops, key=lambda n: self.getPort(n).getQueueSize())
         return egressPort
     
+    def getHopCount(self, dst):
+        print 'DST', dst.id, dst.htype
+        hopCount = 0
+        nextNode = self
+        while True:
+            hopCount += 1
+            nextPort = nextNode.getNextHop(dst)
+            print 'port', nextPort.__class__.__name__
+            nextNode = nextPort.dst
+            print 'node', nextNode.__class__.__name__
+            print nextNode.id, dst.id, nextNode.htype, dst.htype
+            if(nextNode.id == dst.id and nextNode.htype == dst.htype):
+                print 'returning..'
+                return hopCount
+    
 class Executor(Simulation.Process):
     
     def __init__(self, switch, task):
@@ -60,5 +75,8 @@ class Executor(Simulation.Process):
     def run(self):
         #Make the next hop
         yield Simulation.hold, self, self.switch.procTime
+        if(self.switch.selectionStrategy == "hopDelay"):
+            self.task.replicaSet.sort(key=lambda x: self.switch.getHopCount(x)*self.switch.getPort(x).getQueueSize())
+            self.task.dst = self.task.replicaSet[0]
         egress = self.switch.getNextHop(self.task.dst)
         egress.enqueueTask(self.task)

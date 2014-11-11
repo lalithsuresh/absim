@@ -107,6 +107,7 @@ class Client(Node):
         return Simulation.now()/1000.0
 
     def schedule(self, task, replicaSet=None):
+        #print self.id, 'is sending request:', task.id
         replicaToServe = None
         firstReplicaIndex = None
 
@@ -253,9 +254,10 @@ class Client(Node):
         if(packet.isCut):
             #This is a notification of a packet drop
             #Resend packet
+            #TODO We actually need to reschedule the request so that it passes through the backpressure scheudler
             self.sendRequest(self.request[packet.id], packet.src, True)
             return
-        print 'Client received response with ID:', packet.id, 'seqN:', packet.seqN, 'count:', packet.count
+        #print 'Client received response with ID:', packet.id, 'seqN:', packet.seqN, 'count:', packet.count
         #print 'Client has', len(self.requestStatus.keys()), 'pending requests'
         if self.request[packet.id] in self.requestStatus:
             #print packet.id, self.requestStatus[packet.id]
@@ -263,7 +265,7 @@ class Client(Node):
             status.remove(packet.seqN)
             if(len(status)==0):
                 #Response received in full
-                print self.id, 'successfully received response'
+                #print self.id, 'successfully received response for request:', packet.id
                 self.updateStats(self.request[packet.id], packet.src)
         else:
             print 'Something wrong happend!'
@@ -579,6 +581,7 @@ class BackpressureScheduler(Simulation.Process):
                         else:
                             queueSizeEst = 0
                         task.addQueueSizeEst(queueSizeEst)
+                        print self.client.id, 'is sending request', task.id, 'to', replica
                         self.client.sendRequest(task, replica, False)
                         self.client.maybeSendShadowReads(replica, replicaSet)
                         sent = True

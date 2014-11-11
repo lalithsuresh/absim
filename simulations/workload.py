@@ -63,6 +63,9 @@ class Workload(Simulation.Process):
             numargs = genpareto.numargs
             [ c ] = [0.15,]*numargs
             r = genpareto.rvs(c, loc=0, scale=16.02)
-            return int(r)
+            if(int(r)>0):
+                return int(r)
+            else:
+                return 1
         else:
             return 15

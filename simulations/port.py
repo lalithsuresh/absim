@@ -34,7 +34,6 @@ class Port():
             #print 'This is my current Q size:', self.getQueueSize()
         executor = Executor(self, task)
         Simulation.activate(executor, executor.run(), Simulation.now())
-        return True
 
     def getTxTime(self, task):
         txTime = task.size/self.bw
@@ -59,7 +58,7 @@ class Executor(Simulation.Process):
             #Packet was dropped; Forward packet header to the reverse path
             dropNotif = misc.cloneDataTask(self.task)
             dropNotif.cutPacket()
-            print 'Packet dropped. Sending header to reverse path. Dst:%s, Type:%s'%(dropNotif.dst.id, dropNotif.dst.htype)
+            #print 'Packet dropped. Sending header to reverse path. Dst:%s, Type:%s'%(dropNotif.dst.id, dropNotif.dst.htype)
             #print 'src:%s, dst:%s'%(self.task.src, self.task.dst)
             self.port.src.enqueueTask(dropNotif)
             return

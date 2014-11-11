@@ -19,18 +19,20 @@ class SimpleTopology():
     HostList = []
     ClientList = []
     ServerList = []
-    def __init__(self, args):
+    def __init__(self, args, ClientList, ServerList):
         print 'starting topo..'
         self.args = args
-        self.iclient = 4
-        self.iserver = 1
         self.iEdgeLayerSwitch = 1
         self.links = {}
+        self.ClientList = ClientList
+        self.ServerList = ServerList
+        self.iclient = len(self.ClientList)
+        self.iserver = len(self.ServerList)
         self.iHost = self.iclient + self.iserver
     def createTopo(self):    
         self.createEdgeLayerSwitch(self.iEdgeLayerSwitch)                        
-        self.createServer(self.iserver)
-        self.createClient(self.iclient)
+        #self.createServer(self.iserver)
+        #self.createClient(self.iclient)
         for i in xrange(0, self.iclient):
             self.HostList.append(self.ClientList[i])
         for i in xrange(0, self.iserver):
@@ -79,6 +81,7 @@ class SimpleTopology():
             ## limit = 2 * x + 1 
             for y in range(0, self.iHost):
                 self.addLink(self.EdgeSwitchList[x], self.HostList[y], bw=self.args.edgeHostBW)
+                print 'Connecting', self.EdgeSwitchList[x].id, 'to', self.HostList[y].id
 
     def addLink(self, n1, n2, bw):
         #print "Adding link between %s:%s and %s:%s"%(n1.id, n1.htype, n2.id, n2.htype)

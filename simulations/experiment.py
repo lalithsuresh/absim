@@ -76,7 +76,7 @@ def runExperiment(args):
     constants.NW_LATENCY_MU = args.nwLatencyMu
     constants.NW_LATENCY_SIGMA = args.nwLatencySigma
     constants.NUMBER_OF_CLIENTS = args.numClients
-    constants.SWITCH_BUFFER_SIZE = args.switchBuffer
+    constants.SWITCH_BUFFER_SIZE = args.switchBufferSize
     
     assert args.expScenario != ""
 
@@ -205,7 +205,7 @@ def runExperiment(args):
 
     #Construct topology and connect nodes
     topo = topology.Topology(args, clients, servers)
-    #topo = simpletopo.SimpleTopo(args, clients, servers)
+    #topo = simpletopo.SimpleTopology(args, clients, servers)
     topo.createTopo()
     #topo.draw()
     
@@ -306,7 +306,14 @@ def runExperiment(args):
         print "------- Server:%s %s ------" % (serv.id, "ActMon")
         print "Mean:", serv.queueResource.actMon.mean()
 
+    print "------- Latency ------"
+    print "Mean Latency:",\
+      sum([float(entry[1].split()[0]) for entry in latencyMonitor])/float(len(latencyMonitor))
 
+    printMonitorTimeSeriesToFile(latencyFD, "0",
+                                 latencyMonitor)
+    assert args.numRequests == len(latencyMonitor)
+    
     data1 = [] #queue size errors
     data2 = [] #selection errors
     data3 = [] #backlog queue size
@@ -410,13 +417,6 @@ def runExperiment(args):
         # plot the results
         #plt.plot(dist_space, kde(dist_space))
         #plt.show()
-    print "------- Latency ------"
-    print "Mean Latency:",\
-      sum([float(entry[1].split()[0]) for entry in latencyMonitor])/float(len(latencyMonitor))
-
-    printMonitorTimeSeriesToFile(latencyFD, "0",
-                                 latencyMonitor)
-    assert args.numRequests == len(latencyMonitor)
 
 
 if __name__ == '__main__':
@@ -498,13 +498,13 @@ if __name__ == '__main__':
     parser.add_argument('--edgeHostBW', nargs='?',
                         type=int, default=1)
     parser.add_argument('--procTime', nargs='?',
-                        type=float, default=1)
+                        type=float, default=0.002)
     parser.add_argument('--valueSizeModel', nargs='?',
                         type=str, default="blabla")
-    parser.add_argument('--switchBuffer', nargs='?',
-                        type=int, default=5)
     parser.add_argument('--packetSize', nargs='?',
-                        type=int, default=5)
+                        type=float, default=0.00057)
+    parser.add_argument('--switchSelectionStrategy', nargs='?',
+                        type=str, default="passive")
     parser.add_argument('--placementStrategy', nargs='?',
                         type=str, default="interleave")   
     args = parser.parse_args()
