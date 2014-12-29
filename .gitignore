@@ -52,3 +52,6 @@ docs/_build/
 
 #Simulator logs
 logs/
+
+#IDEA 
+.idea/
