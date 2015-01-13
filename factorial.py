@@ -15,7 +15,7 @@ serviceTime = [4]
 utilization = [0.99]
 serviceTimeModel = ["random.expovariate"]
 replicationFactor = [3]
-selectionStrategy = ["expDelay"]
+selectionStrategy = ["round_robin"]
 rateInterval = [20]
 cubicC = [0.000004]
 cubicSmax = [10]
@@ -43,7 +43,7 @@ intervalParam = [10, 50, 100, 200, 300, 500]
 timeVaryingDrift = [5]
 
 
-logFolder = "post-nsdi-tv-sweep" + uniqId
+logFolder = "round-robin-sweep" + uniqId
 # logFolder = "paperSkewSweep" + uniqId
 
 if not os.path.exists(logFolder):
@@ -105,7 +105,8 @@ for combination in PARAM_COMBINATIONS:
         os.chdir(basePath + "/simulations")
         backpressure = ""
 
-        if (selectionStrategy == "expDelay"):
+        if (selectionStrategy == "expDelay"
+           or selectionStrategy == "round_robin"):
             backpressure = "--backpressure"
 
         cmd = "python factorialExperiment.py \

@@ -49,6 +49,9 @@ class Client():
         self.expectedDelayMap = {node: {} for node in serverList}
         self.lastSeen = {node: 0 for node in serverList}
 
+        # Round robin parameters
+        self.rrIndex = {node: 0 for node in serverList}
+
         # Rate limiters per replica
         self.rateLimiters = {node: RateLimiter("RL-%s" % node.id,
                                                self, 10, rateInterval)
@@ -160,7 +163,11 @@ class Client():
             # Represents SimpleSnitch + uniform request access.
             # Ignore scores and everything else.
             random.shuffle(replicaSet)
-
+        elif(self.REPLICA_SELECTION_STRATEGY == "round_robin"):
+            index = self.rrIndex[replicaSet[0]]
+            replicaSetNew = replicaSet[index:] + replicaSet[:index]
+            self.rrIndex[replicaSet[0]] = (index + 1) % len(replicaSet)
+            replicaSet = replicaSetNew
         elif(self.REPLICA_SELECTION_STRATEGY == "pending"):
             # Sort by number of pending requests
             replicaSet.sort(key=self.pendingRequestsMap.get)
