@@ -11,10 +11,11 @@ import muUpdater
 import statcollector
 import topology
 import simpletopo
+import numpy as np
 import leafspineTopo
-from scipy.stats.kde import gaussian_kde
-from matplotlib import pyplot as plt
-from matplotlib.font_manager import FontProperties
+#from scipy.stats.kde import gaussian_kde
+#from matplotlib import pyplot as plt
+#from matplotlib.font_manager import FontProperties
 
 def printMonitorTimeSeriesToFile(fileDesc, prefix, monitor):
     for entry in monitor:
@@ -68,9 +69,6 @@ def runExperiment(args):
     servers = []
     clients = []
     workloadGens = []
-    #Set number of clients and servers to iNumber * 2 (necessary for our fat-tree topology setup)
-    args.numClients = args.iLeaf * args.hostsPerLeaf/2
-    args.numServers = args.iLeaf * args.hostsPerLeaf/2
     
     constants.NW_LATENCY_BASE = args.nwLatencyBase
     constants.NW_LATENCY_MU = args.nwLatencyMu
@@ -183,7 +181,6 @@ def runExperiment(args):
     #TODO commenting this for now
     #assert sum(clientWeights) > 0.99 * args.numClients
     assert sum(clientWeights) <= args.numClients
-
     # Start the clients
     for i in range(args.numClients):
         c = client.Client(id_="Client%s" % (i),
@@ -207,37 +204,21 @@ def runExperiment(args):
     #Construct topology and connect nodes
     #topo = topology.Topology(args, clients, servers)
     print "chosen selection strategy:", args.switchSelectionStrategy
-    print "chosen forwarding strategy:", args.switchForwardingStrategy
     topo = leafspineTopo.LeafSpinTopology(args.iSpine, args.iLeaf, args.hostsPerLeaf, args.spineLeafBW,
-                             args.leafHostBW, args.procTime, args.placementStrategy, clients, servers,
-                             args.switchSelectionStrategy, args.switchForwardingStrategy, args.c4Weight,
-                             args.rateInterval, args.cubicC, args.cubicSmax, args.cubicBeta, args.hysterisisFactor,
-                             args.switchRateLimiter)
+                             args.leafHostBW, args.procTime, clients, servers, args.switchSelectionStrategy,
+                             args.switchForwardingStrategy, args.c4Weight, args.rateInterval, args.cubicC,
+                             args.cubicSmax, args.cubicBeta, args.hysterisisFactor, args.switchRateLimiter)
     #topo = simpletopo.SimpleTopology(args, clients, servers)
     topo.createTopo()
     #topo.draw()
-    
-    # This is where we set the inter-arrival times based on
-    # the required utilization level and the service time
-    # of the overall server pool.
-    arrivalRate = 0
-    interArrivalTime = 0
-    if (len(serviceRatePerServer) > 0):
-        print serviceRatePerServer
-        arrivalRate = (args.utilization * sum(serviceRatePerServer))
-        interArrivalTime = 1/float(arrivalRate)
-    else:
-        arrivalRate = args.numServers *\
-            (args.utilization * args.serverConcurrency *
-             1/float(args.serviceTime))
-        interArrivalTime = 1/float(arrivalRate)
 
     for i in range(args.numWorkload):
         w = workload.Workload(i, latencyMonitor,
                               clients,
                               args.workloadModel,
-                              interArrivalTime * args.numWorkload,
-                              args.numRequests/args.numWorkload, args.valueSizeModel)
+                              args.interarrivalTime * args.numWorkload,
+                              args.numRequests/args.numWorkload, args.valueSizeModel,
+                              i*args.numRequests/args.numWorkload)
         Simulation.activate(w, w.run(),
                             at=0.0),
         workloadGens.append(w)
@@ -321,16 +302,20 @@ def runExperiment(args):
         printMonitorTimeSeriesToFile(serverRRFD,
                                      serv.id,
                                      serv.serverRRMonitor)
-        print "------- Server:%s %s ------" % (serv.id, "WaitMon")
-        print "Mean:", serv.queueResource.waitMon.mean()
+        #print "------- Server:%s %s ------" % (serv.id, "WaitMon")
+        #print "Mean:", serv.queueResource.waitMon.mean()
 
-        print "------- Server:%s %s ------" % (serv.id, "ActMon")
-        print "Mean:", serv.queueResource.actMon.mean()
+        #print "------- Server:%s %s ------" % (serv.id, "ActMon")
+        #print "Mean:", serv.queueResource.actMon.mean()
 
     print "------- Latency ------"
     print "Mean Latency:",\
       sum([float(entry[1].split()[0]) for entry in latencyMonitor])/float(len(latencyMonitor))
-
+    a = np.array([float(entry[1].split()[0]) for entry in latencyMonitor])
+    p50 = np.percentile(a, 50) # return 50th percentile, e.g. median.
+    p99 = np.percentile(a, 99) # return 99th percentile.
+    print "Percentile 50:", p50
+    print "Percentile 99:", p99
     printMonitorTimeSeriesToFile(latencyFD, "0",
                                  latencyMonitor)
     assert args.numRequests == len(latencyMonitor)
@@ -456,8 +441,8 @@ if __name__ == '__main__':
                         type=float, default=1)
     parser.add_argument('--workloadModel', nargs='?',
                         type=str, default="constant")
-    parser.add_argument('--utilization', nargs='?',
-                        type=float, default=0.90)
+    parser.add_argument('--interarrivalTime', nargs='?',
+                        type=float, default=0.05)
     parser.add_argument('--serviceTimeModel', nargs='?',
                         type=str, default="constant")
     parser.add_argument('--replicationFactor', nargs='?',
@@ -543,9 +528,7 @@ if __name__ == '__main__':
     parser.add_argument('--switchForwardingStrategy', nargs='?',
                         type=str, default="local")
     parser.add_argument('--c4Weight', nargs='?',
-                        type=float, default=0.5)
-    parser.add_argument('--placementStrategy', nargs='?',
-                        type=str, default="interleave")   
+                        type=float, default=0.5) 
     args = parser.parse_args()
 
     runExperiment(args)

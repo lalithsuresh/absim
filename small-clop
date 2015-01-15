@@ -11,8 +11,8 @@ cd simulations;
 # 	--numWorkload 200 \
 # 	--workloadModel poisson \
 # 	--serverConcurrency 4 \
-# 	--serviceTime 4.00\
-# 	--utilization 0.99 \
+# 	--serviceTime 2.00\
+# 	--utilization 0.05 \
 # 	--serviceTimeModel random.expovariate \
 # 	--replicationFactor 3 \
 # 	--selectionStrategy pending \
@@ -37,51 +37,51 @@ cd simulations;
 # # To profile, replace the first line with:
 # # python -m cProfile -o output.txt experiment.py \"
 
-python experiment.py  \
- 	--numClients 2 \
- 	--numServers 1 \
- 	--iNumber 4 \
-    --coreAggrBW 500 \
-    --aggrEdgeBW 250 \
-    --edgeHostBW 125 \
+python networkExperiment.py  \
+ 	--iLeaf 12 \
+ 	--iSpine 8 \
+ 	--numClients 30 \
+ 	--numServers 10 \
+ 	--hostsPerLeaf 8 \
+ 	--spineLeafBW 250 \
+ 	--leafHostBW 125 \
     --expScenario base\
     --procTime 0.002 \
     --valueSizeModel pareto \
     --packetSize 0.00057 \
-    --switchBufferSize 1 \
-    --placementStrategy interleave \
-	--numWorkload 1 \
-	--workloadModel constant \
+    --switchBufferSize 30 \
+    --switchForwardingStrategy passive \
+    --switchSelectionStrategy switch_c3 \
+    --c4Weight 0.8 \
+	--numWorkload 10 \
+	--workloadModel poisson \
 	--serverConcurrency 4 \
-	--serviceTime 0.15 \
-	--utilization 0.99 \
+	--serviceTime 4 \
+	--interarrivalTime 0.001 \
 	--serviceTimeModel random.expovariate \
 	--replicationFactor 10 \
-	--backpressure \
 	--rateInterval 20\
 	--cubicC 0.000004\
 	--cubicSmax 10\
 	--cubicBeta 0.2\
 	--hysterisisFactor 2\
 	--selectionStrategy expDelay \
-	--switchSelectionStrategy hopDelay\
 	--shadowReadRatio 0.0 \
 	--accessPattern uniform \
-	--nwLatencyBase 0.0005 \
-	--nwLatencyMu 0.0\
-	--nwLatencySigma 0.00 \
+	--nwLatencyBase 0.005 \
 	--expPrefix expDelay \
 	--simulationDuration 10000000 \
-	--seed 2 \
-	--numRequests 1000\
+	--seed 1 \
+	--numRequests 50\
 	--logFolder logs\
 	--demandSkew 0.0\
 	--highDemandFraction 0.0\
-	--slowServerFraction 0.0\
-	--slowServerSlowness 0.0\
+	--slowServerFraction 0.3\
+	--slowServerSlowness 0.9\
 	--intervalParam 500\
-	--timeVaryingDrift 5;
-
+	--timeVaryingDrift 5\
+	--backpressure\
+	--switchRateLimiter;
 
 cd ..
 cd plotting;
@@ -91,4 +91,5 @@ cd plotting;
 # Rscript timeseries.r pendingXserviceTime;
 # Rscript timeseries.r oracle;
 # Rscript timeseries.r expDelay;
+# Rscript networkplots.r expDelay
 cd ..

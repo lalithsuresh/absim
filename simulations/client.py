@@ -5,6 +5,7 @@ import constants
 import task
 import math
 import sys
+import misc
 from node import Node
 from yunomi.stats.exp_decay_sample import ExponentiallyDecayingSample
 
@@ -60,12 +61,12 @@ class Client(Node):
         self.lastSeen = {node: 0 for node in serverList}
 
         # Rate limiters per replica
-        self.rateLimiters = {node: RateLimiter("RL-%s" % node.id,
-                                               self, 50, rateInterval)
+        self.rateLimiters = {node: misc.RateLimiter("RL-%s" % node.id,
+                                               self, 10, rateInterval)
                              for node in serverList}
         self.lastRateDecrease = {node: 0 for node in serverList}
         self.valueOfLastDecrease = {node: 10 for node in serverList}
-        self.receiveRate = {node: ReceiveRate("RL-%s" % node.id, rateInterval)
+        self.receiveRate = {node: misc.ReceiveRate("RL-%s" % node.id, rateInterval)
                             for node in serverList}
         self.lastRateIncrease = {node: 0 for node in serverList}
         self.rateInterval = rateInterval
@@ -144,9 +145,11 @@ class Client(Node):
     def sendRequest(self, task, replicaToServe, retransmit):
         task.setDestination(replicaToServe)
         # Map request ID to request object
-        self.request[task.id] = task    
+        self.request[task.id] = task
+        
         # Add response packets to be received
         self.requestStatus[task] = [i for i in xrange(1, task.count+1)]
+        #print "Task", task.id, "request status", self.requestStatus[task]
         # Get switch I'm delivering to
         nextSwitch = self.getNeighbors().keys()[0]
         # Get port I'm delivering through
@@ -254,26 +257,31 @@ class Client(Node):
         if(packet.isCut):
             #This is a notification of a packet drop
             #Resend packet
-            #TODO We actually need to reschedule the request so that it passes through the backpressure scheudler
+            #TODO We actually need to reschedule the request so that it passes through the backpressure scheduler
+            #print self.id, 'dropped request', packet.id
             self.sendRequest(self.request[packet.id], packet.src, True)
             return
         #print 'Client received response with ID:', packet.id, 'seqN:', packet.seqN, 'count:', packet.count
         #print 'Client has', len(self.requestStatus.keys()), 'pending requests'
         if self.request[packet.id] in self.requestStatus:
-            #print packet.id, self.requestStatus[packet.id]
+            #print "Client", self.id, "received response:", packet.id, packet.seqN, packet.count
+            #print "status", self.requestStatus
             status = self.requestStatus[self.request[packet.id]]
             status.remove(packet.seqN)
             if(len(status)==0):
                 #Response received in full
-                #print self.id, 'successfully received response for request:', packet.id
-                self.updateStats(self.request[packet.id], packet.src)
+                #print self.id, 'successfully received response for request:', packet.id, packet.seqN
+                self.updateStats(self.request[packet.id], packet, packet.src)
         else:
-            print 'Something wrong happend!'
+            print 'Something wrong happened!'
             sys.exit(-1)
                 
     def metricDecay(self, replica):
         return math.exp(-(Simulation.now() - self.lastSeen[replica])
                         / (2 * self.rateInterval))
+
+    def __str__(self):
+        return self.id
 
     def computeExpectedDelay(self, replica):
         total = 0
@@ -291,8 +299,8 @@ class Client(Node):
                                          metricMap["serviceTime"],
                                          theta,
                                          total))
-        else:
-            return 0
+        #if(self.id == "Client23" and replica.id == 5):
+        #    print "CL", self.id, replica.id, total
         return total
 
     def maybeSendShadowReads(self, replicaToServe, replicaSet):
@@ -374,24 +382,25 @@ class Client(Node):
         self.rateMonitor.observe("%s %s" % alphaObservation)
         self.receiveRateMonitor.observe("%s %s" % receiveRateObs)
 
-    def updateStats(self, task, replicaThatServed):
+    def updateStats(self, task, resp, replicaThatServed):
         #Lets ignore shadowreads for reporting simulation results
         if(not task.id == "ShadowRead"):
             self.responsesReceived += 1
             
             #Queue Size and outstanding requests book-keeping
             self.pendingRequestsPerServer[replicaThatServed].observe(self.pendingRequestsMap[replicaThatServed]-1, self.taskSentTimeTracker[task])
-            self.queueSizePerServer[replicaThatServed].observe(task.completionEvent.signalparam["totalQueueSizeBefore"])
+            #print resp.seqN, resp.count, resp.isCut, resp.serverFB, resp.src.id
+            self.queueSizePerServer[replicaThatServed].observe(resp.serverFB["totalQueueSizeBefore"])
             
             #Scoring-related book-keeping
             replicaSetEst = task.replicaSet
-            replicaSetAct = task.completionEvent.signalparam["idealReplicaSet"]
+            replicaSetAct = resp.serverFB["idealReplicaSet"]
             selectionErrorDist = replicaSetAct.index(replicaSetEst[0])
             self.selErrorMonitor.observe(selectionErrorDist, self.taskSentTimeTracker[task])
             
             #Report queue size relative error (between self and server)
             qEst = task.queueSizeEst
-            qAct = task.completionEvent.signalparam["totalQueueSizeBefore"]
+            qAct = resp.serverFB["totalQueueSizeBefore"]
             qError = (qEst - qAct)**2
             self.qErrorMonitor.observe("%s %s %s"%(qAct, qEst, qError), self.taskSentTimeTracker[task])
 
@@ -410,7 +419,7 @@ class Client(Node):
         self.latencyTrackerMonitor\
               .observe("%s %s" % (replicaThatServed.id,
                        Simulation.now() - self.taskSentTimeTracker[task]))
-        metricMap = task.completionEvent.signalparam
+        metricMap = resp.serverFB
         metricMap["responseTime"] = self.responseTimesMap[replicaThatServed]
         metricMap["nw"] = metricMap["responseTime"] - metricMap["serviceTime"]
         self.updateEma(replicaThatServed, metricMap)
@@ -573,6 +582,7 @@ class BackpressureScheduler(Simulation.Process):
                         if(not replicaIndex == 0):
                             sortedReplicaSet[replicaIndex], sortedReplicaSet[0] =\
                             sortedReplicaSet[0], sortedReplicaSet[replicaIndex]
+                            #print 'switching replicas'
                         task.addReplicaSet(sortedReplicaSet)
                         if (len(self.client.expectedDelayMap[replica]) != 0):
                             queueSizeEst = self.client.pendingRequestsMap[replica] \
@@ -581,7 +591,7 @@ class BackpressureScheduler(Simulation.Process):
                         else:
                             queueSizeEst = 0
                         task.addQueueSizeEst(queueSizeEst)
-                        print self.client.id, 'is sending request', task.id, 'to', replica
+                        #print self.client.id, 'is sending request', task.id, 'to', replica
                         self.client.sendRequest(task, replica, False)
                         self.client.maybeSendShadowReads(replica, replicaSet)
                         sent = True
@@ -608,77 +618,13 @@ class BackpressureScheduler(Simulation.Process):
                     self.client.rateLimiters[minReplica].lastSent = Simulation.now()
                     minReplica = None
             else:
+                #print 'backlogging...'
                 yield Simulation.waitevent, self, self.backlogReadyEvent
                 self.backlogReadyEvent = Simulation.SimEvent("BacklogReady")
 
     def enqueue(self, task, replicaSet):
         self.backlogQueue.append((task, replicaSet))
         self.backlogReadyEvent.signal()
-
-
-class RateLimiter():
-    def __init__(self, id_, client, maxTokens, rateInterval):
-        self.id = id_
-        self.rate = 5
-        self.lastSent = 0
-        self.client = client
-        self.tokens = maxTokens
-        self.rateInterval = rateInterval
-        self.maxTokens = maxTokens
-
-    # These updates can be forced due to shadowReads
-    def update(self):
-        self.lastSent = Simulation.now()
-        self.tokens -= 1
-
-    def tryAcquire(self):
-        tokens = min(self.maxTokens, self.tokens
-                     + self.rate/float(self.rateInterval)
-                     * (Simulation.now() - self.lastSent))
-        if (tokens >= 1):
-            self.tokens = tokens
-            return 0
-        else:
-            assert self.tokens < 1
-            timetowait = (1 - tokens) * self.rateInterval/self.rate
-            return timetowait
-
-    def forceUpdates(self):
-        self.tokens -= 1
-
-    def getTokens(self):
-        return min(self.maxTokens, self.tokens
-                   + self.rate/float(self.rateInterval)
-                   * (Simulation.now() - self.lastSent))
-
-
-class ReceiveRate():
-    def __init__(self, id, interval):
-        self.rate = 10
-        self.id = id
-        self.interval = int(interval)
-        self.last = 0
-        self.count = 0
-
-    def getRate(self):
-        self.add(0)
-        return self.rate
-
-    def add(self, requests):
-        now = int(Simulation.now()/self.interval)
-        if (now - self.last < self.interval):
-            self.count += requests
-            if (now > self.last):
-                # alpha = (now - self.last)/float(self.interval)
-                alpha = 0.9
-                self.rate = alpha * self.count + (1 - alpha) * self.rate
-                self.last = now
-                self.count = 0
-        else:
-            self.rate = self.count
-            self.last = now
-            self.count = 0
-
 
 class DynamicSnitch(Simulation.Process):
     '''

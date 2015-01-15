@@ -14,6 +14,8 @@ class Port():
         self.src = src
         self.dst = dst
         self.bw = bw
+        self.ce = 0.0
+        self.pckt_acc = 0.0
         #Used to model link bandwidth simply as multiple queues processing tasks concurrently
         #TODO: Requires more sophisticated modeling
         self.buffer = Simulation.Resource(capacity=1, monitored=True)
@@ -21,6 +23,7 @@ class Port():
         self.numCutPackets = 0
       
     def enqueueTask(self, task):
+        #print 'Enqueueing request:%s to port [src:%s, dst:%s]'%(task.id, self.src.id, self.dst.id)
         #Check whether the dst is a switch (since we don't add buffer restrictions to clients/servers)
         #if(self.dst.htype != "client" and self.dst.htype != "server"):
             #Check whether queue size threshold has been reached
@@ -32,16 +35,42 @@ class Port():
             #print '>>>>PACKET DROPPED!, dst:', task.dst.id, task.id
         #    return False
             #print 'This is my current Q size:', self.getQueueSize()
+        self.pckt_acc += task.size
         executor = Executor(self, task)
         Simulation.activate(executor, executor.run(), Simulation.now())
 
     def getTxTime(self, task):
-        txTime = task.size/self.bw
+        txTime = task.size/(self.bw/1000) #MB/s = 1/1000 MB/ms
+        #print "transmission params: ", txTime, task.size, (self.bw*1000)
         return txTime
-    
+
+    def getTxTime_size(self, size):
+        txTime = size/(self.bw/1000) #MB/s = 1000000 B/s = 1000 B/ms
+        #print "transmission params: ", txTime, task.size, (self.bw*1000)
+        return txTime
+      
     def getQueueSize(self):
         return len(self.buffer.waitQ)
-     
+    
+    def updateDRE(self):
+        #print self.dre
+        self.pckt_acc = self.pckt_acc/constants.CE_UPDATE_PERIOD #bytes per millisecond
+        self.pckt_acc = self.pckt_acc/(self.bw*1000) #
+        self.ce = self.pckt_acc * constants.CE_WEIGHT + self.ce * (1-constants.CE_WEIGHT)
+        self.pckt_acc = 0
+ 
+    def isFull(self):
+        if((len(self.buffer.waitQ) - self.numCutPackets) >= constants.SWITCH_BUFFER_SIZE and not self.src.htype == "client" and not self.src.htype == "server"):
+            return True
+        else:
+            return False
+
+    def __str__(self):
+        return "Src:%s Dst:%s"%(self.src.id, self.dst.id)
+    
+    def __repr__(self):
+        return self.__str__()
+         
 class Executor(Simulation.Process):
     
     def __init__(self, port, task):
@@ -57,8 +86,11 @@ class Executor(Simulation.Process):
             #print 'buffer queue size', len(self.port.buffer.waitQ), 'max buffer size', constants.SWITCH_BUFFER_SIZE
             #Packet was dropped; Forward packet header to the reverse path
             dropNotif = misc.cloneDataTask(self.task)
+            dropNotif.setServerFB(self.task.serverFB)
+            dropNotif.requestTask = self.task.requestTask
+            dropNotif.copyCONGAParams(self.task)
             dropNotif.cutPacket()
-            #print 'Packet dropped. Sending header to reverse path. Dst:%s, Type:%s'%(dropNotif.dst.id, dropNotif.dst.htype)
+            #print self.task.seqN, 'Packet dropped. Sending header to reverse path. Dst:%s, Type:%s'%(dropNotif.dst.id, dropNotif.dst.htype)
             #print 'src:%s, dst:%s'%(self.task.src, self.task.dst)
             self.port.src.enqueueTask(dropNotif)
             return
@@ -81,6 +113,7 @@ class Executor(Simulation.Process):
             self.port.numCutPackets -= 1                  
         #Forward to the next device
         if(self.port.dst.htype == "client"):
+            #print 'PORT INFO:', self.port.src.id, self.port.dst.id
             self.port.dst.receiveResponse(self.task)
         else:
             self.port.dst.enqueueTask(self.task)

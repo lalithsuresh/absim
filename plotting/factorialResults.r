@@ -10,4 +10,4 @@ colnames(latency)[1] <- "ServerId"
 colnames(latency)[2] <- "Timestamp"
 colnames(latency)[3] <- "Latency"
 
-print(c(prefix, quantile(latency[latency$Timestamp > 2000,]$Latency,c(0.5,0.95, 0.99))))
+print(c(prefix, quantile(latency[latency$Timestamp > 0,]$Latency,c(0.5,0.95, 0.99))))

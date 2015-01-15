@@ -14,12 +14,34 @@ class DataTask(task.Task):
         self.dst = dst
         self.seqN = seqN
         self.count = count
-        self.replicas = replicas
+        #self.replicas = replicas
         self.requestTask = None
-        self.isCut = False
+        self.isCut = False    
+        #CONGA parameters
+        self.ce = 0
+        self.lbTag = None
+        self.fbMetric = 0
+        self.fb = None
+        #Server piggybacked feedback
+        self.serverFB = None
         
     def setDestination(self, dst):
         self.dst = dst
+    
+    def copyCONGAParams(self, another):
+        self.ce = another.ce
+        self.lbTag = another.lbTag
+        self.fbMetric = another.fbMetric
+        self.fb = another.fb
+        
+    def setCE(self, ce, lbTag=False):
+        self.ce = ce
+        if(lbTag):
+            self.lbTag = lbTag
+    
+    def setFB(self, fbMetric, fb):
+        self.fbMetric = fbMetric
+        self.fb = fb
         
     def cutPacket(self):
         self.isCut = True
@@ -34,9 +56,25 @@ class DataTask(task.Task):
         temp = self.src
         self.src = self.dst
         self.dst = temp
+    
+    def setServerFB(self, fb):
+        self.serverFB = fb
         
     def setRequest(self, task):
         self.requestTask = task
+        self.response = True
         
     def incSeq(self):
         self.seqN = self.seqN + 1
+        
+    def __str__(self):
+        return self.id
+    
+    def __repr__(self):
+        return self.id
+    
+    def __hash__(self):
+        return hash(self.id)
+
+    def __eq__(self, other):
+        return self.id == other.id

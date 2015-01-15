@@ -13,9 +13,10 @@ class StatCollector(Simulation.Process):
     Used for periodically collecting parameters from clients and servers
     '''
 
-    def __init__(self, clients, servers, workloads):
+    def __init__(self, clients, servers, switches, workloads):
         self.clients = clients
         self.servers = servers
+        self.switches = switches
         self.workloads = workloads
         self.reqResDiff = Simulation.Monitor(name="ReqResDiffMonitor")
         Simulation.Process.__init__(self, name='StatCollector')
@@ -32,5 +33,8 @@ class StatCollector(Simulation.Process):
             finishedReqs = all(w.numRequests == 0 for w in self.workloads)
             #This means that all requests have been sent and all responses have been returned
             if((totalReqSent-totalResRecv) == 0 and finishedReqs):
+                #terminate switches, to stop the periodic DRE update function
+                for s in self.switches:
+                    s.active = False
                 return
             yield Simulation.hold, self, delay

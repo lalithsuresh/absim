@@ -25,6 +25,9 @@ class Server(Node):
             egress = self.getPort(nextSwitch)
             response = misc.cloneDataTask(task)
             response.restorePacket()
+            response.copyCONGAParams(task)
+            response.setServerFB(task.serverFB)
+            response.requestTask = task.requestTask
             # resend response
             egress.enqueueTask(response)
             return
@@ -75,12 +78,8 @@ class Executor(Simulation.Process):
         yield Simulation.release, self, self.server.queueResource
 
         queueSizeAfter = len(self.server.queueResource.waitQ)
-        self.task.sigTaskComplete({"waitingTime": waitTime,
-                                   "serviceTime": serviceTime,
-                                   "queueSizeBefore": queueSizeBefore,
-                                   "queueSizeAfter": queueSizeAfter,
-                                   "totalQueueSizeBefore": totalQueueSizeBefore,
-                                   "idealReplicaSet": ideallySortedReplicaSet})
+        
+        
         
         for i in xrange(1, self.task.count+1):
             respPacket = misc.cloneDataTask(self.task)
@@ -89,6 +88,12 @@ class Executor(Simulation.Process):
             respPacket.dst = self.task.src
             respPacket.src = self.task.dst
             respPacket.setRequest(self.task)
+            respPacket.setServerFB({"waitingTime": waitTime,
+                                   "serviceTime": serviceTime,
+                                   "queueSizeBefore": queueSizeBefore,
+                                   "queueSizeAfter": queueSizeAfter,
+                                   "totalQueueSizeBefore": totalQueueSizeBefore,
+                                   "idealReplicaSet": ideallySortedReplicaSet})
             # Get switch I'm delivering to
             nextSwitch = self.server.getNeighbors().keys()[0]
             # Get port I'm delivering through

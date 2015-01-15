@@ -4,11 +4,12 @@ Created on Oct 9, 2014
 @author: Nagwa
 '''
 from port import Port
+import constants
 class Node():
     '''
     Generic class that defines switches and end-hosts
     '''
-    htype_values = {"client":0, "server":1, "edge":2, "aggr":3, "core":4}
+    htype_values = {"client":0, "server":1, "edge":2, "aggr":3, "core":4, "leaf":2, "spine":3 }
     def __init__(self, id_, htype):
         self.id = id_
         self.neighbors = {}
@@ -29,6 +30,12 @@ class Node():
     
     def getPort(self, n):
         return self.neighbors[n]
+
+    def getHopTxTime(self, port, count):
+        txTime = len(port.buffer.waitQ)*port.getTxTime_size(constants.PACKET_SIZE)
+        txTime += (constants.NW_LATENCY_BASE + port.getTxTime_size(count * constants.PACKET_SIZE))
+        #print txTime, len(port.buffer.waitQ)*port.getTxTime_size(constants.PACKET_SIZE), (constants.NW_LATENCY_BASE + port.getTxTime_size(count * constants.PACKET_SIZE))
+        return txTime
     
     def getUppers(self):
         uppers = []
@@ -76,6 +83,18 @@ class Node():
        
     def isCore(self):
         if(self.htype == 'core'):
+            return True
+        else:
+            return False
+        
+    def isLeaf(self):
+        if(self.htype == 'leaf'):
+            return True
+        else:
+            return False
+        
+    def isSpine(self):
+        if(self.htype == 'spine'):
             return True
         else:
             return False

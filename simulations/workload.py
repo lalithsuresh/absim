@@ -8,7 +8,7 @@ from scipy.stats import genpareto
 class Workload(Simulation.Process):
 
     def __init__(self, id_, latencyMonitor, clientList,
-                 model, model_param, numRequests, valueSizeModel):
+                 model, model_param, numRequests, valueSizeModel, initialNum):
         self.latencyMonitor = latencyMonitor
         self.clientList = clientList
         self.model = model
@@ -17,6 +17,7 @@ class Workload(Simulation.Process):
         self.total = sum(client.demandWeight for client in self.clientList)
         self.backlogMonitor = Simulation.Monitor(name="BackLog")
         self.taskCounter = 0
+        self.initialNum = initialNum
         self.valueSizeModel = valueSizeModel
         Simulation.Process.__init__(self, name='Workload' + str(id_))
 
@@ -27,10 +28,10 @@ class Workload(Simulation.Process):
         while(self.numRequests != 0):
             yield Simulation.hold, self,
 
-            taskToSchedule = datatask.DataTask("Task" + str(self.taskCounter),
+            taskToSchedule = datatask.DataTask("Task" + str(self.taskCounter + self.initialNum),
                                        self.latencyMonitor)
             self.taskCounter += 1
-                
+            
             # Push out a task...
             clientNode = self.weightedChoice()
             taskToSchedule.count = self.getResponsePacketCount()
@@ -68,4 +69,4 @@ class Workload(Simulation.Process):
             else:
                 return 1
         else:
-            return 15
+            return 1

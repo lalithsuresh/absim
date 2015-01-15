@@ -25,3 +25,15 @@ class Task():
         
     def addQueueSizeEst(self, queueSizeEst):
         self.queueSizeEst = queueSizeEst
+        
+    def __str__(self):
+        return self.id
+    
+    def __repr__(self):
+        return self.id
+    
+    def __hash__(self):
+        return hash(self.id)
+
+    def __eq__(self, other):
+        return self.id == other.id
