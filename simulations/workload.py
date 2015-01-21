@@ -1,22 +1,27 @@
-import SimPy.Simulation as Simulation
+import simpy
 import random
 import task
 import numpy
 import datatask
 
-class Workload(Simulation.Process):
 
-    def __init__(self, id_, latencyMonitor):
-        self.latencyMonitor = latencyMonitor
-        Simulation.Process.__init__(self, name='Workload' + str(id_))
+class Workload():
+
+    def __init__(self, env, id_, numRequests, model, model_param):
+        self.env = env
+        self.id_ = id_
+        self.numRequests =numRequests
+        self.model = model
+        self.model_param = model_param
 
     # TODO: also need non-uniform client access
-    # Need to pin workload to a client
-    def run(self, clientList, model, model_param, numRequests):
+    # Need to pin workload to one stage
+    def run(self):
 
         taskCounter = 0
 
-        while(numRequests != 0):
+        while(self.numRequests != 0):
+
             yield Simulation.hold, self,
 
             # delay = constants.NW_LATENCY_BASE + \
