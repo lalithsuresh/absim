@@ -44,16 +44,16 @@ python experiment.py  \
 	--workloadModel poisson \
 	--serverConcurrency 4 \
 	--serviceTime 4 \
-	--utilization 0.90 \
+	--utilization 0.99 \
 	--serviceTimeModel random.expovariate \
 	--replicationFactor 3 \
 	--backpressure \
-	--rateInterval 20\
+	--rateInterval  20\
 	--cubicC 0.000004\
 	--cubicSmax 10\
 	--cubicBeta 0.2\
 	--hysterisisFactor 2\
-	--selectionStrategy round_robin \
+	--selectionStrategy random \
 	--shadowReadRatio 0.1 \
 	--accessPattern uniform \
 	--nwLatencyBase 2 \

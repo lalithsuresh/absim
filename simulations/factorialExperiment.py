@@ -182,7 +182,8 @@ def runExperiment(args):
                           cubicSmax=args.cubicSmax,
                           cubicBeta=args.cubicBeta,
                           hysterisisFactor=args.hysterisisFactor,
-                          demandWeight=clientWeights[i])
+                          demandWeight=clientWeights[i],
+                          costExponent=args.costExponent)
         clients.append(c)
 
     # Start workload generators (analogous to YCSB)
@@ -202,6 +203,8 @@ def runExperiment(args):
             (args.utilization * args.serverConcurrency *
              1/float(args.serviceTime))
         interArrivalTime = 1/float(arrivalRate)
+        print "serviceTime", args.serviceTime
+        print "interArrivalTime", interArrivalTime
 
     for i in range(args.numWorkload):
         w = workload.Workload(i, latencyMonitor,
@@ -238,6 +241,8 @@ def runExperiment(args):
                                                    args.expPrefix), 'w')
     edScoreFD = open("../%s/%s_EdScore" % (args.logFolder,
                                            args.expPrefix), 'w')
+    serverRRFD = open("../%s/%s_serverRR" % (args.logFolder,
+                                             args.expPrefix), 'w')
 
     for clientNode in clients:
         printMonitorTimeSeriesToFile(pendingRequestsFD,
@@ -265,6 +270,9 @@ def runExperiment(args):
         printMonitorTimeSeriesToFile(actMonFD,
                                      serv.id,
                                      serv.queueResource.actMon)
+        printMonitorTimeSeriesToFile(serverRRFD,
+                                     serv.id,
+                                     serv.serverRRMonitor)
         print "------- Server:%s %s ------" % (serv.id, "WaitMon")
         print "Mean:", serv.queueResource.waitMon.mean()
 
@@ -273,7 +281,8 @@ def runExperiment(args):
 
     print "------- Latency ------"
     print "Mean Latency:",\
-      sum([float(entry[1].split()[0]) for entry in latencyMonitor])/float(len(latencyMonitor))
+        sum([float(entry[1].split()[0]) for entry in latencyMonitor])\
+        / float(len(latencyMonitor))
 
     printMonitorTimeSeriesToFile(latencyFD, "0",
                                  latencyMonitor)
@@ -348,6 +357,8 @@ if __name__ == '__main__':
                         type=float, default=0.0)
     parser.add_argument('--timeVaryingDrift', nargs='?',
                         type=float, default=0.0)
+    parser.add_argument('--costExponent', nargs='?',
+                        type=int, default=3.0)
     args = parser.parse_args()
 
     runExperiment(args)

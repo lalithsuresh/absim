@@ -94,61 +94,61 @@ p1 <- ggplot(latency.samples) +
 ggsave(p1, file=paste(prefix, "_latency.samples.pdf", sep=""), width=15)
 
 
-rate <- read.table(paste("../logs/", prefix, "_Rate", sep=""))
-colnames(rate)[1] <- "ClientId"
-colnames(rate)[2] <- "Timestamp"
-colnames(rate)[3] <- "ServerId"
-colnames(rate)[4] <- "Rate"
+# rate <- read.table(paste("../logs/", prefix, "_Rate", sep=""))
+# colnames(rate)[1] <- "ClientId"
+# colnames(rate)[2] <- "Timestamp"
+# colnames(rate)[3] <- "ServerId"
+# colnames(rate)[4] <- "Rate"
 
 # rate <- rate[rate$ClientId == "Client0",]
-p1 <- ggplot(rate) + 
-	  geom_line(aes(y=Rate, x=Timestamp, colour=ClientId), linetype='dashed',size=1) + 
-	  # geom_point(aes(y=Rate, x=Timestamp, colour=ClientId), size=2) + 
-	  geom_smooth(aes(y=Rate, x=Timestamp, colour=ClientId), size=4) + 
-	  facet_grid(ServerId ~ .) +
-	  ggtitle(paste(prefix, "rate")) +
-	  theme(text = element_text(size=15), 
-	  		axis.text = element_text(size=20))
-ggsave(p1, file=paste(prefix, "_rate.pdf", sep=""), height=30, width=50, limitsize=FALSE)
+# p1 <- ggplot(rate) + 
+# 	  geom_line(aes(y=Rate, x=Timestamp, colour=ClientId), linetype='dashed',size=1) + 
+# 	  # geom_point(aes(y=Rate, x=Timestamp, colour=ClientId), size=2) + 
+# 	  geom_smooth(aes(y=Rate, x=Timestamp, colour=ClientId), size=4) + 
+# 	  facet_grid(ServerId ~ .) +
+# 	  ggtitle(paste(prefix, "rate")) +
+# 	  theme(text = element_text(size=15), 
+# 	  		axis.text = element_text(size=20))
+# ggsave(p1, file=paste(prefix, "_rate.pdf", sep=""), height=30, width=50, limitsize=FALSE)
 
 
-rate <- read.table(paste("../logs/", prefix, "_ReceiveRate", sep=""))
-colnames(rate)[1] <- "ClientId"
-colnames(rate)[2] <- "Timestamp"
-colnames(rate)[3] <- "ServerId"
-colnames(rate)[4] <- "Rate"
+# rate <- read.table(paste("../logs/", prefix, "_ReceiveRate", sep=""))
+# colnames(rate)[1] <- "ClientId"
+# colnames(rate)[2] <- "Timestamp"
+# colnames(rate)[3] <- "ServerId"
+# colnames(rate)[4] <- "Rate"
 
 # rate <- rate[rate$ClientId == "Client0",]
 
-p1 <- ggplot(rate) + 
-	  geom_line(aes(y=Rate, x=Timestamp, colour=ClientId), size=1) + 
-	  geom_point(aes(y=Rate, x=Timestamp, colour=ClientId), size=2) + 
-	  geom_smooth(aes(y=Rate, x=Timestamp), size=2) + 
-	  facet_grid(ServerId ~ ClientId) +
-	  ggtitle(paste(prefix, "rate")) +
-	  theme(text = element_text(size=15), 
-	  		axis.text = element_text(size=20))
-ggsave(p1, file=paste(prefix, "_ReceiveRate.pdf", sep=""), height=30, width=50, limitsize=FALSE)
+# p1 <- ggplot(rate) + 
+# 	  geom_line(aes(y=Rate, x=Timestamp, colour=ClientId), size=1) + 
+# 	  geom_point(aes(y=Rate, x=Timestamp, colour=ClientId), size=2) + 
+# 	  geom_smooth(aes(y=Rate, x=Timestamp), size=2) + 
+# 	  facet_grid(ServerId ~ ClientId) +
+# 	  ggtitle(paste(prefix, "rate")) +
+# 	  theme(text = element_text(size=15), 
+# 	  		axis.text = element_text(size=20))
+# ggsave(p1, file=paste(prefix, "_ReceiveRate.pdf", sep=""), height=30, width=50, limitsize=FALSE)
 
 
-rate <- read.table(paste("../logs/", prefix, "_serverRR", sep=""))
-colnames(rate)[1] <- "ServerId"
-colnames(rate)[2] <- "Timestamp"
-colnames(rate)[3] <- "Tick"
-colnames(rate)[4] <- "ClientId"
+# rate <- read.table(paste("../logs/", prefix, "_serverRR", sep=""))
+# colnames(rate)[1] <- "ServerId"
+# colnames(rate)[2] <- "Timestamp"
+# colnames(rate)[3] <- "Tick"
+# colnames(rate)[4] <- "ClientId"
 
-rate <- data.table(rate)
+# rate <- data.table(rate)
 
-p1 <- ggplot(rate) +
-	  geom_histogram(aes(x=Timestamp, alpha = 0.5), binwidth=20) +
-	  ylim(c(0, 30)) +
-	  ylab("Requests per 20ms") +
-	  xlab("Time (ms)") +
-	  facet_grid(ClientId ~ ServerId) + 
-	  ggtitle(paste(prefix, "ServerSideRate")) +
-	  theme(text = element_text(size=15), 
-	  		axis.text = element_text(size=20))
-ggsave(p1, file=paste(prefix, "_ServerSideRate.pdf", sep=""), height=30, width=50, limitsize=FALSE)
+# p1 <- ggplot(rate) +
+# 	  geom_histogram(aes(x=Timestamp, alpha = 0.5), binwidth=20) +
+# 	  ylim(c(0, 30)) +
+# 	  ylab("Requests per 20ms") +
+# 	  xlab("Time (ms)") +
+# 	  facet_grid(ClientId ~ ServerId) + 
+# 	  ggtitle(paste(prefix, "ServerSideRate")) +
+# 	  theme(text = element_text(size=15), 
+# 	  		axis.text = element_text(size=20))
+# ggsave(p1, file=paste(prefix, "_ServerSideRate.pdf", sep=""), height=30, width=50, limitsize=FALSE)
 
 # rate <- rate[rate$ClientId == "Client0",]
 

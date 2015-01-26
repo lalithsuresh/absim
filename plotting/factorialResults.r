@@ -13,4 +13,4 @@ colnames(latency)[3] <- "Latency"
 subset <- latency[latency$Timestamp > 2000,]
 
 options(width=10000)
-print(c(prefix, mean(subset$Latency), quantile(subset$Latency,c(0.5,0.95, 0.99) ) ) )
+print(c(prefix, mean(subset$Latency), quantile(subset$Latency,c(0.5,0.95, 0.99, 0.999) ) ) )

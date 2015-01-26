@@ -182,7 +182,8 @@ def runExperiment(args):
                           cubicSmax=args.cubicSmax,
                           cubicBeta=args.cubicBeta,
                           hysterisisFactor=args.hysterisisFactor,
-                          demandWeight=clientWeights[i])
+                          demandWeight=clientWeights[i],
+                          costExponent=args.costExponent)
         clients.append(c)
 
     # Start workload generators (analogous to YCSB)
@@ -356,6 +357,8 @@ if __name__ == '__main__':
                         type=float, default=0.0)
     parser.add_argument('--timeVaryingDrift', nargs='?',
                         type=float, default=0.0)
+    parser.add_argument('--costExponent', nargs='?',
+                        type=int, default=3.0)
     args = parser.parse_args()
 
     runExperiment(args)

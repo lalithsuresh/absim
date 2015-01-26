@@ -13,7 +13,7 @@ class Client():
                  accessPattern, replicationFactor, backpressure,
                  shadowReadRatio, rateInterval,
                  cubicC, cubicSmax, cubicBeta, hysterisisFactor,
-                 demandWeight):
+                 demandWeight, costExponent):
         self.id = id_
         self.serverList = serverList
         self.accessPattern = accessPattern
@@ -29,6 +29,7 @@ class Client():
         self.backpressure = backpressure    # True/Flase
         self.shadowReadRatio = shadowReadRatio
         self.demandWeight = demandWeight
+        self.costExponent = costExponent
 
         # Book-keeping and metrics to be recorded follow...
 
@@ -245,7 +246,8 @@ class Client():
                      * constants.NUMBER_OF_CLIENTS
                      + metricMap["queueSizeAfter"])
             total += (twiceNetworkLatency +
-                      ((theta ** 3) * (metricMap["serviceTime"])))
+                      ((theta ** self.costExponent)
+                       * (metricMap["serviceTime"])))
             self.edScoreMonitor.observe("%s %s %s %s %s" %
                                         (replica.id,
                                          metricMap["queueSizeAfter"],

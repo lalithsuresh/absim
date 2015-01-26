@@ -15,7 +15,7 @@ serviceTime = [4]
 utilization = [0.99]
 serviceTimeModel = ["random.expovariate"]
 replicationFactor = [3]
-selectionStrategy = ["round_robin"]
+selectionStrategy = ["expDelay", "pending"]
 rateInterval = [20]
 cubicC = [0.000004]
 cubicSmax = [10]
@@ -40,10 +40,10 @@ highDemandFraction = [0.0]
 slowServerFraction = [0]
 slowServerSlowness = [0]
 intervalParam = [10, 50, 100, 200, 300, 500]
-timeVaryingDrift = [5]
+timeVaryingDrift = [1, 3, 5]
 
 
-logFolder = "round-robin-sweep" + uniqId
+logFolder = "new-D-" + uniqId
 # logFolder = "paperSkewSweep" + uniqId
 
 if not os.path.exists(logFolder):
@@ -106,7 +106,8 @@ for combination in PARAM_COMBINATIONS:
         backpressure = ""
 
         if (selectionStrategy == "expDelay"
-           or selectionStrategy == "round_robin"):
+           or selectionStrategy == "round_robin"
+           or selectionStrategy == "random"):
             backpressure = "--backpressure"
 
         cmd = "python factorialExperiment.py \
