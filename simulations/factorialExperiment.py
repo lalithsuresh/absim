@@ -183,7 +183,8 @@ def runExperiment(args):
                           cubicBeta=args.cubicBeta,
                           hysterisisFactor=args.hysterisisFactor,
                           demandWeight=clientWeights[i],
-                          costExponent=args.costExponent)
+                          costExponent=args.costExponent,
+                          concurrencyWeight=args.concurrencyWeight)
         clients.append(c)
 
     # Start workload generators (analogous to YCSB)
@@ -359,6 +360,13 @@ if __name__ == '__main__':
                         type=float, default=0.0)
     parser.add_argument('--costExponent', nargs='?',
                         type=int, default=3.0)
+
+    # The default is being set below
+    parser.add_argument('--concurrencyWeight', nargs='?',
+                        type=int, default=-1.0)
     args = parser.parse_args()
+
+    if (args.concurrencyWeight == -1):
+        args.concurrencyWeight = args.numClients
 
     runExperiment(args)

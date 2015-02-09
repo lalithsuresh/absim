@@ -53,13 +53,13 @@ python experiment.py  \
 	--cubicSmax 10\
 	--cubicBeta 0.2\
 	--hysterisisFactor 2\
-	--selectionStrategy random \
+	--selectionStrategy pending \
 	--shadowReadRatio 0.1 \
 	--accessPattern uniform \
 	--nwLatencyBase 2 \
 	--nwLatencyMu 0.0\
 	--nwLatencySigma 0.00 \
-	--expPrefix expDelay \
+	--expPrefix pending \
 	--simulationDuration 1000000 \
 	--seed 3 \
 	--numRequests 600000\
@@ -70,7 +70,8 @@ python experiment.py  \
 	--slowServerFraction 0.0\
 	--slowServerSlowness 0.0\
 	--intervalParam 500\
-	--timeVaryingDrift 5;
+	--timeVaryingDrift 5\
+	--concurrencyWeight 150;
 
 
 cd ..

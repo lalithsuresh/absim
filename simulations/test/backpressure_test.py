@@ -209,7 +209,8 @@ class TestServerLoop(unittest.TestCase):
                            cubicBeta=0.2,
                            hysterisisFactor=2,
                            demandWeight=1.0,
-                           costExponent=3)
+                           costExponent=3,
+                           concurrencyWeight=1)
         observer = Observer([s1], c1)
         Simulation.activate(observer,
                             observer.testBackPressureLoopSingleServer1(),
@@ -235,7 +236,8 @@ class TestServerLoop(unittest.TestCase):
                            cubicBeta=0.2,
                            hysterisisFactor=2,
                            demandWeight=1.0,
-                           costExponent=3)
+                           costExponent=3,
+                           concurrencyWeight=1)
         observer = Observer([s1], c1)
         Simulation.activate(observer,
                             observer.testBackPressureLoopSingleServer2(),
@@ -261,7 +263,8 @@ class TestServerLoop(unittest.TestCase):
                            cubicBeta=0.2,
                            hysterisisFactor=2,
                            demandWeight=1.0,
-                           costExponent=3)
+                           costExponent=3,
+                           concurrencyWeight=1)
         observer = Observer([s1], c1)
         Simulation.activate(observer,
                             observer.testBackPressureLoopSingleServer3(),
@@ -291,7 +294,8 @@ class TestServerLoop(unittest.TestCase):
                            cubicBeta=0.2,
                            hysterisisFactor=2,
                            demandWeight=1.0,
-                           costExponent=3)
+                           costExponent=3,
+                           concurrencyWeight=1)
         observer = Observer([s1, s2], c1)
         Simulation.activate(observer,
                             observer.testBackPressureLoopTwoServers(),

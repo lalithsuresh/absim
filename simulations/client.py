@@ -13,7 +13,7 @@ class Client():
                  accessPattern, replicationFactor, backpressure,
                  shadowReadRatio, rateInterval,
                  cubicC, cubicSmax, cubicBeta, hysterisisFactor,
-                 demandWeight, costExponent):
+                 demandWeight, costExponent, concurrencyWeight):
         self.id = id_
         self.serverList = serverList
         self.accessPattern = accessPattern
@@ -30,6 +30,7 @@ class Client():
         self.shadowReadRatio = shadowReadRatio
         self.demandWeight = demandWeight
         self.costExponent = costExponent
+        self.concurrencyWeight = concurrencyWeight
 
         # Book-keeping and metrics to be recorded follow...
 
@@ -243,7 +244,7 @@ class Client():
             metricMap = self.expectedDelayMap[replica]
             twiceNetworkLatency = metricMap["nw"]
             theta = (1 + self.pendingRequestsMap[replica]
-                     * constants.NUMBER_OF_CLIENTS
+                     * self.concurrencyWeight
                      + metricMap["queueSizeAfter"])
             total += (twiceNetworkLatency +
                       ((theta ** self.costExponent)

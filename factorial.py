@@ -15,7 +15,7 @@ serviceTime = [4]
 utilization = [0.99]
 serviceTimeModel = ["random.expovariate"]
 replicationFactor = [3]
-selectionStrategy = ["expDelay", "pending"]
+selectionStrategy = ["clairvoyant"]
 rateInterval = [20]
 cubicC = [0.000004]
 cubicSmax = [10]
@@ -43,7 +43,7 @@ intervalParam = [10, 50, 100, 200, 300, 500]
 timeVaryingDrift = [1, 3, 5]
 
 
-logFolder = "new-D-" + uniqId
+logFolder = "new-D-ora" + uniqId
 # logFolder = "paperSkewSweep" + uniqId
 
 if not os.path.exists(logFolder):
