@@ -7,12 +7,16 @@ import numpy
 class Workload(Simulation.Process):
 
     def __init__(self, id_, latencyMonitor, clientList,
-                 model, model_param, numRequests):
+                 model, model_param, numRequests, batchSizeModel,
+                 batchSizeParam):
+        self.id_ = id_
         self.latencyMonitor = latencyMonitor
         self.clientList = clientList
         self.model = model
         self.model_param = model_param
         self.numRequests = numRequests
+        self.batchSizeModel = batchSizeModel
+        self.batchSizeParam = batchSizeParam
         self.total = sum(client.demandWeight for client in self.clientList)
         Simulation.Process.__init__(self, name='Workload' + str(id_))
 
@@ -21,19 +25,40 @@ class Workload(Simulation.Process):
     def run(self):
 
         taskCounter = 0
-
         while(self.numRequests != 0):
             yield Simulation.hold, self,
 
+            batchsize = 1
+            if (self.batchSizeModel == "constant"):
+                batchsize = self.batchSizeParam
+            elif (self.batchSizeModel == "random.expovariate"):
+                # TODO, not sure what an actual model looks like
+                rand = random.expovariate(1/float(self.batchSizeParam))
+                batchsize = min(1, int(rand))
+
             # Push out a task...
             clientNode = self.weightedChoice()
+            subTaskCounter = 0
 
-            taskToSchedule = task.Task("Task" + str(taskCounter),
-                                       self.latencyMonitor,
-                                       clientNode)
+            i = batchsize
+            while (i != 0):
+                yield Simulation.hold, self,
+                taskToSchedule = task.Task("%s-Task%s-%s"
+                                           % (self.id_,
+                                              str(taskCounter),
+                                              str(subTaskCounter)),
+                                           "%s-Task%s"
+                                           % (self.id_,
+                                              str(taskCounter)),
+                                           batchsize,
+                                           self.latencyMonitor,
+                                           clientNode)
+                clientNode.schedule(taskToSchedule)
+                i -= 1
+                subTaskCounter += 1
+
+            self.numRequests -= 1
             taskCounter += 1
-
-            clientNode.schedule(taskToSchedule)
 
             # Simulate client delay
             if (self.model == "poisson"):
@@ -44,8 +69,6 @@ class Workload(Simulation.Process):
             # If model is constant, add fixed delay
             if (self.model == "constant"):
                 yield Simulation.hold, self, self.model_param
-
-            self.numRequests -= 1
 
     def weightedChoice(self):
         r = random.uniform(0, self.total)

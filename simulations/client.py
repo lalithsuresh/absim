@@ -46,6 +46,8 @@ class Client():
         # Used to track response time from the perspective of the client
         self.taskSentTimeTracker = {}
         self.taskArrivalTimeTracker = {}
+        self.taskBatchCounter = {}
+        self.taskBatchTimeTracker = {}
 
         # Record waiting and service times as relayed by the server
         self.expectedDelayMap = {node: {} for node in serverList}
@@ -109,7 +111,7 @@ class Client():
         if (self.accessPattern == "uniform"):
             firstReplicaIndex = random.randint(0, len(self.serverList) - 1)
         elif(self.accessPattern == "zipfian"):
-            firstReplicaIndex = numpy.random.zipf(1.5) % len(self.serverList)
+            firstReplicaIndex = numpy.random.zipf(1.1) % len(self.serverList)
 
         if (replicaSet is None):
             replicaSet = [self.serverList[i % len(self.serverList)]
@@ -118,6 +120,8 @@ class Client():
                                          self.replicationFactor)]
         startTime = Simulation.now()
         self.taskArrivalTimeTracker[task] = startTime
+        self.taskBatchTimeTracker[task.parentId] = startTime
+        self.taskBatchCounter[task.parentId] = 0
 
         if(self.backpressure is False):
             sortedReplicaSet = self.sort(replicaSet)
@@ -263,7 +267,8 @@ class Client():
         if (random.uniform(0, 1.0) < self.shadowReadRatio):
             for replica in replicaSet:
                 if (replica is not replicaToServe):
-                    shadowReadTask = task.Task("ShadowRead", None, self)
+                    shadowReadTask = task.Task("ShadowRead", "ShadowRead",
+                                               1, None, self)
                     self.taskArrivalTimeTracker[shadowReadTask] =\
                         Simulation.now()
                     self.taskSentTimeTracker[shadowReadTask] = Simulation.now()
@@ -396,9 +401,11 @@ class ResponseHandler(Simulation.Process):
         # Does not make sense to record shadow read latencies
         # as a latency measurement
         if (task.latencyMonitor is not None):
-            task.latencyMonitor.observe("%s %s" %
-                                        (Simulation.now() - task.start,
-                                         client.id))
+            client.taskBatchCounter[task.parentId] += 1
+            if(client.taskBatchCounter[task.parentId] == task.batchsize):
+                task.latencyMonitor.observe("%s %s" %
+                                            (Simulation.now() - task.start,
+                                             client.id))
 
 
 class BackpressureScheduler(Simulation.Process):
