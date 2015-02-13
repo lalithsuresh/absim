@@ -34,7 +34,7 @@ class Workload(Simulation.Process):
             elif (self.batchSizeModel == "random.expovariate"):
                 # TODO, not sure what an actual model looks like
                 rand = random.expovariate(1/float(self.batchSizeParam))
-                batchsize = min(1, int(rand))
+                batchsize = max(1, int(rand))
 
             # Push out a task...
             clientNode = self.weightedChoice()
