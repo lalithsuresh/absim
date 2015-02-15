@@ -199,6 +199,17 @@ def runExperiment(args):
         print serviceRatePerServer
         arrivalRate = (args.utilization * sum(serviceRatePerServer))
         interArrivalTime = 1/float(arrivalRate)
+    elif(args.expScenario == "timeVaryingServiceTimeServers"):
+        mu = 1/float(args.serviceTime)
+        mu_dot_D = mu * args.timeVaryingDrift
+        avg_mu = (mu + mu_dot_D)/2.0
+        arrivalRate = args.numServers *\
+            (args.utilization * args.serverConcurrency *
+             avg_mu)
+        interArrivalTime = 1/float(arrivalRate)
+        print "avg_mu", avg_mu, "mu", mu, "mu.D", mu_dot_D
+        print "serviceTime", args.serviceTime
+        print "interArrivalTime", interArrivalTime
     else:
         arrivalRate = args.numServers *\
             (args.utilization * args.serverConcurrency *
@@ -212,7 +223,9 @@ def runExperiment(args):
                               clients,
                               args.workloadModel,
                               interArrivalTime * args.numWorkload,
-                              args.numRequests/args.numWorkload)
+                              args.numRequests/args.numWorkload,
+                              args.batchSizeModel,
+                              args.batchSizeParam)
         Simulation.activate(w, w.run(),
                             at=0.0),
         workloadGens.append(w)
@@ -364,6 +377,10 @@ if __name__ == '__main__':
     # The default is being set below
     parser.add_argument('--concurrencyWeight', nargs='?',
                         type=int, default=-1.0)
+    parser.add_argument('--batchSizeModel', nargs='?',
+                        type=str, default="constant")
+    parser.add_argument('--batchSizeParam', nargs='?',
+                        type=int, default=1)
     args = parser.parse_args()
 
     if (args.concurrencyWeight == -1):

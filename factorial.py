@@ -15,7 +15,7 @@ serviceTime = [4]
 utilization = [0.99]
 serviceTimeModel = ["random.expovariate"]
 replicationFactor = [3]
-selectionStrategy = ["clairvoyant"]
+selectionStrategy = ["expDelay", "pending"]
 rateInterval = [20]
 cubicC = [0.000004]
 cubicSmax = [10]
@@ -26,7 +26,7 @@ accessPattern = ["uniform"]
 nwLatencyBase = [2.0]
 nwLatencyMu = [0]
 nwLatencySigma = [0]
-simulationDuration = [600000]
+simulationDuration = [60000]
 seed = [int(uniqId)]
 numRequests = [600000]
 # expScenario = ["heterogenousStaticServiceTimeScenario"]
@@ -40,10 +40,10 @@ highDemandFraction = [0.0]
 slowServerFraction = [0]
 slowServerSlowness = [0]
 intervalParam = [10, 50, 100, 200, 300, 500]
-timeVaryingDrift = [1, 3, 5]
+timeVaryingDrift = [6]
 
 
-logFolder = "new-D-ora" + uniqId
+logFolder = "higher-utilization-restart" + uniqId
 # logFolder = "paperSkewSweep" + uniqId
 
 if not os.path.exists(logFolder):

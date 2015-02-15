@@ -10,12 +10,16 @@ class Observer(Simulation.Process):
         self.serverList = serverList
         self.client = client
         self.monitor = Simulation.Monitor(name="Latency")
+        self.taskCounter = 0
         Simulation.Process.__init__(self, name='Observer')
 
     def addNtasks(self, cli, N):
         for i in range(N):  # A burst that uses up all tokens
-            taskToSchedule = task.Task("Task%s" % i, self.monitor, self.client)
+            taskToSchedule = task.Task("Task%s%s" % (i, self.taskCounter),
+                                       "Task%s%s" % (i, self.taskCounter), 1,
+                                       self.monitor, self.client)
             cli.schedule(taskToSchedule, self.serverList)
+        self.taskCounter += 1
 
     def testBackPressureLoopSingleServer1(self):
         yield Simulation.hold, self

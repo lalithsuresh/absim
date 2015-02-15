@@ -47,7 +47,6 @@ class Client():
         self.taskSentTimeTracker = {}
         self.taskArrivalTimeTracker = {}
         self.taskBatchCounter = {}
-        self.taskBatchTimeTracker = {}
 
         # Record waiting and service times as relayed by the server
         self.expectedDelayMap = {node: {} for node in serverList}
@@ -120,7 +119,6 @@ class Client():
                                          self.replicationFactor)]
         startTime = Simulation.now()
         self.taskArrivalTimeTracker[task] = startTime
-        self.taskBatchTimeTracker[task.parentId] = startTime
         self.taskBatchCounter[task.parentId] = 0
 
         if(self.backpressure is False):
@@ -403,6 +401,7 @@ class ResponseHandler(Simulation.Process):
         if (task.latencyMonitor is not None):
             client.taskBatchCounter[task.parentId] += 1
             if(client.taskBatchCounter[task.parentId] == task.batchsize):
+                del client.taskBatchCounter[task.parentId]
                 task.latencyMonitor.observe("%s %s" %
                                             (Simulation.now() - task.start,
                                              client.id))
