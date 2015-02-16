@@ -18,6 +18,7 @@ class Stage(object):
         self.composition = composition
         self.timeout = timeout
         self.ifRequestStage = ifRequestStage
+        self.bcs = simpy.Resource(env, self.serverlist.__len__())
         # self.requestsucceed = False
         # self.ctrl_reissue = env.event()
         # self.ctrl_succeed = env.event()
@@ -31,6 +32,13 @@ class Stage(object):
         sortedReplicaSet = self.sort(self.serverlist)
         return sortedReplicaSet[0]
 
+    def capacity(self):
+        replicaSet = self.serverlist[0:]
+        capacity = 0
+        for server in replicaSet:
+            capacity += 1.0 / server.serviceTime
+        return capacity
+
     def sort(self, originalReplicaSet):
         replicaSet = originalReplicaSet[0:]
 
@@ -40,6 +48,15 @@ class Stage(object):
             print self.replicaSelectionStrategy
             assert False, "REPLICA_SELECTION_STRATEGY isn't set or is invalid"
         return replicaSet
+
+    def bottleneck(self):
+        bottleneck = self.capacity()
+        if self.composition is not None:
+            compositionBottleneck = self.composition.capacity()
+            if compositionBottleneck < bottleneck:
+                bottleneck = compositionBottleneck
+        return bottleneck
+
 
     def reissue_ctrl(self):
         # if self.timeout is not None:
@@ -61,8 +78,11 @@ class Stage(object):
 
     def execute(self, start=0, requestcounter=0):
 
-        # try:
-
+        with self.bcs.request() as request:
+            yield request
+            replicaToServe = self.getReplica()
+            servT = replicaToServe.getServiceTime()
+            yield self.env.timeout(servT)
         if self.composition is not None:
             wait_composition = self.env.process(self.composition.execute())
             if self.timeout is not None:
@@ -75,18 +95,15 @@ class Stage(object):
                     reissue_ctrl.interrupt("reissue interrupt")
             else:
                 yield wait_composition
-        # print('Server "%s" run at %d' % (self.id_, env.now))
-        replicaToServe = self.getReplica()
-        servT = replicaToServe.getServiceTime()
-        yield self.env.timeout(servT)
+            # print('Server "%s" run at %d' % (self.id_, env.now))
         end = env.now
         # print('Server "%s" finish at %d' % (self.id_, env.now))
 
         # if self.ifRequestStage and not self.requestsucceed:
         if self.ifRequestStage:
             response = end - start
-            print('%d %d' % (requestcounter, response))
-            # print('%d' % response)
+            # print('%d %d' % (requestcounter, response))
+            print('%d' % response)
             # self.requestsucceed = True
 
             # except simpy.Interrupt as i:
@@ -147,6 +164,7 @@ def worload(env, model, model_param, stage, numRequests):
         numRequests -= 1
 
 
+
 env = simpy.Environment()
 
 #constants.SERVER_MODEL = "random.expovariate"
@@ -171,9 +189,9 @@ server4_b = Server(env, "server4_b", 8, "constant")
 s4 = Stage(env, 4, [server4_a, server4_b], "random")
 s3 = Stage(env, 3, [server3_a, server3_b, server3_c, server3_d], "random")
 # s2 = Stage(env, 2, [server2_a, server2_b, server2_c, server2_d], "random", Sequential(env, s3))
-s2 = Stage(env, 2, [server2_a, server2_b, server2_c, server2_d], "random", Sequential(env, s3), 4)
+s2 = Stage(env, 2, [server2_a, server2_b, server2_c, server2_d], "random", Sequential(env, s3), 10)
 # s1 = Stage(env, 1, [server1_a, server1_b, server1_c], "random", Sequential(env, s2), ifRequestStage=True)
-s1 = Stage(env, 1, [server1_a, server1_b, server1_c], "random", Sequential(env, s2), 11, ifRequestStage=True)
+s1 = Stage(env, 1, [server1_a, server1_b, server1_c], "random", Sequential(env, s2), 20, ifRequestStage=True)
 
 # s1 = Stage(env, 1, [server1], "random", Sequential(env, s2, s3))
 # s1 = Stage(env, 1, [server1], "random", Sequential(env, s2, s3), ifRequestStage=True)
@@ -182,8 +200,9 @@ s1 = Stage(env, 1, [server1_a, server1_b, server1_c], "random", Sequential(env, 
 # model = "poisson"
 # model_param = 1
 # numRequests = 1000
+model_param = 1/(s1.bottleneck()*0.1)
 
-env.process(worload(env, model="poisson", model_param=2, stage=s1, numRequests=1000))
+env.process(worload(env, model="poisson", model_param=model_param, stage=s1, numRequests=1000))
 # env.process(worload(env, model="poisson", model_param=2, stage=s2, numRequests=1000))
 # env.process(worload(env, model="poisson", model_param=2, stage=s3, numRequests=1000))
 # s_parallel = Stage(env, 1, [server1], "random", Parallel(env, s2, s3))

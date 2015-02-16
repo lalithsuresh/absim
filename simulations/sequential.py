@@ -1,25 +1,36 @@
 "Create by Jing Li"
 
 
-import simpy\
+import simpy
 
 
 class Sequential():
 
-    def __init__(self, env, lop, rop):
+    def __init__(self, env, lop, rop=None):
         self.env = env
         self.lop = lop
         self.rop = rop
 
+    def capacity(self):
+        capacity = self.lop.capacity()
+        if self.rop is not None:
+            right = self.rop.capacity()
+            if right < capacity:
+                capacity = right
+        return capacity
 
-    def excute(self):
-        yield self.env.process(self.lop.excute())
-        yield self.env.process(self.rop.excute())
+    def execute(self):
+        try:
+            yield self.env.process(self.lop.execute())
+            if self.rop is not None:
+                yield self.env.process(self.rop.execute())
+        except simpy.Interrupt as i:
+            pass
 
 
-        # self.lop.excute()
+        # self.lop.execute()
         # wait(event_lop)
-        # self.rop.excute()
+        # self.rop.execute()
         # wait(event_rop)
         #
         # wait_on_both(event_lop, event_rop)
@@ -34,15 +45,15 @@ class Sequential():
         #         yield Simulation.hold, self, rw
         #         self.wait = lw + rw
         #     else:
-        #         self.rop.excute()
+        #         self.rop.execute()
         #         self.wait = lw + self.rop.getWait()
         # else:
-        #     self.lop.excute()
+        #     self.lop.execute()
         #     if isinstance(self.rop, Stage):
         #         rs = self.rop.getReplica()
         #         rw = rs.getServiceTime()
         #         yield Simulation.hold, self, rw
         #         self.wait = self.lop.getWait() + rw
         #     else:
-        #         self.rop.excute()
+        #         self.rop.execute()
         #         self.wait = self.lop.getWait() + self.rop.getWait()

@@ -2,6 +2,7 @@
 
 statDict = {}
 filePath = "/Users/jingli/project/absim/simulations/result.txt"
+# filePath = "/Users/jingli/project/absim/simulations/result_2.txt"
 outputFile = "/Users/jingli/project/absim/simulations/result_processed.txt"
 with open(filePath) as f:
     for line in f:
