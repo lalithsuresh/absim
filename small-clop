@@ -13,7 +13,7 @@ python experiment.py  \
 	--workloadModel poisson \
 	--serverConcurrency 4 \
 	--serviceTime 4 \
-	--utilization 0.99 \
+	--utilization 0.50 \
 	--serviceTimeModel random.expovariate \
 	--replicationFactor 3 \
 	--rateInterval  20\
@@ -38,7 +38,7 @@ python experiment.py  \
 	--slowServerFraction 0.0\
 	--slowServerSlowness 0.0\
 	--intervalParam 500\
-	--timeVaryingDrift 6\
+	--timeVaryingDrift 3\
 	--concurrencyWeight 150\
 	--batchSizeModel random.expovariate\
 	--batchSizeParam 1;
@@ -54,7 +54,7 @@ python experiment.py  \
 	--workloadModel poisson \
 	--serverConcurrency 4 \
 	--serviceTime 4 \
-	--utilization 0.99 \
+	--utilization 0.50 \
 	--serviceTimeModel random.expovariate \
 	--replicationFactor 3 \
 	--backpressure \
@@ -80,7 +80,7 @@ python experiment.py  \
 	--slowServerFraction 0.0\
 	--slowServerSlowness 0.0\
 	--intervalParam 500\
-	--timeVaryingDrift 6\
+	--timeVaryingDrift 3\
 	--concurrencyWeight 150\
 	--batchSizeModel random.expovariate\
 	--batchSizeParam 1;

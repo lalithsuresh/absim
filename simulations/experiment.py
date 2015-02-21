@@ -199,26 +199,26 @@ def runExperiment(args):
         print serviceRatePerServer
         arrivalRate = (args.utilization * sum(serviceRatePerServer))
         interArrivalTime = 1/float(arrivalRate)
-    # elif(args.expScenario == "timeVaryingServiceTimeServers"):
-    #     mu = 1/float(args.serviceTime)
-    #     mu_dot_D = mu * args.timeVaryingDrift
-    #     avg_mu = (mu + mu_dot_D)/2.0
-    #     arrivalRate = args.numServers *\
-    #         (args.utilization * args.serverConcurrency *
-    #          avg_mu)
-    #     interArrivalTime = 1/float(arrivalRate)
-    #     print "avg_mu", avg_mu, "mu", mu, "mu.D", mu_dot_D
-    #     print "serviceTime", args.serviceTime
-    #     print "interArrivalTime", interArrivalTime,\
-    #         "interArrivalTimeMu",\
-    #         1/(args.numServers * args.utilization * args.serverConcurrency * mu),\
-    #         "interArrivalTimeMuD",\
-    #         1/(args.numServers * args.utilization * args.serverConcurrency * mu_dot_D)
-    #     print "capacity", interArrivalTime/args.utilization,\
-    #         "capacityMu",\
-    #         1/(args.numServers * args.serverConcurrency * mu),\
-    #         "capacityMuD",\
-    #         1/(args.numServers * args.serverConcurrency * mu_dot_D)
+    elif(args.expScenario == "timeVaryingServiceTimeServers"):
+        mu = 1/float(args.serviceTime)
+        mu_dot_D = mu * args.timeVaryingDrift
+        avg_mu = (mu + mu_dot_D)/2.0
+        arrivalRate = args.numServers *\
+            (args.utilization * args.serverConcurrency *
+             avg_mu)
+        interArrivalTime = 1/float(arrivalRate)
+        print "avg_mu", avg_mu, "mu", mu, "mu.D", mu_dot_D
+        print "serviceTime", args.serviceTime
+        print "interArrivalTime", interArrivalTime,\
+            "interArrivalTimeMu",\
+            1/(args.numServers * args.utilization * args.serverConcurrency * mu),\
+            "interArrivalTimeMuD",\
+            1/(args.numServers * args.utilization * args.serverConcurrency * mu_dot_D)
+        print "capacity", interArrivalTime/args.utilization,\
+            "capacityMu",\
+            1/(args.numServers * args.serverConcurrency * mu),\
+            "capacityMuD",\
+            1/(args.numServers * args.serverConcurrency * mu_dot_D)
     else:
         arrivalRate = args.numServers *\
             (args.utilization * args.serverConcurrency *
