@@ -179,7 +179,8 @@ for combination in PARAM_COMBINATIONS:
                      timeVaryingDrift,
                      logFolder,
                      backpressure)
-        print "cd absim/simulations && " + cmd
+        print "cd absim/simulations && " + cmd + " && cd ~/absim/plotting " + r_cmd
+
         #proc = subprocess.Popen(cmd.split(),
         #                        stdin=subprocess.PIPE,
         #                        stdout=subprocess.PIPE,
