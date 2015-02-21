@@ -179,7 +179,8 @@ for combination in PARAM_COMBINATIONS:
                      timeVaryingDrift,
                      logFolder,
                      backpressure)
-        print "cd absim/simulations && " + cmd + " && cd ~/absim/plotting " + r_cmd
+        r_cmd = "Rscript factorialResults.r %s %s" % (logFolder, selectionStrategy)
+        print "cd absim && mkdir " + logFolder + " && cd simulations && " + cmd + " && cd ../r-scripts && " + r_cmd
 
         #proc = subprocess.Popen(cmd.split(),
         #                        stdin=subprocess.PIPE,
