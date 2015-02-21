@@ -203,8 +203,8 @@ def runExperiment(args):
         mu = 1/float(args.serviceTime)
         mu_dot_D = mu * args.timeVaryingDrift
         avg_mu = (mu + mu_dot_D)/2.0
-        arrivalRate = args.numServers *\
-            (args.utilization * args.serverConcurrency *
+        arrivalRate = args.utilization *\
+            (args.numServers * args.serverConcurrency *
              avg_mu)
         interArrivalTime = 1/float(arrivalRate)
         print "avg_mu", avg_mu, "mu", mu, "mu.D", mu_dot_D
