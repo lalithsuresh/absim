@@ -80,7 +80,7 @@ LIST = [numClients,
         ]
 PARAM_COMBINATIONS = list(itertools.product(*LIST))
 
-print len(PARAM_COMBINATIONS)
+#print len(PARAM_COMBINATIONS)
 
 basePath = os.getcwd()
 
@@ -113,7 +113,7 @@ for combination in PARAM_COMBINATIONS:
         logFolder = '_'.join(map(lambda x : str(x), combination))
 	logFolder = logFolder.replace('[', '').replace(']', '').replace(', ', '_')
 
-        cmd = "python factorialExperiment.py \
+        cmd = "python experiment.py \
                 --numClients %s\
                 --numServers %s\
                 --numWorkload %s\
@@ -179,7 +179,7 @@ for combination in PARAM_COMBINATIONS:
                      timeVaryingDrift,
                      logFolder,
                      backpressure)
-        print cmd
+        print "cd absim/simulations && " + cmd
         #proc = subprocess.Popen(cmd.split(),
         #                        stdin=subprocess.PIPE,
         #                        stdout=subprocess.PIPE,
