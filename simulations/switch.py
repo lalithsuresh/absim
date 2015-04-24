@@ -73,11 +73,10 @@ class Switch(Node):
         Simulation.activate(executor, executor.run(), Simulation.now())
 
     def getServiceTime(self):
-        #serviceTime = task.size/self.bw + self.procTime
         return self.procTime
-        #return serviceTime
         
         #Dynamic Load-Balaning algorithm (DLB) from OpenFlow based Load Balancing for Fat-Tree Networks with Multipath Support
+        #TODO this should be relocated to the topology class
     def getNextHop(self, src, dst, forwardingStrat = False):
         
         if(not forwardingStrat):
@@ -86,12 +85,8 @@ class Switch(Node):
                 forwardingStrat = "oracle"
             elif(self.selectionStrategy == "passive" or self.selectionStrategy == "switch_c3"):
                 forwardingStrat = "local"
-        #print forwardingStrat                
+                  
         #check if I'm direct neighbors with dst
-        #temp = ''
-        #for n in self.neighbors.keys():
-        #    temp += str(n.id) + ' '
-        #print 'checking neighbors of', self.id, 'neigh:', temp
         #If I'm the destination leaf whilst not being the source leave as well
         if(self.isNeighbor(dst)):
             egressPort = self.getPort(dst)
@@ -205,19 +200,15 @@ class Executor(Simulation.Process):
     def run(self):
         #Make the next hop
         yield Simulation.hold, self, self.switch.procTime
-        #print self.switch.congestionTable.congestionTo
-        #print self.task.replicaSet
-        #print self.task.id, self.task.seqN, self.switch.id, self.task.src.id, self.task.dst.id
+        
         task_size = constants.PACKET_SIZE
         if(self.switch.isSpine()):
             egress = self.switch.getNextHop(self.task.src, self.task.dst, "local")
             if(self.task.ce<(len(egress.buffer.waitQ) + 1)*egress.getTxTime(self.task)):
-                #print '>>>>', (len(egress.buffer.waitQ) + 1)*egress.getTxTime(self.task)
-                #print 'setting dre', egress.dre
-                #TODO lets change the ce to: (queueSize+1)*transmissiondelay
+                
+                #TODO Change the ce to: (queueSize+1)*transmissiondelay
                 self.task.setCE((len(egress.buffer.waitQ) + 1)*egress.getTxTime(self.task))
         else:
-            #if((not self.switch.isNeighbor(self.task.dst)) and (not self.task.isCut) and self.task.src.isClient()):
             #if I'm the source leaf for request/response, reorder replicas following predefined strategy
             #as long as I'm not a packet loss notification
             if(self.switch.isNeighbor(self.task.src) and (not self.task.isCut) and (not self.task.response)):
@@ -229,11 +220,9 @@ class Executor(Simulation.Process):
                     self.task.dst = self.task.replicaSet[0]
                 elif(self.switch.selectionStrategy == "C4"):
                     self.task.replicaSet.sort(key=lambda x: self.calculateC4Congestion(x))
-                    #print "Original DST:", self.task.dst.id, "Modified DST:", self.task.replicaSet[0].id
                     self.task.dst = self.task.replicaSet[0]
                 elif(self.switch.selectionStrategy == "oracle"):
                     self.task.replicaSet.sort(key=lambda x: self.calculateOracleExpDelay(self.task.src, x))
-                    #print "Original DST:", self.task.dst.id, "Modified DST:", self.task.replicaSet[0].id
                     self.task.dst = self.task.replicaSet[0]
                 elif(self.switch.selectionStrategy == "oracle_c3"):
                     self.task.replicaSet.sort(key=lambda x: self.calculateOracleExpDelay_c3(self.task.src, x, self.task.count))
@@ -244,11 +233,9 @@ class Executor(Simulation.Process):
                     self.task.replicaSet.sort(key=lambda x: self.calculateExpDelay_c3_client(self.task.src, x, self.task.count, original_dst))
                     if(original_dst != self.task.replicaSet[0]):
                         print self.task.id, self.task.src.id, self.task.dst.id, self.task.replicaSet.index(original_dst)
-                    #    print 'bef:', original_rs, "aft:", self.task.replicaSet
                     self.task.dst = self.task.replicaSet[0]
                 elif(self.switch.selectionStrategy == "oracle_rev"):
                     self.task.replicaSet.sort(key=lambda x: self.calculateOracleExpDelay_reverse(self.task.src, x, self.task.count))
-                    #print "Original DST:", self.task.dst.id, "Modified DST:", self.task.replicaSet[0].id
                     self.task.dst = self.task.replicaSet[0]
                 elif(self.switch.selectionStrategy == "oracle_rev_client"):
                     self.task.replicaSet.sort(key=lambda x: self.calculateOracleExpDelay_reverse_client(self.task.src, x, self.task.count))
@@ -300,7 +287,7 @@ class Executor(Simulation.Process):
                                 durationToWait = self.switch.rateLimiters[replica].tryAcquire()
                                 if(durationToWait == 0):
                                     replicaIndex = self.task.replicaSet.index(replica)
-                                    #print replicaIndex, self.switch.rateLimiters[replica].tokens
+                                    
                                     if(not replicaIndex == 0):
                                         self.task.replicaSet[replicaIndex], self.task.replicaSet[0] =\
                                         self.task.replicaSet[0], self.task.replicaSet[replicaIndex]
@@ -319,8 +306,7 @@ class Executor(Simulation.Process):
                         #Make sure that the port buffer isn't full
                         #Otherwise the packet will get dropped
                         status = self.switch.requestStatus[self.task.requestTask]
-#                        if((self.task.id == "Task408" and self.task.seqN == 30) or self.task.id == "Task257"):
-#                            print self.task.id, self.task.seqN
+                        
                         #TODO Sometimes due to synchronization problems, the buffer becomes full by the time packet arrives
                         #Need to find a way to notify switch of packet drops
                         try:
@@ -343,16 +329,14 @@ class Executor(Simulation.Process):
                 if(port):
                     self.task.fb = port
                     self.task.fbMetric = metric
-                    #print 'adding congestion parameters'
+                    
             #If I'm the destination leaf, update congestion Table and server aggregates
             if(self.switch.isNeighbor(self.task.dst)):
                 self.switch.congestionTable.updateFrom(self.task.src.getUppers()[0], self.task.lbTag, self.task.ce)
                 #if stats for the reverse path are piggy-backed, update To table as well
                 if(self.task.fb is not None):
-                    #print 'updating congestion', self.switch.id
-                    #print self.switch.congestionTable.congestionTo
                     self.switch.congestionTable.updateTo(self.task.src.getUppers()[0], self.task.fb, self.task.fbMetric)
-                #print self.task.dst.isClient(), self.task.seqN
+                    
                 #If this a server response and this is the first packet (so we don't have to aggregate stats multiple times)
                 if(self.task.dst.isClient() and self.task.seqN == 1):
                     #print '>>>>>>', self.task.serverFB["queueSizeAfter"], self.task.serverFB["serviceTime"]
@@ -360,11 +344,6 @@ class Executor(Simulation.Process):
                     self.updateEma(self.task.src, self.task.serverFB["serviceTime"], self.switch.serviceTimeMap)
                     self.updateEma(self.task.src, self.task.serverFB["queueSizeAfter"], self.switch.cqueueSizeMap[self.task.dst])
                     self.updateEma(self.task.src, self.task.serverFB["serviceTime"], self.switch.cserviceTimeMap[self.task.dst])        
-        #if(self.task.seqN == 0):
-        #    print 'Forwarding request %s from src:%s to dst:%s'%(self.task.id, self.switch.id, egress.dst.id)
-        #else:
-        #    print 'Forwarding response of req %s from src:%s to dst:%s'%(self.task.id, self.switch.id, egress.dst.id)
-        #print 'Enqueuing', self.task.id
             
         egress.enqueueTask(self.task)
     
@@ -575,20 +554,3 @@ class DREUpdater(Simulation.Process):
             yield Simulation.hold, self, constants.CE_UPDATE_PERIOD
             for p in self.switch.neighbors.values():
                 p.updateDRE()
-                #print p.dre
-                
-#===============================================================================
-# class CrossTrafficGen(Simulation.Process):
-#     
-#     def __init__(self, switch):
-#         self.switch = switch
-#         Simulation.Process.__init__(self, name='CrossTrafficGen')
-#     def run(self):
-#         while self.switch.active:
-#             yield Simulation.hold, self, 10000
-#             count = random.normalvariate(12,
-#                                  12)
-#             dummyTraffic = datatask.DataTask("dummy" + str(self.taskCounter),
-#                                        self.latencyMonitor)
-#             self.switch.enqueueTask(dummyTraffic)
-#===============================================================================

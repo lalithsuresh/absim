@@ -3,6 +3,8 @@ import random
 import task
 import datatask
 import numpy
+import constants
+import math
 from scipy.stats import genpareto
 
 class Workload(Simulation.Process):
@@ -34,16 +36,18 @@ class Workload(Simulation.Process):
             
             # Push out a task...
             clientNode = self.weightedChoice()
-            taskToSchedule.count = self.getResponsePacketCount()
+            responseSize = self.fbGenValueSize()
+            taskToSchedule.count = int(math.ceil(responseSize/float(constants.PACKET_SIZE*1e6)))
             taskToSchedule.src = clientNode
             clientNode.schedule(taskToSchedule)
 
             # Simulate client delay
+            
+            #If model is poisson, add poisson delay
             if (self.model == "poisson"):
                 yield Simulation.hold, self,\
                     numpy.random.poisson(self.model_param)
 
-            # If model is gaussian, add gaussian delay
             # If model is constant, add fixed delay
             if (self.model == "constant"):
                 yield Simulation.hold, self, self.model_param
@@ -58,15 +62,31 @@ class Workload(Simulation.Process):
                 return client
             upto += client.demandWeight
         assert False, "Shouldn't get here"
-        
-    def getResponsePacketCount(self):
-        if(self.valueSizeModel == "pareto"):
+
+    # Pareto distributed value sizes derived from Facebook kwy-value store workload
+    def fbGenValueSize(self):
+        #Probabilities for the first 14 values
+        distr_1_14 = {1:0.00583, 2:0.17820, 3:0.09239, 4:0.00018,
+                      5:0.02740, 6:0.00065, 7:0.00606, 8:0.00023,
+                      9:0.00837, 10:0.00837, 11:0.08989, 12:0.00092,
+                      13:0.00326, 14:0.01980}
+        p_1_14 = sum(distr_1_14.values())
+        choice = random.random()
+        if (choice > p_1_14):
+            r = 0
             numargs = genpareto.numargs
-            [ c ] = [0.15,]*numargs
-            r = genpareto.rvs(c, loc=0, scale=16.02)
-            if(int(r)>0):
-                return int(r)
-            else:
-                return 1
-        else:
-            return 1
+            [ c ] = [0.348238,]*numargs
+            while int(r) <= 14:
+                r = genpareto.rvs(c, loc=0, scale=214.476)
+            return int(r)
+    
+        choice = random.random()
+        f_x = 0
+        for i in distr_1_14.keys():
+            f_x += distr_1_14[i]/p_1_14
+            if choice <= f_x:
+                r = i
+                break
+        size = int(r)
+        assert size > 0
+        return size
