@@ -40,13 +40,11 @@ class Port():
         Simulation.activate(executor, executor.run(), Simulation.now())
 
     def getTxTime(self, task):
-        txTime = task.size/(self.bw/1000) #MB/s = 1/1000 MB/ms
-        #print "transmission params: ", txTime, task.size, (self.bw*1000)
+        txTime = task.size/(self.bw/1000) # 1 MB/s = 1/1000 MB/ms = 1000 B/ms
         return txTime
 
     def getTxTime_size(self, size):
-        txTime = size/(self.bw/1000) #MB/s = 1000000 B/s = 1000 B/ms
-        #print "transmission params: ", txTime, task.size, (self.bw*1000)
+        txTime = size/(self.bw/1000) # 1 MB/s = 1000000 B/s = 1000 B/ms
         return txTime
       
     def getQueueSize(self):

@@ -34,7 +34,6 @@ class Node():
     def getHopTxTime(self, port, count):
         txTime = len(port.buffer.waitQ)*port.getTxTime_size(constants.PACKET_SIZE)
         txTime += (constants.NW_LATENCY_BASE + port.getTxTime_size(count * constants.PACKET_SIZE))
-        #print txTime, len(port.buffer.waitQ)*port.getTxTime_size(constants.PACKET_SIZE), (constants.NW_LATENCY_BASE + port.getTxTime_size(count * constants.PACKET_SIZE))
         return txTime
     
     def getUppers(self):

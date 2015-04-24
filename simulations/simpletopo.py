@@ -30,9 +30,7 @@ class SimpleTopology():
         self.iserver = len(self.ServerList)
         self.iHost = self.iclient + self.iserver
     def createTopo(self):    
-        self.createEdgeLayerSwitch(self.iEdgeLayerSwitch)                        
-        #self.createServer(self.iserver)
-        #self.createClient(self.iclient)
+        self.createEdgeLayerSwitch(self.iEdgeLayerSwitch)
         for i in xrange(0, self.iclient):
             self.HostList.append(self.ClientList[i])
         for i in xrange(0, self.iserver):
@@ -43,7 +41,6 @@ class SimpleTopology():
     """
     Create Switch and Host
     """
-
 
     def createEdgeLayerSwitch(self, NUMBER):
         for x in range(1, NUMBER+1):

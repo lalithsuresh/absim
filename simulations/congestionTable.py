@@ -22,13 +22,7 @@ class CongestionTable():
             self.valueChanged[switch][port] = True
         
     def updateTo(self, switch, port, metric):
-        #if(len(self.congestionTo.keys())>0):
-        #    print self.congestionTo.keys()[0].id
         self.congestionTo[switch][port] = metric
-        #print metric
-        #print self.congestionTo
-        #print 'updating with switch', switch.id
-        #print len(self.congestionTo.keys())
 
     def getFrom(self, switch):
         if switch in self.congestionFrom.keys():

@@ -21,30 +21,6 @@ def printMonitorTimeSeriesToFile(fileDesc, prefix, monitor):
     for entry in monitor:
         fileDesc.write("%s %s %s\n" % (prefix, entry[0], entry[1]))
 
-
-# class WorkloadUpdater(Simulation.Process):
-#     def __init__(self, workload, value, clients, servers):
-#         self.workload = workload
-#         self.value = value
-#         self.clients = clients
-#         self.servers = servers
-#         Simulation.Process.__init__(self, name='WorkloadUpdater')
-
-#     def run(self):
-#         # while(1):
-#             yield Simulation.hold, self,
-#             # self.workload.model_param = random.uniform(self.value,
-#                                                        # self.value * 40)
-#             # old = self.workload.model_param
-#             # self.workload.model_param = self.value
-#             # self.workload.clientList = self.clients
-#             # self.workload.total = \
-#             #     sum(client.demandWeight for client in self.clients)
-#             # yield Simulation.hold, self, 1000
-#             # self.workload.model_param = old
-#             self.servers[0].serviceTime = 1000
-
-
 class ClientAdder(Simulation.Process):
     def __init__(self,):
         Simulation.Process.__init__(self, name='ClientAdder')
@@ -125,7 +101,6 @@ def runExperiment(args):
                                     1/float(args.serviceTime)] * args.numServers
 
         random.shuffle(serviceRatePerServer)
-        # print sum(serviceRatePerServer), (1/float(baseServiceTime)) * args.numServers
         assert sum(serviceRatePerServer) > 0.99 *\
             (1/float(baseServiceTime)) * args.numServers
         assert sum(serviceRatePerServer) <=\
@@ -202,15 +177,12 @@ def runExperiment(args):
     latencyMonitor = Simulation.Monitor(name="Latency")
 
     #Construct topology and connect nodes
-    #topo = topology.Topology(args, clients, servers)
     print "chosen selection strategy:", args.switchSelectionStrategy
     topo = leafspineTopo.LeafSpinTopology(args.iSpine, args.iLeaf, args.hostsPerLeaf, args.spineLeafBW,
                              args.leafHostBW, args.procTime, clients, servers, args.switchSelectionStrategy,
                              args.switchForwardingStrategy, args.c4Weight, args.rateInterval, args.cubicC,
                              args.cubicSmax, args.cubicBeta, args.hysterisisFactor, args.switchRateLimiter)
-    #topo = simpletopo.SimpleTopology(args, clients, servers)
     topo.createTopo()
-    #topo.draw()
 
     for i in range(args.numWorkload):
         w = workload.Workload(i, latencyMonitor,
@@ -223,7 +195,7 @@ def runExperiment(args):
                             at=0.0),
         workloadGens.append(w)
     
-    sc = statcollector.StatCollector(clients, servers, topo.getSwitches(), workloadGens)
+    sc = statcollector.StatCollector(clients, servers, topo.getSwitches(), workloadGens, args.numRequests)
     Simulation.activate(sc, sc.run(0.1), at=0.0)
     
     # Begin simulation
@@ -302,11 +274,6 @@ def runExperiment(args):
         printMonitorTimeSeriesToFile(serverRRFD,
                                      serv.id,
                                      serv.serverRRMonitor)
-        #print "------- Server:%s %s ------" % (serv.id, "WaitMon")
-        #print "Mean:", serv.queueResource.waitMon.mean()
-
-        #print "------- Server:%s %s ------" % (serv.id, "ActMon")
-        #print "Mean:", serv.queueResource.actMon.mean()
 
     print "------- Latency ------"
     print "Mean Latency:",\
@@ -320,113 +287,6 @@ def runExperiment(args):
                                  latencyMonitor)
     assert args.numRequests == len(latencyMonitor)
     
-#===============================================================================
-#     data1 = [] #queue size errors
-#     data2 = [] #selection errors
-#     data3 = [] #backlog queue size
-#     for c in clients:
-#         if(not len(c.qErrorMonitor) == 0):
-#             data1.append((c.qErrorMonitor.tseries(), c.qErrorMonitor.yseries()))
-#             data2.append((c.selErrorMonitor.tseries(), c.selErrorMonitor.yseries()))
-#             data3.append((c.backlogMonitor.tseries(), c.backlogMonitor.yseries()))
-#     
-#     #Get max and min points for the tseries
-#     tmin = min(min(clients, key=lambda c: min(c.qErrorMonitor.tseries())).qErrorMonitor.tseries())
-#     tmax = max(max(clients, key=lambda c: max(c.qErrorMonitor.tseries())).qErrorMonitor.tseries())
-#     steps = 100
-# 
-#     #100 points evenly spaced along the x axis
-#     x_points = numpy.linspace(tmin,tmax,steps)
-# 
-#     #interpolate values to the evenly spaced points
-#     bsize_interpolated = [numpy.interp(x_points,d[0],d[1]) for d in data3]
-#     selerr_interpolated = [numpy.interp(x_points,d[0],d[1]) for d in data2]
-#     qerr_interpolated = [numpy.interp(x_points,d[0],[float(y.split()[2]) for y in d[1]]) for d in data1]
-#     qest_interpolated = [numpy.interp(x_points,d[0],[float(y.split()[1]) for y in d[1]]) for d in data1]
-#     qact_interpolated = [numpy.interp(x_points,d[0],[float(y.split()[0]) for y in d[1]]) for d in data1]
-#     
-#     #Find the corresponding averages and STDs.
-#     selerr_averages = [numpy.average(x) for x in zip(*selerr_interpolated)]
-#     selerr_moving_average = movingAverage(selerr_averages, 10)
-#     qerr_averages = [numpy.average(x) for x in zip(*qerr_interpolated)]
-#     qest_sd = [numpy.std(x) for x in zip(*qest_interpolated)]
-#     bsize_averages = [numpy.average(x) for x in zip(*bsize_interpolated)]
-#     bsize_sd = [numpy.std(x) for x in zip(*bsize_interpolated)]
-#     qest_averages = [numpy.average(x) for x in zip(*qest_interpolated)]
-#     qact_averages = [numpy.average(x) for x in zip(*qact_interpolated)]
-#     
-#     #Plot results
-#     fontP = FontProperties()
-#     fontP.set_size('small')
-#     
-#     plt.subplot2grid((3,3), (0,0), colspan=3)
-#     plt.plot(x_points, qact_averages, label='q_act')
-#     plt.errorbar(x_points, qest_averages, qest_sd, label='q_est')
-#     plt.legend(prop = fontP)
-#     plt.title("Queue Sizes")
-#     plt.xlabel("Simulation time")
-#     plt.ylabel("Avg. queue size")
-#     plt.ylim(ymin=0)
-#     
-#     plt.subplot2grid((3,3), (1,0))
-#     plt.plot(x_points, qerr_averages)
-#     plt.title("Queue Size Error")
-#     plt.xlabel("Simulation time")
-#     plt.ylabel("Mean squared error")
-#     
-#     plt.subplot2grid((3,3), (1,1))
-#     plt.plot(x_points, selerr_averages, label='error distance')
-#     plt.plot(x_points[len(x_points)-len(selerr_moving_average):], selerr_moving_average, label='moving avg.')
-#     plt.legend(prop = fontP, loc=9, bbox_to_anchor=(0.5, -0.1))
-#     plt.title("Selection Error")
-#     plt.xlabel("Simulation time")
-#     plt.ylabel("Distance")
-#     
-#     plt.subplot2grid((3,3), (1,2))
-#     plt.errorbar(x_points, bsize_averages, bsize_sd)
-#     plt.plot(x_points, bsize_averages)
-#     plt.title("Backlog Queue Size")
-#     plt.xlabel("Simulation time")
-#     plt.ylabel("Avg. queue size")
-#     plt.ylim(ymin=0)
-#     
-#     plt.subplot2grid((3,3), (2,0), colspan=3)
-#     plt.plot(sc.reqResDiff.tseries(), sc.reqResDiff.yseries())
-#     plt.title("Workload gen - resp completed")
-#     plt.xlabel("Simulation time")
-#     plt.ylabel("Requests #")
-# 
-#     plt.tight_layout()
-#     
-#     plt.savefig('../plotting/simresults.png')
-#     plt.show()
-#===============================================================================
-    
-    #print "------- Outstanding Requests (Per Server) -----"
-    #data = {node: [] for node in servers}
-    #for s in servers:
-    #    for c in clients:
-            #print c.pendingRequestsPerServer[s]
-    #        if not len(c.pendingRequestsPerServer[s]) == 0:
-    #            data[s].append(c.pendingRequestsPerServer[s].mean())
-    #    kde = gaussian_kde(data[s])
-    #    dist_space = numpy.linspace(min(data[s]), max(data[s]), 100)
-        # plot the results
-        #plt.plot(dist_space, kde(dist_space))
-        #plt.show()
-    #print "------- Queue Size Distribution (Per Server) -----"
-    #data = {node: [] for node in servers}
-    #for s in servers:
-    #    for c in clients:
-    #        if not len(c.queueSizePerServer[s]) == 0:
-    #            data[s].append(c.queueSizePerServer[s].mean())
-    #    kde = gaussian_kde(data[s])
-    #    dist_space = numpy.linspace(min(data[s]), max(data[s]), 100)
-        # plot the results
-        #plt.plot(dist_space, kde(dist_space))
-        #plt.show()
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Absinthe sim.')
     parser.add_argument('--numClients', nargs='?',
