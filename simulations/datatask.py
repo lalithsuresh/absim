@@ -24,7 +24,8 @@ class DataTask(task.Task):
         self.fb = None
         #Server piggybacked feedback
         self.serverFB = None
-        
+        self.swDebug = []
+
     def setDestination(self, dst):
         self.dst = dst
     
