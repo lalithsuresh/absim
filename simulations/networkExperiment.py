@@ -9,8 +9,11 @@ import numpy
 import sys
 import muUpdater
 import statcollector
-import topology
-import simpletopo
+import time
+import datetime
+import logger
+import logging
+import signal
 import numpy as np
 import leafspineTopo
 #from scipy.stats.kde import gaussian_kde
@@ -20,6 +23,14 @@ import leafspineTopo
 def printMonitorTimeSeriesToFile(fileDesc, prefix, monitor):
     for entry in monitor:
         fileDesc.write("%s %s %s\n" % (prefix, entry[0], entry[1]))
+
+def sigterm_handler(_signo, _stack_frame):
+    log.warning("SIGTERM caught")
+    Simulation.stopSimulation()
+
+def sigint_handler(_signo, _stack_frame):
+    log.warning("SIGINT caught")
+    Simulation.stopSimulation()
 
 class ClientAdder(Simulation.Process):
     def __init__(self,):
@@ -52,6 +63,12 @@ def runExperiment(args):
     constants.NUMBER_OF_CLIENTS = args.numClients
     constants.SWITCH_BUFFER_SIZE = args.switchBufferSize
     constants.PACKET_SIZE = args.packetSize
+    
+    # Print out experiment input parameters
+    paramsFD = open("../%s/InputParams" % args.logFolder, 'w')
+    paramsFD.write('    '.join(args.__dict__.keys()) + '\n')
+    paramsFD.write('    '.join(map(lambda x : str(x), args.__dict__.values())) + '\n')
+    paramsFD.close()
     
     assert args.expScenario != ""
 
@@ -172,6 +189,43 @@ def runExperiment(args):
                           hysterisisFactor=args.hysterisisFactor,
                           demandWeight=clientWeights[i])
         clients.append(c)
+        
+    # This is where we set the inter-arrival times based on
+    # the required utilization level and the service time
+    # of the overall server pool.
+    arrivalRate = 0
+    interArrivalTime = 0
+    if (len(serviceRatePerServer) > 0):
+        print serviceRatePerServer
+        arrivalRate = (args.utilization * sum(serviceRatePerServer))
+        interArrivalTime = 1/float(arrivalRate)
+    elif(args.expScenario == "timeVaryingServiceTimeServers"):
+        mu = 1/float(args.serviceTime)
+        mu_dot_D = mu * args.timeVaryingDrift
+        avg_mu = (mu + mu_dot_D)/2.0
+        arrivalRate = args.utilization *\
+            (args.numServers * args.serverConcurrency *
+             avg_mu)
+        interArrivalTime = 1/float(arrivalRate)
+        print "avg_mu", avg_mu, "mu", mu, "mu.D", mu_dot_D
+        print "serviceTime", args.serviceTime
+        print "interArrivalTime", interArrivalTime,\
+            "interArrivalTimeMu",\
+            1/(args.numServers * args.utilization * args.serverConcurrency * mu),\
+            "interArrivalTimeMuD",\
+            1/(args.numServers * args.utilization * args.serverConcurrency * mu_dot_D)
+        print "capacity", interArrivalTime/args.utilization,\
+            "capacityMu",\
+            1/(args.numServers * args.serverConcurrency * mu),\
+            "capacityMuD",\
+            1/(args.numServers * args.serverConcurrency * mu_dot_D)
+    else:
+        arrivalRate = args.numServers *\
+            (args.utilization * args.serverConcurrency *
+             1/float(args.serviceTime))
+        interArrivalTime = 1/float(arrivalRate)
+        print "serviceTime", args.serviceTime
+        print "interArrivalTime", interArrivalTime
 
     # Start workload generators (analogous to YCSB)
     latencyMonitor = Simulation.Monitor(name="Latency")
@@ -188,7 +242,7 @@ def runExperiment(args):
         w = workload.Workload(i, latencyMonitor,
                               clients,
                               args.workloadModel,
-                              args.interarrivalTime * args.numWorkload,
+                              interArrivalTime * args.numWorkload,
                               args.numRequests/args.numWorkload, args.valueSizeModel,
                               i*args.numRequests/args.numWorkload)
         Simulation.activate(w, w.run(),
@@ -197,7 +251,11 @@ def runExperiment(args):
     
     sc = statcollector.StatCollector(clients, servers, topo.getSwitches(), workloadGens, args.numRequests)
     Simulation.activate(sc, sc.run(0.1), at=0.0)
-    
+
+    # Setup signal handlers
+    signal.signal(signal.SIGTERM, sigterm_handler)
+    signal.signal(signal.SIGINT, sigint_handler)
+        
     # Begin simulation
     Simulation.simulate(until=args.simulationDuration)
 
@@ -208,6 +266,8 @@ def runExperiment(args):
                              (args.logFolder,
                               args.expPrefix), 'w')
     waitMonFD = open("../%s/%s_WaitMon" % (args.logFolder,
+                                           args.expPrefix), 'w')
+    swWaitMonFD = open("../%s/%s_swWaitMon" % (args.logFolder,
                                            args.expPrefix), 'w')
     actMonFD = open("../%s/%s_ActMon" % (args.logFolder,
                                          args.expPrefix), 'w')
@@ -233,9 +293,12 @@ def runExperiment(args):
                                            args.expPrefix), 'w')   
     reqResDiffFD = open("../%s/%s_reqResDiff" % (args.logFolder,
                                            args.expPrefix), 'w')
+    switchBwUtilFD = open("../%s/%s_switchBwUtil" % (args.logFolder,
+                                           args.expPrefix), 'w')
     printMonitorTimeSeriesToFile(reqResDiffFD,
                                  "0", sc.reqResDiff)  
-     
+    printMonitorTimeSeriesToFile(switchBwUtilFD,
+                                 "0", sc.bwMonitor)       
     for clientNode in clients:
         printMonitorTimeSeriesToFile(clientQErr,
                                      clientNode.id,
@@ -275,6 +338,22 @@ def runExperiment(args):
                                      serv.id,
                                      serv.serverRRMonitor)
 
+    log.info("----- Switch Stats -----")
+    avgBufferSize = 0
+    c = 0       
+    for sw in topo.getSwitches():
+        for n in sw.neighbors:
+            p = sw.neighbors[n]
+            printMonitorTimeSeriesToFile(swWaitMonFD,
+                                     sw.id,
+                                     p.buffer.waitMon)
+            log.info("Port %s Avg. Queue Size: %f"%(p, p.buffer.waitMon.mean()))
+            avgBufferSize += p.buffer.waitMon.mean()
+            c += 1
+    avgBufferSize = avgBufferSize/float(c)
+    log.info("Avg. Link Queue Size: %f"%avgBufferSize)
+    log.info("Avg. Link Utilization: %f"%sc.bwMonitor.mean())             
+
     print "------- Latency ------"
     print "Mean Latency:",\
       sum([float(entry[1].split()[0]) for entry in latencyMonitor])/float(len(latencyMonitor))
@@ -301,8 +380,8 @@ if __name__ == '__main__':
                         type=float, default=1)
     parser.add_argument('--workloadModel', nargs='?',
                         type=str, default="constant")
-    parser.add_argument('--interarrivalTime', nargs='?',
-                        type=float, default=0.05)
+    parser.add_argument('--utilization', nargs='?',
+                        type=float, default=0.7)
     parser.add_argument('--serviceTimeModel', nargs='?',
                         type=str, default="constant")
     parser.add_argument('--replicationFactor', nargs='?',
@@ -388,7 +467,22 @@ if __name__ == '__main__':
     parser.add_argument('--switchForwardingStrategy', nargs='?',
                         type=str, default="local")
     parser.add_argument('--c4Weight', nargs='?',
-                        type=float, default=0.5) 
+                        type=float, default=0.5)
+    parser.add_argument('--logLevel', nargs='?',
+                        type=str, default="INFO")
+    parser.add_argument('--logFile', nargs='?',
+                        type=str, default="stdout")
     args = parser.parse_args()
 
+    numeric_level = getattr(logging, args.logLevel.upper(), None)
+    if not isinstance(numeric_level, int):
+        raise ValueError('Invalid log level: %s' % numeric_level)
+    constants.LOG_LEVEL = numeric_level
+    
+    logger.init("../" + args.logFolder + "/" + args.logFile, constants.LOG_LEVEL)
+    log = logger.getLogger("C4", constants.LOG_LEVEL)
+    start = time.clock()    
     runExperiment(args)
+    finish = time.clock()
+    delta = datetime.timedelta(seconds=(finish - start))
+    log.info("Simulation finished in %s" % str(delta))
