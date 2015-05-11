@@ -7,6 +7,7 @@ import random
 import datatask
 import congestionTable
 import sys
+import logger
 
 class Switch(Node):
     """A representation of a physical switch that disperses requests and responses
@@ -17,6 +18,7 @@ class Switch(Node):
                  cubicC, cubicSmax, cubicBeta, hysterisisFactor,
                  rateLimiterEnabled):
         Node.__init__(self, id_, htype)
+        self.log = self.init_logger(id_)
         self.procTime = procTime
         self.connectedHosts = {} #Equivalent to switch routing table
         self.selectionStrategy = selectionStrategy  
@@ -50,6 +52,11 @@ class Switch(Node):
         # Request status
         self.requestStatus = {} #request/response mappings to keep track of a request's status (in terms of received packets)
         
+        #Strategy function dictionary; Holds mappings between strats and corresponding funcs
+        
+    def init_logger(self, id_):
+        return logger.getLogger("Switch:%s" % id_, constants.LOG_LEVEL)
+            
     def addConnectedHosts(self, n, nHosts):
         for h in nHosts:         
             if h not in self.connectedHosts:
@@ -69,6 +76,11 @@ class Switch(Node):
             return False
      
     def enqueueTask(self, task):
+        #if(self.isLeaf()):
+            #task.swDebug.append(self)
+            #if(len(task.swDebug)>2):
+            #    print task.id, task.src.getUppers(), task.dst.getUppers(), task.response, task.swDebug
+            #    assert False
         executor = Executor(self, task)
         Simulation.activate(executor, executor.run(), Simulation.now())
 
@@ -83,8 +95,8 @@ class Switch(Node):
             forwardingStrat = self.forwardingStrategy
             if("oracle" in self.selectionStrategy):
                 forwardingStrat = "oracle"
-            elif(self.selectionStrategy == "passive" or self.selectionStrategy == "switch_c3"):
-                forwardingStrat = "local"
+#            elif(self.selectionStrategy == "passive" or self.selectionStrategy == "switch_c3"):
+#                forwardingStrat = "local"
                   
         #check if I'm direct neighbors with dst
         #If I'm the destination leaf whilst not being the source leave as well
@@ -97,7 +109,9 @@ class Switch(Node):
             else: 
                 possible_hops = self.getUppers()
 
-            if(forwardingStrat == "local"):
+            if(forwardingStrat == "ecmp"):
+                egressPort = self.getPort(random.choice(possible_hops))                
+            elif(forwardingStrat == "local"):
                 egressPort = self.getPort(min(possible_hops, key=lambda n: self.getPort(n).getQueueSize()))
             elif(forwardingStrat == "CONGA"):
                 egressPort, CE = self.congestionTable.getTo(self, [self.getPort(n) for n in possible_hops])
@@ -132,7 +146,9 @@ class Switch(Node):
             if(nextNode.id == dst.id and nextNode.htype == dst.htype):
                 #print 'latency:', latency
                 return latency
-            nextPort = nextNode.getNextHop(src, dst, "local")
+            #FIXME should the next hop be obtained using local?
+            #FIXME set it to the forwarding strategy used by the selection strat
+            nextPort = nextNode.getNextHop(src, dst, False)
 
     def updateRates(self, replica):
         #Update received rate
@@ -195,6 +211,7 @@ class Executor(Simulation.Process):
     def __init__(self, switch, task):
         self.switch = switch
         self.task = task
+        self.log = self.switch.log
         Simulation.Process.__init__(self, name='Executor')
 
     def run(self):
@@ -209,8 +226,9 @@ class Executor(Simulation.Process):
                 #TODO Change the ce to: (queueSize+1)*transmissiondelay
                 self.task.setCE((len(egress.buffer.waitQ) + 1)*egress.getTxTime(self.task))
         else:
-            #if I'm the source leaf for request/response, reorder replicas following predefined strategy
+            #if I'm the source leaf for request, reorder replicas following predefined strategy
             #as long as I'm not a packet loss notification
+            self.log.debug("Task %s awaiting processing at Switch %s"%(self.task, self.switch))
             if(self.switch.isNeighbor(self.task.src) and (not self.task.isCut) and (not self.task.response)):
                 if(self.switch.selectionStrategy == "local"):
                     self.task.replicaSet.sort(key=lambda x: self.switch.getHopCount(x)*self.switch.getPort(x).getQueueSize())
@@ -275,6 +293,7 @@ class Executor(Simulation.Process):
                             self.task.dst = r
                             break
                         upto += scoreDict[r]
+                self.log.debug("Chosen destination is: %s"%self.task.dst)
             #if this is a request and I'm the source leaf switch
             #Add expected response packets to request status
             if((not self.task.response) and self.switch.isNeighbor(self.task.src) and (not self.task.isCut)):
@@ -297,7 +316,10 @@ class Executor(Simulation.Process):
 
             #Get uplink port for next hop        
             egress = self.switch.getNextHop(self.task.src, self.task.dst, False)
-                    
+            
+            #DEBUG
+            if(self.task.id == "Task80067"):
+                print self.switch.id, egress.dst, self.task.response, self.task.dst
             #if this is a response and I'm the destination leaf switch
             #Update request status and update rates if response is fully received
             if(self.task.response and self.switch.isNeighbor(self.task.dst) and (not self.task.isCut)):
@@ -365,8 +387,11 @@ class Executor(Simulation.Process):
             possible_hops = [server]
         else:
             possible_hops = self.switch.getUppers()
-        latency = min(self.switch.getLatency(client, n, server, constants.PACKET_SIZE) for n in possible_hops)
-        total = latency + (self.switch.queueSizeMap[server]+1) * self.switch.serviceTimeMap[server]
+
+        latency = min(self.switch.getLatency(client, n, server, 1) for n in possible_hops)
+        #total = latency + (self.switch.queueSizeMap[server]+1) * self.switch.serviceTimeMap[server]
+        total = latency
+        self.log.debug("From client:%s to server:%s, Latency:%f, Server:%f, Total:%f"%(client, server, latency, total-latency, total))
         return total
 
     def calculateOracleExpDelay_client(self, client, server):
