@@ -21,6 +21,7 @@ class Port():
         self.buffer = Simulation.Resource(capacity=1, monitored=True)
         self.latencyTrackerMonitor = Simulation.Monitor(name="LatencyTracker")
         self.numCutPackets = 0
+        self.numPackets = 0
       
     def enqueueTask(self, task):
         #print 'Enqueueing request:%s to port [src:%s, dst:%s]'%(task.id, self.src.id, self.dst.id)
@@ -40,11 +41,11 @@ class Port():
         Simulation.activate(executor, executor.run(), Simulation.now())
 
     def getTxTime(self, task):
-        txTime = task.size/(self.bw/1000) # 1 MB/s = 1/1000 MB/ms = 1000 B/ms
+        txTime = task.size/(self.bw/1000.0) # 1 MB/s = 0.001 MB/s
         return txTime
 
     def getTxTime_size(self, size):
-        txTime = size/(self.bw/1000) # 1 MB/s = 1000000 B/s = 1000 B/ms
+        txTime = size/(self.bw/1000.0) # 1 MB/s = 0.001 MB/s
         return txTime
       
     def getQueueSize(self):
@@ -53,6 +54,7 @@ class Port():
     def updateDRE(self):
         #print self.dre
         self.pckt_acc = self.pckt_acc/constants.CE_UPDATE_PERIOD #bytes per millisecond
+        #FIXME check if below formula is correct
         self.pckt_acc = self.pckt_acc/(self.bw*1000) #
         self.ce = self.pckt_acc * constants.CE_WEIGHT + self.ce * (1-constants.CE_WEIGHT)
         self.pckt_acc = 0
@@ -92,6 +94,10 @@ class Executor(Simulation.Process):
             #print 'src:%s, dst:%s'%(self.task.src, self.task.dst)
             self.port.src.enqueueTask(dropNotif)
             return
+        else:
+            #add packet to the counter (used for measuring bandwidth util)
+            self.port.numPackets += 1
+
         #print self.port.src.id, self.port.dst.id, 'wait queue before:', len(self.port.buffer.waitQ)
         #yield Simulation.hold, self
         yield Simulation.request, self, self.port.buffer
