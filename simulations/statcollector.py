@@ -20,6 +20,7 @@ class StatCollector(Simulation.Process):
         self.workloads = workloads
         self.numRequests = numRequests
         self.reqResDiff = Simulation.Monitor(name="ReqResDiffMonitor")
+        self.bwMonitor = Simulation.Monitor(name="BandwidthMonitor")
         Simulation.Process.__init__(self, name='StatCollector')
         
     def run(self, delay):
@@ -31,6 +32,12 @@ class StatCollector(Simulation.Process):
                 totalReqSent += w.taskCounter
             for c in self.clients:
                 totalResRecv += c.responsesReceived
+            for s in self.switches:
+                for n in s.neighbors:
+                    p = s.neighbors[n]
+                    util = min((p.numPackets * constants.PACKET_SIZE)/(p.bw/1000.0*delay) * 100, 100)
+                    p.numPackets = 0
+                    self.bwMonitor.observe(util)
             self.reqResDiff.observe(totalReqSent-totalResRecv)
             finishedReqs = all(w.numRequests == 0 for w in self.workloads)
             if((float(totalResRecv)/self.numRequests*100.0) >= percCompletion):
