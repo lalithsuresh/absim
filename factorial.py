@@ -13,10 +13,10 @@ serverConcurrency = [4]
 serviceTime = [4]
 timeVaryingDrift = [3]
 # utilization = [0.4, 0.45]
-utilization = [0.80, 0.70, 0.45]
+utilization = [0.60, 0.70]
 serviceTimeModel = ["random.expovariate"]
 replicationFactor = [3]
-selectionStrategy = ["clairvoyant", "expDelay", "pending", "round_robin"]
+selectionStrategy = ["expDelay", "two_choices"]
 rateInterval = [20]
 cubicC = [0.000004]
 cubicSmax = [10]
@@ -32,7 +32,7 @@ seed = [1,2,3,4,5]
 numRequests = [600000]
 # expScenario = ["heterogenousStaticServiceTimeScenario"]
 expScenario = ["timeVaryingServiceTimeServers"]
-demandSkewArgs = [[0.0, 0.0], [0.2, 0.8], [0.2, 0.5]] # first param is the demand skew, second param is the high demand fraction
+demandSkewArgs = [[0.8, 0.2], [0.5, 0.2]] # first param is the demand skew, second param is the high demand fraction
 # slowServerFraction = [0.3, 0.5, 0.7]
 # slowServerSlowness = [0.8, 0.5, 0.3]
 # intervalParam = [0]
@@ -105,6 +105,7 @@ for combination in PARAM_COMBINATIONS:
 
         if (selectionStrategy == "expDelay"
            or selectionStrategy == "round_robin"
+           or selectionStrategy == "two_choices"
            or selectionStrategy == "random"):
             backpressure = "--backpressure"
 
@@ -180,8 +181,8 @@ for combination in PARAM_COMBINATIONS:
                      logFolder,
                      backpressure)
         r_cmd = "Rscript factorialResults.r %s %s" % (logFolder, selectionStrategy)
-        print "cd absim && mkdir " + logFolder + " && cd simulations && " + cmd + " && cd ../r-scripts && " + r_cmd
-
+        # print "cd absim && mkdir " + logFolder + " && cd simulations && " + cmd + " && cd ../r-scripts && " + r_cmd
+        print logFolder
         #proc = subprocess.Popen(cmd.split(),
         #                        stdin=subprocess.PIPE,
         #                        stdout=subprocess.PIPE,

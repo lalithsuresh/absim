@@ -219,6 +219,15 @@ class Client():
             for replica in originalReplicaSet:
                 sortMap[replica] = self.computeExpectedDelay(replica)
             replicaSet.sort(key=sortMap.get)
+        elif(self.REPLICA_SELECTION_STRATEGY == "two_choices"):
+            sortMap = {}
+            random.shuffle(replicaSet)
+            twoChoices, rest = replicaSet[:2], replicaSet[2:]
+            for replica in twoChoices:
+                sortMap[replica] = self.computeMetricTwoChoices(replica)
+            for replica in rest:
+                sortMap[replica] = float("inf")
+            replicaSet.sort(key=sortMap.get)
         elif(self.REPLICA_SELECTION_STRATEGY == "ds"):
             firstNode = replicaSet[0]
             firstNodeScore = self.dsScores[firstNode]
@@ -248,6 +257,25 @@ class Client():
             theta = (1 + self.pendingRequestsMap[replica]
                      * self.concurrencyWeight
                      + metricMap["queueSizeAfter"])
+            total += (twiceNetworkLatency +
+                      ((theta ** self.costExponent)
+                       * (metricMap["serviceTime"])))
+            self.edScoreMonitor.observe("%s %s %s %s %s" %
+                                        (replica.id,
+                                         metricMap["queueSizeAfter"],
+                                         metricMap["serviceTime"],
+                                         theta,
+                                         total))
+        else:
+            return 0
+        return total
+
+    def computeMetricTwoChoices(self, replica):
+        total = 0
+        if (len(self.expectedDelayMap[replica]) != 0):
+            metricMap = self.expectedDelayMap[replica]
+            twiceNetworkLatency = metricMap["nw"]
+            theta = (1 + metricMap["queueSizeAfter"])
             total += (twiceNetworkLatency +
                       ((theta ** self.costExponent)
                        * (metricMap["serviceTime"])))

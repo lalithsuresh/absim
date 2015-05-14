@@ -12,59 +12,22 @@ python experiment.py  \
 	--workloadModel poisson \
 	--serverConcurrency 4 \
 	--serviceTime 4 \
-	--utilization 0.7 \
+	--utilization 0.65 \
 	--serviceTimeModel random.expovariate \
 	--replicationFactor 3 \
+	--backpressure \
 	--rateInterval  20\
 	--cubicC 0.000004\
 	--cubicSmax 10\
 	--cubicBeta 0.2\
 	--hysterisisFactor 2\
-	--selectionStrategy clairvoyant \
+	--selectionStrategy two_choices \
 	--shadowReadRatio 0.1 \
 	--accessPattern uniform \
 	--nwLatencyBase 0.2 \
 	--nwLatencyMu 0.0\
 	--nwLatencySigma 0.00 \
-	--expPrefix clairvoyant \
-	--simulationDuration 50000 \
-	--seed 3 \
-	--numRequests 2000\
-	--logFolder logs\
-	--expScenario timeVaryingServiceTimeServers\
-	--demandSkew 0.0\
-	--highDemandFraction 0.0\
-	--slowServerFraction 0.0\
-	--slowServerSlowness 0.0\
-	--intervalParam 500\
-	--timeVaryingDrift 3\
-	--concurrencyWeight 150\
-	--batchSizeModel constant\
-	--batchSizeParam 1;
-
-
-python experiment.py  \
- 	--numClients 150 \
-	--numServers 50 \
-	--numWorkload 200 \
-	--workloadModel poisson \
-	--serverConcurrency 4 \
-	--serviceTime 4 \
-	--utilization 0.7 \
-	--serviceTimeModel random.expovariate \
-	--replicationFactor 3 \
-	--rateInterval  20\
-	--cubicC 0.000004\
-	--cubicSmax 10\
-	--cubicBeta 0.2\
-	--hysterisisFactor 2\
-	--selectionStrategy pending \
-	--shadowReadRatio 0.1 \
-	--accessPattern uniform \
-	--nwLatencyBase 0.2 \
-	--nwLatencyMu 0.0\
-	--nwLatencySigma 0.00 \
-	--expPrefix pending \
+	--expPrefix two_choices \
 	--simulationDuration 50000 \
 	--seed 3 \
 	--numRequests 600000\
@@ -74,7 +37,7 @@ python experiment.py  \
 	--highDemandFraction 0.0\
 	--slowServerFraction 0.0\
 	--slowServerSlowness 0.0\
-	--intervalParam 500\
+	--intervalParam 10\
 	--timeVaryingDrift 3\
 	--concurrencyWeight 150\
 	--batchSizeModel constant\
@@ -91,7 +54,7 @@ python experiment.py  \
 	--workloadModel poisson \
 	--serverConcurrency 4 \
 	--serviceTime 4 \
-	--utilization 0.7 \
+	--utilization 0.65 \
 	--serviceTimeModel random.expovariate \
 	--replicationFactor 3 \
 	--backpressure \
@@ -116,7 +79,7 @@ python experiment.py  \
 	--highDemandFraction 0.0\
 	--slowServerFraction 0.0\
 	--slowServerSlowness 0.0\
-	--intervalParam 500\
+	--intervalParam 10\
 	--timeVaryingDrift 3\
 	--concurrencyWeight 150\
 	--batchSizeModel constant\
@@ -127,9 +90,11 @@ cd ..
 cd plotting;
 # Rscript timeseries.r primary;
 # Rscript timeseries.r rp;
-Rscript timeseries.r clairvoyant;
-Rscript timeseries.r pending;
+# Rscript timeseries.r clairvoyant;
+# Rscript timeseries.r clairvoyant2;
+# Rscript timeseries.r pending;
 # Rscript timeseries.r pendingXserviceTime;
 # Rscript timeseries.r oracle;
+Rscript timeseries.r two_choices;
 Rscript timeseries.r expDelay;
 cd ..

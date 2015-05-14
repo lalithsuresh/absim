@@ -51,6 +51,11 @@ colnames(latency.samples)[2] <- "Timestamp"
 colnames(latency.samples)[3] <- "ServerId"
 colnames(latency.samples)[4] <- "LatencySample"
 
+server.rate <- read.table(paste("../logs/", prefix, "_serverRate", sep=""))
+colnames(server.rate)[1] <- "Dummy"
+colnames(server.rate)[2] <- "Timestamp"
+colnames(server.rate)[3] <- "ServerId"
+colnames(server.rate)[4] <- "ServerRate"
 
 p1 <- ggplot(latency[latency$ClientId == "Client0",]) + 
 	  geom_point(aes(y=Latency, x=Timestamp), size=4) + 
@@ -69,10 +74,10 @@ p1 <- ggplot(act.mon) +
 	  		axis.text = element_text(size=20))
 ggsave(p1, file=paste(prefix, "_act.mon.pdf", sep=""), width=15)
 
-p1 <- ggplot(wait.mon) + 
+p1 <- ggplot(wait.mon[wait.mon$ServerId < 5,]) + 
 	  geom_line(aes(y=WaitingRequests, x=Timestamp), size=2) + 
 	  facet_grid(ServerId ~ .) +
-	  ggtitle(paste(prefix, "Wait")) +
+	  # ggtitle(paste(prefix, "Wait")) +
 	  theme(text = element_text(size=15), 
 	  		axis.text = element_text(size=20))
 ggsave(p1, file=paste(prefix, "_wait.mon.pdf", sep=""), width=15)
@@ -92,6 +97,17 @@ p1 <- ggplot(latency.samples) +
 	  theme(text = element_text(size=15), 
 	  		axis.text = element_text(size=20))
 ggsave(p1, file=paste(prefix, "_latency.samples.pdf", sep=""), width=15)
+
+server.rate <- data.table(server.rate)
+CONCURRENCY <- 4
+server.rate.agg <- server.rate[,sum(ServerRate * CONCURRENCY),by=list(Timestamp)]
+
+p1 <- ggplot(server.rate.agg[server.rate.agg$Timestamp < 10000,]) + 
+	  geom_point(aes(y=V1, x=Timestamp), size=2) + 
+	  ggtitle(paste(prefix, "Server Rate")) +
+	  theme(text = element_text(size=15), 
+	  		axis.text = element_text(size=20))
+ggsave(p1, file=paste(prefix, "_server.rate.pdf", sep=""), width=15)
 
 
 # rate <- read.table(paste("../logs/", prefix, "_Rate", sep=""))

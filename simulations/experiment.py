@@ -57,6 +57,7 @@ def runExperiment(args):
     servers = []
     clients = []
     workloadGens = []
+    muUpdaters = []
 
     constants.NW_LATENCY_BASE = args.nwLatencyBase
     constants.NW_LATENCY_MU = args.nwLatencyMu
@@ -129,6 +130,9 @@ def runExperiment(args):
         assert args.intervalParam != 0.0
         assert args.timeVaryingDrift != 0.0
 
+        # Monitor to track service rates
+        serverRateMonitor = Simulation.Monitor(name="ServerRateMonitor")
+
         # Start the servers
         for i in range(args.numServers):
             serv = server.Server(i,
@@ -137,8 +141,10 @@ def runExperiment(args):
                                  serviceTimeModel=args.serviceTimeModel)
             mup = muUpdater.MuUpdater(serv, args.intervalParam,
                                       args.serviceTime,
-                                      args.timeVaryingDrift)
+                                      args.timeVaryingDrift,
+                                      serverRateMonitor)
             Simulation.activate(mup, mup.run(), at=0.0)
+            muUpdaters.append(mup)
             servers.append(serv)
     else:
         print "Unknown experiment scenario"
@@ -266,6 +272,8 @@ def runExperiment(args):
                                            args.expPrefix), 'w')
     serverRRFD = open("../%s/%s_serverRR" % (args.logFolder,
                                              args.expPrefix), 'w')
+    serverRateFD = open("../%s/%s_serverRate" % (args.logFolder,
+                                                 args.expPrefix), 'w')
 
     for clientNode in clients:
         printMonitorTimeSeriesToFile(pendingRequestsFD,
@@ -302,6 +310,10 @@ def runExperiment(args):
         print "------- Server:%s %s ------" % (serv.id, "ActMon")
         print "Mean:", serv.queueResource.actMon.mean()
 
+    if (len(muUpdaters) > 0):
+        printMonitorTimeSeriesToFile(serverRateFD,
+                                     "0",
+                                     muUpdaters[0].serviceRateMonitor)
     print "------- Latency ------"
     print "Mean Latency:",\
         sum([float(entry[1].split()[0]) for entry in latencyMonitor])\
