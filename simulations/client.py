@@ -522,7 +522,7 @@ class RateLimiter():
         else:
             assert self.tokens < 1
             timetowait = (1 - tokens) * self.rateInterval/self.rate
-            return timetowait
+            return round(timetowait, 9)
 
     def forceUpdates(self):
         self.tokens -= 1.0
