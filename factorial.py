@@ -181,8 +181,8 @@ for combination in PARAM_COMBINATIONS:
                      logFolder,
                      backpressure)
         r_cmd = "Rscript factorialResults.r %s %s" % (logFolder, selectionStrategy)
-        # print "cd absim && mkdir " + logFolder + " && cd simulations && " + cmd + " && cd ../r-scripts && " + r_cmd
-        print logFolder
+        print "cd absim && mkdir " + logFolder + " && cd simulations && " + cmd + " && cd ../r-scripts && " + r_cmd
+        # print logFolder
         #proc = subprocess.Popen(cmd.split(),
         #                        stdin=subprocess.PIPE,
         #                        stdout=subprocess.PIPE,
