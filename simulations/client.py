@@ -162,23 +162,24 @@ class Client():
 
         replicaSet = originalReplicaSet[0:]
 
-        if(self.REPLICA_SELECTION_STRATEGY == "random"):
+        if(self.REPLICA_SELECTION_STRATEGY == "RAND"):
             # Pick a random node for the request.
             # Represents SimpleSnitch + uniform request access.
             # Ignore scores and everything else.
             random.shuffle(replicaSet)
-        elif(self.REPLICA_SELECTION_STRATEGY == "round_robin"):
+        elif(self.REPLICA_SELECTION_STRATEGY == "RR"):
+            # Round-robin
             index = self.rrIndex[replicaSet[0]]
             replicaSetNew = replicaSet[index:] + replicaSet[:index]
             self.rrIndex[replicaSet[0]] = (index + 1) % len(replicaSet)
             replicaSet = replicaSetNew
-        elif(self.REPLICA_SELECTION_STRATEGY == "pending"):
-            # Sort by number of pending requests
+        elif(self.REPLICA_SELECTION_STRATEGY == "LOR"):
+            # Least Outstanding Requests
             replicaSet.sort(key=self.pendingRequestsMap.get)
-        elif(self.REPLICA_SELECTION_STRATEGY == "response_time"):
-            # Sort by response times
+        elif(self.REPLICA_SELECTION_STRATEGY == "LRT"):
+            # Least Response Time
             replicaSet.sort(key=self.responseTimesMap.get)
-        elif(self.REPLICA_SELECTION_STRATEGY == "weighted_response_time"):
+        elif(self.REPLICA_SELECTION_STRATEGY == "WRRT"):
             # Weighted random proportional to response times
             m = {}
             for each in replicaSet:
@@ -202,24 +203,24 @@ class Client():
                 assert nodeToSelect is not None
 
                 replicaSet[0], replicaSet[i] = replicaSet[i], replicaSet[0]
-        elif(self.REPLICA_SELECTION_STRATEGY == "primary"):
+        elif(self.REPLICA_SELECTION_STRATEGY == "PRIMARY"):
             pass
         elif(self.REPLICA_SELECTION_STRATEGY == "pendingXserviceTime"):
             # Sort by response times * client-local-pending-requests
             replicaSet.sort(key=self.pendingXserviceMap.get)
-        elif(self.REPLICA_SELECTION_STRATEGY == "clairvoyant"):
+        elif(self.REPLICA_SELECTION_STRATEGY == "ORA"):
             # Sort by response times * pending-requests
             oracleMap = {replica: (1 + len(replica.queueResource.activeQ
                                    + replica.queueResource.waitQ))
                          * replica.serviceTime
                          for replica in originalReplicaSet}
             replicaSet.sort(key=oracleMap.get)
-        elif(self.REPLICA_SELECTION_STRATEGY == "expDelay"):
+        elif(self.REPLICA_SELECTION_STRATEGY == "C3"):
             sortMap = {}
             for replica in originalReplicaSet:
                 sortMap[replica] = self.computeExpectedDelay(replica)
             replicaSet.sort(key=sortMap.get)
-        elif(self.REPLICA_SELECTION_STRATEGY == "two_choices"):
+        elif(self.REPLICA_SELECTION_STRATEGY == "2C"):
             sortMap = {}
             random.shuffle(replicaSet)
             twoChoices, rest = replicaSet[:2], replicaSet[2:]
@@ -228,7 +229,7 @@ class Client():
             for replica in rest:
                 sortMap[replica] = float("inf")
             replicaSet.sort(key=sortMap.get)
-        elif(self.REPLICA_SELECTION_STRATEGY == "ds"):
+        elif(self.REPLICA_SELECTION_STRATEGY == "DS"):
             firstNode = replicaSet[0]
             firstNodeScore = self.dsScores[firstNode]
             badnessThreshold = 0.0
