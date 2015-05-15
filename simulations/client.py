@@ -216,11 +216,15 @@ class Client():
                          for replica in originalReplicaSet}
             replicaSet.sort(key=oracleMap.get)
         elif(self.REPLICA_SELECTION_STRATEGY == "C3"):
+            # Queue-size-estimate ^ b times service time product
             sortMap = {}
             for replica in originalReplicaSet:
                 sortMap[replica] = self.computeExpectedDelay(replica)
             replicaSet.sort(key=sortMap.get)
         elif(self.REPLICA_SELECTION_STRATEGY == "2C"):
+            # Uses the Queue-size-estimate ^ b and service time product, but
+            # unlike the C3 mechanism, desynchronizes using a two
+            # choices selection instead of the outstanding requests.
             sortMap = {}
             random.shuffle(replicaSet)
             twoChoices, rest = replicaSet[:2], replicaSet[2:]
@@ -230,6 +234,8 @@ class Client():
                 sortMap[replica] = float("inf")
             replicaSet.sort(key=sortMap.get)
         elif(self.REPLICA_SELECTION_STRATEGY == "DS"):
+            # Dynamic snitching mechanism, albeit
+            # without the gossiped iowaits
             firstNode = replicaSet[0]
             firstNodeScore = self.dsScores[firstNode]
             badnessThreshold = 0.0
