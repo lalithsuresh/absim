@@ -27,7 +27,7 @@ python experiment.py  \
 	--nwLatencyBase 0.2 \
 	--nwLatencyMu 0.0\
 	--nwLatencySigma 0.00 \
-	--expPrefix two_choices \
+	--expPrefix 2C \
 	--simulationDuration 50000 \
 	--seed 3 \
 	--numRequests 600000\
@@ -69,7 +69,7 @@ python experiment.py  \
 	--nwLatencyBase 0.2 \
 	--nwLatencyMu 0.0\
 	--nwLatencySigma 0.00 \
-	--expPrefix expDelay \
+	--expPrefix C3 \
 	--simulationDuration 50000 \
 	--seed 3 \
 	--numRequests 600000\
@@ -88,13 +88,11 @@ python experiment.py  \
 
 cd ..
 cd plotting;
-# Rscript timeseries.r primary;
+# Rscript timeseries.r PRIMARY;
 # Rscript timeseries.r rp;
-# Rscript timeseries.r clairvoyant;
-# Rscript timeseries.r clairvoyant2;
-# Rscript timeseries.r pending;
+# Rscript timeseries.r ORA;
+# Rscript timeseries.r LOR;
 # Rscript timeseries.r pendingXserviceTime;
-# Rscript timeseries.r oracle;
-Rscript timeseries.r two_choices;
-Rscript timeseries.r expDelay;
+Rscript timeseries.r 2C;
+Rscript timeseries.r C3;
 cd ..

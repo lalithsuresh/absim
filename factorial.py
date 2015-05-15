@@ -104,10 +104,10 @@ for combination in PARAM_COMBINATIONS:
         #os.chdir(basePath + "/simulations")
         backpressure = ""
 
-        if (selectionStrategy == "expDelay"
-           or selectionStrategy == "round_robin"
-           or selectionStrategy == "two_choices"
-           or selectionStrategy == "random"):
+        if (selectionStrategy == "C3"
+           or selectionStrategy == "RR"
+           or selectionStrategy == "2C"
+           or selectionStrategy == "RAND"):
             backpressure = "--backpressure"
 
         demandSkew, highDemandFraction = demandSkewArgs
