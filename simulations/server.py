@@ -12,6 +12,7 @@ class Server():
         self.serviceTime = serviceTime
         self.serviceTimeModel = serviceTimeModel
         self.queueResource = Simulation.Resource(capacity=resourceCapacity,
+                                                 qType=Simulation.PriorityQ,
                                                  monitored=True)
         self.serverRRMonitor = Simulation.Monitor(name="ServerMonitor")
 
@@ -48,7 +49,9 @@ class Executor(Simulation.Process):
         start = Simulation.now()
         queueSizeBefore = len(self.server.queueResource.waitQ)
         yield Simulation.hold, self
-        yield Simulation.request, self, self.server.queueResource
+        yield Simulation.request, self,\
+            self.server.queueResource,\
+            self.task.priority
         waitTime = Simulation.now() - start         # W_i
         serviceTime = self.server.getServiceTime()  # Mu_i
         yield Simulation.hold, self, serviceTime

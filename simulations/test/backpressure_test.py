@@ -202,7 +202,7 @@ class TestServerLoop(unittest.TestCase):
                            serviceTimeModel="constant")
         c1 = client.Client(id_="Client1",
                            serverList=[s1],
-                           replicaSelectionStrategy="expDelay",
+                           replicaSelectionStrategy="C3",
                            accessPattern="uniform",
                            replicationFactor=1,
                            backpressure=True,
@@ -229,7 +229,7 @@ class TestServerLoop(unittest.TestCase):
                            serviceTimeModel="constant")
         c1 = client.Client(id_="Client1",
                            serverList=[s1],
-                           replicaSelectionStrategy="expDelay",
+                           replicaSelectionStrategy="C3",
                            accessPattern="uniform",
                            replicationFactor=1,
                            backpressure=True,
@@ -256,7 +256,7 @@ class TestServerLoop(unittest.TestCase):
                            serviceTimeModel="constant")
         c1 = client.Client(id_="Client1",
                            serverList=[s1],
-                           replicaSelectionStrategy="expDelay",
+                           replicaSelectionStrategy="C3",
                            accessPattern="uniform",
                            replicationFactor=1,
                            backpressure=True,
@@ -287,7 +287,7 @@ class TestServerLoop(unittest.TestCase):
                            serviceTimeModel="constant")
         c1 = client.Client(id_="Client1",
                            serverList=[s1, s2],
-                           replicaSelectionStrategy="primary",
+                           replicaSelectionStrategy="PRIMARY",
                            accessPattern="uniform",
                            replicationFactor=2,
                            backpressure=True,

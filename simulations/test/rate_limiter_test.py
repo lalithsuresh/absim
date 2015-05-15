@@ -76,7 +76,7 @@ class Observer(Simulation.Process):
         assert rl.getTokens() > 0 and rl.getTokens() < 1.0
 
         timeToWait = rl.tryAcquire()
-        assert timeToWait > 0.09 and timeToWait < 1.1, timeToWait
+        assert timeToWait > 0.09 and timeToWait <= 1.1, timeToWait
         yield Simulation.hold, self, timeToWait
 
     def test3(self):

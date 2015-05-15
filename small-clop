@@ -21,7 +21,7 @@ python experiment.py  \
 	--cubicSmax 10\
 	--cubicBeta 0.2\
 	--hysterisisFactor 2\
-	--selectionStrategy two_choices \
+	--selectionStrategy 2C \
 	--shadowReadRatio 0.1 \
 	--accessPattern uniform \
 	--nwLatencyBase 0.2 \
@@ -63,7 +63,7 @@ python experiment.py  \
 	--cubicSmax 10\
 	--cubicBeta 0.2\
 	--hysterisisFactor 2\
-	--selectionStrategy expDelay \
+	--selectionStrategy C3 \
 	--shadowReadRatio 0.1 \
 	--accessPattern uniform \
 	--nwLatencyBase 0.2 \

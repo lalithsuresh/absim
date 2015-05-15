@@ -5,7 +5,8 @@ class Task():
     """A simple Task. Applications may subclass this
        for holding specific attributes if need be"""
     def __init__(self, fullId, parentId, batchsize,
-                 latencyMonitor, sendingClient):
+                 latencyMonitor, sendingClient,
+                 priority=0):
         self.id = fullId    # Parent task + subtask Id
         self.parentId = parentId       # Parent task Id
         self.batchsize = batchsize
@@ -13,6 +14,7 @@ class Task():
         self.start = Simulation.now()
         self.completionEvent = Simulation.SimEvent("ClientToServerCompletion")
         self.latencyMonitor = latencyMonitor
+        self.priority = priority
 
     # Used as a notifier mechanism
     def sigTaskComplete(self, piggyBack=None):
