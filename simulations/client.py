@@ -469,7 +469,8 @@ class BackpressureScheduler(Simulation.Process):
                     durationToWait = \
                         self.client.rateLimiters[replica].tryAcquire()
                     if (durationToWait == 0):
-                        assert self.client.rateLimiters[replica].tokens >= 1
+                        assert round(self.client.
+                                     rateLimiters[replica].tokens, 9) >= 1
                         self.backlogQueue.pop(0)
                         self.client.sendRequest(task, replica)
                         self.client.maybeSendShadowReads(replica, replicaSet)
@@ -523,7 +524,7 @@ class RateLimiter():
 
     def tryAcquire(self):
         tokens = self.getTokens()
-        if (tokens >= 1.0):
+        if (round(tokens, 9) >= 1.0):
             self.tokens = tokens
             return 0
         else:

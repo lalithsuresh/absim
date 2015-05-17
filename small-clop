@@ -12,10 +12,9 @@ python experiment.py  \
 	--workloadModel poisson \
 	--serverConcurrency 4 \
 	--serviceTime 4 \
-	--utilization 0.65 \
+	--utilization 0.60 \
 	--serviceTimeModel random.expovariate \
 	--replicationFactor 3 \
-	--backpressure \
 	--rateInterval  20\
 	--cubicC 0.000004\
 	--cubicSmax 10\
@@ -24,11 +23,11 @@ python experiment.py  \
 	--selectionStrategy 2C \
 	--shadowReadRatio 0.1 \
 	--accessPattern uniform \
-	--nwLatencyBase 0.2 \
+	--nwLatencyBase 0.25 \
 	--nwLatencyMu 0.0\
 	--nwLatencySigma 0.00 \
 	--expPrefix 2C \
-	--simulationDuration 50000 \
+	--simulationDuration 30000 \
 	--seed 3 \
 	--numRequests 600000\
 	--logFolder logs\
@@ -37,7 +36,7 @@ python experiment.py  \
 	--highDemandFraction 0.0\
 	--slowServerFraction 0.0\
 	--slowServerSlowness 0.0\
-	--intervalParam 10\
+	--intervalParam 500\
 	--timeVaryingDrift 3\
 	--concurrencyWeight 150\
 	--batchSizeModel constant\
@@ -54,7 +53,7 @@ python experiment.py  \
 	--workloadModel poisson \
 	--serverConcurrency 4 \
 	--serviceTime 4 \
-	--utilization 0.65 \
+	--utilization 0.60 \
 	--serviceTimeModel random.expovariate \
 	--replicationFactor 3 \
 	--backpressure \
@@ -70,7 +69,7 @@ python experiment.py  \
 	--nwLatencyMu 0.0\
 	--nwLatencySigma 0.00 \
 	--expPrefix C3 \
-	--simulationDuration 50000 \
+	--simulationDuration 30000 \
 	--seed 3 \
 	--numRequests 600000\
 	--logFolder logs\
@@ -79,7 +78,7 @@ python experiment.py  \
 	--highDemandFraction 0.0\
 	--slowServerFraction 0.0\
 	--slowServerSlowness 0.0\
-	--intervalParam 10\
+	--intervalParam 500\
 	--timeVaryingDrift 3\
 	--concurrencyWeight 150\
 	--batchSizeModel constant\
