@@ -1,0 +1,20 @@
+
+NODES="
+loadgen160
+loadgen161
+loadgen162
+loadgen163
+loadgen164
+loadgen165
+loadgen166
+loadgen167
+loadgen168
+loadgen169
+loadgen171
+"
+
+for each in $NODES;
+do
+        echo $each
+        ssh $each rm -rf ~/c4/logs/*
+done

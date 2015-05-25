@@ -1,0 +1,20 @@
+#!/bin/bash
+
+
+NODES="
+loadgen160
+loadgen161
+loadgen162
+loadgen163
+loadgen164
+loadgen165
+loadgen166
+loadgen167
+loadgen168
+loadgen169
+loadgen171
+"
+for each in $NODES;
+do
+	rsync -av --include='*/*Latency' --include='*/*backlog' --exclude='*/*' $each:~/c4/logs/ logs/
+done

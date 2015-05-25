@@ -1,0 +1,64 @@
+#!/bin/bash
+# Generate a list of commands to be fed to gnu parallel to run the simulation
+ 
+# List of servers on which jobs will be run. ':' points to local machine.
+SERVERS="loadgen162,loadgen163,loadgen164,loadgen165"
+
+for SERVER in $SERVERS; do
+  scp -rp absim $SERVER:/home/routerlab/test # Transfers job script to the servers
+done
+
+parallel -S $SERVERS python /home/routerlab/test/absim/simulations/experiment.py  \
+ 	--iLeaf 12 \
+ 	--iSpine 8 \
+ 	--hostsPerLeaf 8 \
+ 	--spineLeafBW 250 \
+ 	--leafHostBW 125 \
+    --expScenario base\
+    --procTime 0.002 \
+    --valueSizeModel pareto \
+    --packetSize 0.00057 \
+    --switchBufferSize 20 \
+    --switchForwardingStrategy oracle \
+    --switchSelectionStrategy oracle \
+    --c4Weight 0.8 \
+    --placementStrategy interleave \
+	--numWorkload 1 \
+	--workloadModel poisson \
+	--serverConcurrency 4 \
+	--serviceTime {1} \
+	--utilization 0.99 \
+	--serviceTimeModel random.expovariate \
+	--replicationFactor 10 \
+	--rateInterval 20 \
+	--cubicC 0.000004 \
+	--cubicSmax 10 \
+	--cubicBeta 0.2 \
+	--hysterisisFactor 2 \
+	--selectionStrategy expDelay \
+	--shadowReadRatio 0.0 \
+	--accessPattern uniform \
+	--nwLatencyBase 0.005 \
+	--expPrefix expDelay \
+	--simulationDuration 10000000 \
+	--seed 1 \
+	--numRequests 1000 \
+	--logFolder logs \
+	--demandSkew 0.9 \
+	--highDemandFraction 0.3 \
+	--slowServerFraction 0.3 \
+	--slowServerSlowness 0.9 \
+	--intervalParam 500 \
+	--timeVaryingDrift 5 ::: 1 2 3 4 5 6 7 8 9 10
+
+
+#cd ..
+#cd plotting;
+# Rscript timeseries.r primary;
+# Rscript timeseries.r rp;
+# Rscript timeseries.r pending;
+# Rscript timeseries.r pendingXserviceTime;
+# Rscript timeseries.r oracle;
+# Rscript timeseries.r expDelay;
+# Rscript networkplots.r expDelay
+#cd ..
