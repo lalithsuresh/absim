@@ -1,0 +1,9 @@
+#!/bin/bash
+h=`hostname`
+if [[ $h =~ loadgen.* ]]
+then
+  echo "routerlab-resources"
+else
+  echo "local-resources"
+fi
+

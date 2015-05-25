@@ -1,0 +1,22 @@
+#!/bin/bash                                                           [141/1908]
+# Generate a list of commands to be fed to gnu parallel to run the simulation
+
+# List of servers on which jobs will be run. ':' points to local machine.
+set -e
+
+NODES="
+loadgen161
+loadgen162
+loadgen163
+loadgen164
+loadgen165
+loadgen166
+loadgen167
+loadgen168
+loadgen169
+loadgen171
+"
+for SERVER in $NODES; do
+  echo "Setup $SERVER"
+  scp -rp ~/c4 $SERVER:/home/routerlab/c4 # Transfers job script to the servers
+done
