@@ -45,6 +45,7 @@ python networkExperiment.py  \
  	--hostsPerLeaf 8 \
  	--spineLeafBW 250 \
  	--leafHostBW 125 \
+    --utilization 0.7\
     --expScenario base\
     --procTime 0.002 \
     --valueSizeModel pareto \
@@ -57,7 +58,6 @@ python networkExperiment.py  \
 	--workloadModel poisson \
 	--serverConcurrency 4 \
 	--serviceTime 4 \
-	--interarrivalTime 0.001 \
 	--serviceTimeModel random.expovariate \
 	--replicationFactor 10 \
 	--rateInterval 20\
