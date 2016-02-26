@@ -61,5 +61,5 @@ class CongestionTable():
             ce = max(ceTable, p.ce)
             if(ce<ceMin):
                 ceMin = ce
-        print self.congestionTo[switch]
+        #print self.congestionTo[switch]
         return ceMin

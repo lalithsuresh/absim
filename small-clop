@@ -51,8 +51,8 @@ python networkExperiment.py  \
     --valueSizeModel pareto \
     --packetSize 0.00057 \
     --switchBufferSize 30 \
-    --switchForwardingStrategy passive \
-    --switchSelectionStrategy switch_c3 \
+    --switchForwardingStrategy CONGA \
+    --switchSelectionStrategy CONGA \
     --c4Weight 0.8 \
 	--numWorkload 10 \
 	--workloadModel poisson \
@@ -72,7 +72,7 @@ python networkExperiment.py  \
 	--expPrefix expDelay \
 	--simulationDuration 10000000 \
 	--seed 1 \
-	--numRequests 50\
+	--numRequests 5000\
 	--logFolder logs\
 	--demandSkew 0.0\
 	--highDemandFraction 0.0\

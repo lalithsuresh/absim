@@ -90,7 +90,7 @@ class Switch(Node):
         #Dynamic Load-Balaning algorithm (DLB) from OpenFlow based Load Balancing for Fat-Tree Networks with Multipath Support
         #TODO this should be relocated to the topology class
     def getNextHop(self, src, dst, forwardingStrat = False):
-        
+        egressPort = False
         if(not forwardingStrat):
             forwardingStrat = self.forwardingStrategy
             if("oracle" in self.selectionStrategy):
@@ -117,21 +117,23 @@ class Switch(Node):
                 egressPort, CE = self.congestionTable.getTo(self, [self.getPort(n) for n in possible_hops])
             elif(forwardingStrat == "oracle"):
                 egressPort = self.getPort(min(possible_hops, key=lambda n: self.getLatency(src, n, dst, constants.PACKET_SIZE)))
+            elif(forwardingStrat == "passive"):
+                egressPort = random.choice(possible_hops)
         return egressPort
     
     def getHopCount(self, dst):
-        print 'DST', dst.id, dst.htype
+        #print 'DST', dst.id, dst.htype
         hopCount = 0
         nextNode = self
         while True:
             hopCount += 1
             nextPort = nextNode.getNextHop(dst)
-            print 'port', nextPort.__class__.__name__
+            #print 'port', nextPort.__class__.__name__
             nextNode = nextPort.dst
-            print 'node', nextNode.__class__.__name__
-            print nextNode.id, dst.id, nextNode.htype, dst.htype
+            #print 'node', nextNode.__class__.__name__
+            #print nextNode.id, dst.id, nextNode.htype, dst.htype
             if(nextNode.id == dst.id and nextNode.htype == dst.htype):
-                print 'returning..'
+                #print 'returning..'
                 return hopCount
  
     def getLatency(self, src, nextNode, dst, size):
@@ -249,8 +251,8 @@ class Executor(Simulation.Process):
                     original_dst = self.task.replicaSet[0]
                     original_rs = self.task.replicaSet[:]
                     self.task.replicaSet.sort(key=lambda x: self.calculateExpDelay_c3_client(self.task.src, x, self.task.count, original_dst))
-                    if(original_dst != self.task.replicaSet[0]):
-                        print self.task.id, self.task.src.id, self.task.dst.id, self.task.replicaSet.index(original_dst)
+                    #if(original_dst != self.task.replicaSet[0]):
+                    #    print self.task.id, self.task.src.id, self.task.dst.id, self.task.replicaSet.index(original_dst)
                     self.task.dst = self.task.replicaSet[0]
                 elif(self.switch.selectionStrategy == "oracle_rev"):
                     self.task.replicaSet.sort(key=lambda x: self.calculateOracleExpDelay_reverse(self.task.src, x, self.task.count))
@@ -316,10 +318,7 @@ class Executor(Simulation.Process):
 
             #Get uplink port for next hop        
             egress = self.switch.getNextHop(self.task.src, self.task.dst, False)
-            
-            #DEBUG
-            if(self.task.id == "Task80067"):
-                print self.switch.id, egress.dst, self.task.response, self.task.dst
+
             #if this is a response and I'm the destination leaf switch
             #Update request status and update rates if response is fully received
             if(self.task.response and self.switch.isNeighbor(self.task.dst) and (not self.task.isCut)):
