@@ -10,7 +10,7 @@ from scipy.stats import genpareto
 class Workload(Simulation.Process):
 
     def __init__(self, id_, latencyMonitor, clientList,
-                 model, model_param, numRequests, valueSizeModel, initialNum):
+                 model, model_param, numRequests, valueSizeModel, initialNum, readFraction):
         self.latencyMonitor = latencyMonitor
         self.clientList = clientList
         self.model = model
@@ -21,6 +21,8 @@ class Workload(Simulation.Process):
         self.taskCounter = 0
         self.initialNum = initialNum
         self.valueSizeModel = valueSizeModel
+
+        self.readFraction = readFraction
         Simulation.Process.__init__(self, name='Workload' + str(id_))
 
     # TODO: also need non-uniform client access
@@ -36,8 +38,27 @@ class Workload(Simulation.Process):
             
             # Push out a task...
             clientNode = self.weightedChoice()
-            responseSize = self.fbGenValueSize()
-            taskToSchedule.count = int(math.ceil(responseSize/float(constants.PACKET_SIZE*1e6)))
+            
+            taskToSchedule.requestType = self.getRequestType()
+
+            if  taskToSchedule.requestType == constants.WRITE:
+                #generate request size
+                requestSize = self.fbGenValueSize()
+                taskToSchedule.requestPktCount = int(math.ceil(requestSize/float(constants.PACKET_SIZE*1e6)))
+                #print "WRITE request with requestcount= ",taskToSchedule.requestPktCount 
+                #generate response size
+                taskToSchedule.count = 1
+            elif taskToSchedule.requestType == constants.READ:
+                #generate request size
+                taskToSchedule.requestPktCount = 1
+                #generate response size
+                responseSize = self.fbGenValueSize()
+                taskToSchedule.count = int(math.ceil(responseSize/float(constants.PACKET_SIZE*1e6)))
+                #print "READ request with responsecount= ",taskToSchedule.count 
+            else:
+                print "Unknown request type!"
+                sys.exit(-1)
+
             taskToSchedule.src = clientNode
             clientNode.schedule(taskToSchedule)
 
@@ -63,6 +84,13 @@ class Workload(Simulation.Process):
             upto += client.demandWeight
         assert False, "Shouldn't get here"
 
+    def getRequestType(self):
+        r = random.uniform(0, 1)
+        if r >= self.readFraction:
+            return constants.READ
+        else:
+            return constants.WRITE
+
     # Pareto distributed value sizes derived from Facebook kwy-value store workload
     def fbGenValueSize(self):
         #Probabilities for the first 14 values
@@ -80,7 +108,7 @@ class Workload(Simulation.Process):
                 r = genpareto.rvs(c, loc=0, scale=214.476)
             return int(r)
     
-        choice = random.random()
+ #       choice = random.random()
         f_x = 0
         for i in distr_1_14.keys():
             f_x += distr_1_14[i]/p_1_14

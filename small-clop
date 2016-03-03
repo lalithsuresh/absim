@@ -52,7 +52,7 @@ python networkExperiment.py  \
     --packetSize 0.00057 \
     --switchBufferSize 30 \
     --switchForwardingStrategy CONGA \
-    --switchSelectionStrategy CONGA \
+    --switchSelectionStrategy passive \
     --c4Weight 0.8 \
 	--numWorkload 10 \
 	--workloadModel poisson \
@@ -80,8 +80,10 @@ python networkExperiment.py  \
 	--slowServerSlowness 0.9\
 	--intervalParam 500\
 	--timeVaryingDrift 5\
+  --readFraction 0.8\
 	--backpressure\
 	--switchRateLimiter;
+  
 
 cd ..
 cd plotting;

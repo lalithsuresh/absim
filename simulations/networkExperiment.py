@@ -238,13 +238,14 @@ def runExperiment(args):
                              args.cubicSmax, args.cubicBeta, args.hysterisisFactor, args.switchRateLimiter)
     topo.createTopo()
 
+    #print "generate workload"
     for i in range(args.numWorkload):
         w = workload.Workload(i, latencyMonitor,
                               clients,
                               args.workloadModel,
                               interArrivalTime * args.numWorkload,
                               args.numRequests/args.numWorkload, args.valueSizeModel,
-                              i*args.numRequests/args.numWorkload)
+                              i*args.numRequests/args.numWorkload, args.readFraction)
         Simulation.activate(w, w.run(),
                             at=0.0),
         workloadGens.append(w)
@@ -256,6 +257,7 @@ def runExperiment(args):
     signal.signal(signal.SIGTERM, sigterm_handler)
     signal.signal(signal.SIGINT, sigint_handler)
         
+    #print "begin simulation"    
     # Begin simulation
     Simulation.simulate(until=args.simulationDuration)
 
@@ -472,6 +474,9 @@ if __name__ == '__main__':
                         type=str, default="INFO")
     parser.add_argument('--logFile', nargs='?',
                         type=str, default="stdout")
+    parser.add_argument('--readFraction', nargs='?',
+                        type=float, default=0.5)
+
     args = parser.parse_args()
 
     numeric_level = getattr(logging, args.logLevel.upper(), None)

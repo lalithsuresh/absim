@@ -76,7 +76,7 @@ class ReceiveRate():
 def cloneDataTask(task):
     newTask = DataTask(task.id, task.latencyMonitor, task.count, task.src, task.dst,\
                         task.size, task.response, task.seqN, \
-                        task.start, task.replicaSet, task.queueSizeEst)
+                        task.start, task.replicaSet, task.queueSizeEst, task.requestPktCount, task.requestType)
     return newTask
     
 def parse_graph(name='default'):
