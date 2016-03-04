@@ -9,6 +9,9 @@ CE_UPDATE_PERIOD = 1
 CE_WEIGHT = 0.9
 READ = 1
 WRITE = 2
+PACKET_SIZE = 1
+TARGET_LATENCY = 5
+TOPOLOGY = None
 
 import logging
 LOG_LEVEL = logging.DEBUG

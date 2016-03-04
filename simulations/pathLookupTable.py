@@ -8,13 +8,13 @@ class Path():
 
     def append(self, node):
         self.path_elements.append(node)
-        self.path_key = str(self.path_elements)
+        self.path_key = hash(str(self.path_elements))
 
     def prepend(self, node):
         self.path_elements.insert(0, node)
-        self.path_key = str(self.path_elements)
+        self.path_key = hash(str(self.path_elements))
 
-    def nextHop(self, currentNode):
+    def getNextHop(self, currentNode):
         i = self.path_elements.index(currentNode)
         return self.path_elements[i+1]
 
@@ -23,6 +23,12 @@ class Path():
 
     def getFirstNode(self):
         return self.path_elements[0]
+
+    def removeLastNode(self):
+        self.path_elements.remove(self.getLastNode())
+
+    def removeFirstNode(self):
+        self.path_elements.remove(self.getFirstNode())
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
@@ -43,17 +49,23 @@ class PathLookupTable():
         self.switch = switch
         self.PerPacketMultiPath = False # packets are forwarded independently of each other
 
-    def update(self, path, latency, task):
-        if path in self.path_latencies[path.getLastElem()]:
-            self.path_latencies[path.getLastNode()][path] = self.ewma(self.path_latencies[path], latency)
+    def addPath(self, path):
+        #We remove switch from all possible paths (makes traversing through path simpler)
+        path.removeFirstNode()
+        self.path_latencies[path.getLastNode()][path] = 0
+
+    def updatePath(self, latency, task):
+        path = self.history[task.id][0]
+        if path in self.path_latencies[path.getLastNode()]:
+            self.path_latencies[path.getLastNode()][path] = self.ewma(self.path_latencies[path.getLastNode()][path], latency)
         else:
             self.path_latencies[path.getLastNode()][path] = latency
 
         assert(task.id in self.history)
 
         #if packet isn't cut, update history
-        if(not task.isCut()):
-            self.history[task.id][1] += 1
+        if(not task.isCut):
+            self.history[task.id] = (self.history[task.id][0], self.history[task.id][1]+1)
             if self.history[task.id][1] >= task.count:
                 #if all responses received, delete history
                 #FIXME what if the packet gets dropped in the last hop?
@@ -61,23 +73,23 @@ class PathLookupTable():
 
 
     #Get shortest path to destination client/server
-    def getShortestPath(self, task, dst):
-        dstLeafSW = dst.getUppers()
+    def getShortestPath(self, task):
+        dstLeafSW = task.dst.getUppers()[0]
         shortestPath = min(self.path_latencies[dstLeafSW], key=self.path_latencies[dstLeafSW].get)
         #save path
         if(not self.PerPacketMultiPath):
             self.history[task.id] = (shortestPath, 0)
         return shortestPath
 
-    def getRateLimitedShortestPath(self, task, dst):
+    def getRateLimitedShortestPath(self, task):
         alpha = 0.8
-        dstLeafSW = dst.getUppers()
+        dstLeafSW = task.dst.getUppers()[0]
         minPath = None
         minTT = 1e9
         for path in self.path_latencies[dstLeafSW].keys():
-            #(qi+bA)/ri , i=1, 2 …, n.
+            #2nd-level rate limiter eq: (qi+ba)/ri
             p = self.switch.getPort(path.getFirstNode())
-            num = task.totalSize + p.getQueueSize()*constants.PACKET_SIZE #simplifying assumption that all packets have the same size
+            num = task.requestPktCount * (constants.PACKET_SIZE*1e6) + p.getQueueSize()*constants.PACKET_SIZE #simplifying assumption that all packets have the same size
             denom = (1- (alpha * self.path_latencies[dstLeafSW][path] - constants.TARGET_LATENCY)/float(constants.TARGET_LATENCY))
             expTT = num/float(denom)
             if(expTT < minTT):
@@ -85,8 +97,8 @@ class PathLookupTable():
                 minPath = path
         #save path
         if(not self.PerPacketMultiPath):
-            self.history[task.id] = (path, 0)
-        return path
+            self.history[task.id] = (minPath, 0)
+        return minPath
 
 
 
@@ -96,6 +108,6 @@ class PathLookupTable():
         return self.path_latencies.get(path, 0)
 
     @staticmethod
-    def ewma(self, old, new):
+    def ewma(old, new):
         alpha = 0.9
         return alpha * new + (1 - alpha) * old

@@ -26,7 +26,8 @@ class DataTask(task.Task):
         self.fb = None
         #Server piggybacked feedback
         self.serverFB = None
-        self.swDebug = []
+        self.switchDebug = []
+        self.switchFB = {}
 
         #number of packets of the request
         self.requestPktCount = requestPktCount
@@ -65,7 +66,10 @@ class DataTask(task.Task):
     
     def setServerFB(self, fb):
         self.serverFB = fb
-        
+
+    def setSwitchFB(self, fb):
+        self.switchFB = fb
+
     def setRequest(self, task):
         self.requestTask = task
         self.response = True

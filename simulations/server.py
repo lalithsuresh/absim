@@ -106,6 +106,7 @@ class Executor(Simulation.Process):
                                    "queueSizeAfter": queueSizeAfter,
                                    "totalQueueSizeBefore": totalQueueSizeBefore,
                                    "idealReplicaSet": ideallySortedReplicaSet})
+            respPacket.setSwitchFB(self.task.switchFB)
             # Get switch I'm delivering to
             nextSwitch = self.server.getNeighbors().keys()[0]
             # Get port I'm delivering through

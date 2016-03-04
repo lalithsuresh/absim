@@ -8,7 +8,6 @@ import datatask
 import congestionTable as ct
 import pathLookupTable as plu
 import sys
-import globalz
 import logger
 
 class Switch(Node):
@@ -34,7 +33,7 @@ class Switch(Node):
         self.cserviceTimeMap = {c: {node: 0 for node in serverList} for c in clientList}
 
         #Only leaf switches are maintaining a per-path latency lookup table
-        self.latency_lookup = plu.PathLookupTable() if htype == "leaf" else None
+        self.latency_lookup = plu.PathLookupTable(self) if htype == "leaf" else None
         
         # Rate limiters per replica
         self.rateLimiterEnabled = rateLimiterEnabled
@@ -81,11 +80,13 @@ class Switch(Node):
             return False
 
     def trackPaths(self):
-        leaves = globalz.TOPOLOGY.LeafSwitchList
+        leaves = constants.TOPOLOGY.LeafSwitchList
         for l in leaves:
+            if(l is self):
+                continue
             pps = self.getPossiblePaths(l)
             for pp in pps:
-                self.latency_lookup.update(pp, 0)
+                self.latency_lookup.addPath(pp)
 
     def enqueueTask(self, task):
         #if(self.isLeaf()):
@@ -159,12 +160,15 @@ class Switch(Node):
 
     def getPossiblePaths(self, dst):
         if(self.isNeighbor(dst)):
-            return [[self]]
+            p = plu.Path()
+            p.append(self)
+            return [p]
         allpps = []
         for nh in self.getPossibleHops(dst):
             pps = nh.getPossiblePaths(dst)
             for pp in pps:
-                pp.insert(0, self)
+                pp.prepend(self)
+                pp.append(dst)
             allpps.extend(pps)
         return allpps
 
@@ -239,142 +243,14 @@ class Switch(Node):
     
     def __repr__(self):
         return self.__str__()
-     
+
 class Executor(Simulation.Process):
-    
+
     def __init__(self, switch, task):
         self.switch = switch
         self.task = task
         self.log = self.switch.log
         Simulation.Process.__init__(self, name='Executor')
-
-    #def run(self):
-        # #Make the next hop
-        # yield Simulation.hold, self, self.switch.procTime
-        #
-        # task_size = constants.PACKET_SIZE
-        # if(self.switch.isSpine()):
-        #     egress = self.switch.getNextHop(self.task.src, self.task.dst, "local")
-        #     if(self.task.ce<(len(egress.buffer.waitQ) + 1)*egress.getTxTime(self.task)):
-        #         #----CONGA----
-        #         self.task.setCE((len(egress.buffer.waitQ) + 1)*egress.getTxTime(self.task))
-        # else:
-        #     #if I'm the source leaf for request, reorder replicas following predefined strategy
-        #     #as long as I'm not a packet loss notification
-        #     self.log.debug("Task %s awaiting processing at Switch %s"%(self.task, self.switch))
-        #     if(self.switch.isNeighbor(self.task.src) and (not self.task.isCut) and (not self.task.response)):
-        #         if(self.switch.selectionStrategy == "local"):
-        #             self.task.replicaSet.sort(key=lambda x: self.switch.getHopCount(x)*self.switch.getPort(x).getQueueSize())
-        #             self.task.dst = self.task.replicaSet[0]
-        #         elif(self.switch.selectionStrategy == "CONGA"):
-        #             self.task.replicaSet.sort(key=lambda x: self.switch.congestionTable.getToCE(x.getUppers()[0]))
-        #             self.task.dst = self.task.replicaSet[0]
-        #         elif(self.switch.selectionStrategy == "C4"):
-        #             self.task.replicaSet.sort(key=lambda x: self.calculateC4Congestion(x))
-        #             self.task.dst = self.task.replicaSet[0]
-        #         elif(self.switch.selectionStrategy == "oracle"):
-        #             self.task.replicaSet.sort(key=lambda x: self.calculateOracleExpDelay(self.task.src, x))
-        #             self.task.dst = self.task.replicaSet[0]
-        #         elif(self.switch.selectionStrategy == "oracle_c3"):
-        #             self.task.replicaSet.sort(key=lambda x: self.calculateOracleExpDelay_c3(self.task.src, x, self.task.count))
-        #             self.task.dst = self.task.replicaSet[0]
-        #         elif(self.switch.selectionStrategy == "switch_c3"):
-        #             original_dst = self.task.replicaSet[0]
-        #             original_rs = self.task.replicaSet[:]
-        #             self.task.replicaSet.sort(key=lambda x: self.calculateExpDelay_c3_client(self.task.src, x, self.task.count, original_dst))
-        #             #if(original_dst != self.task.replicaSet[0]):
-        #             #    print self.task.id, self.task.src.id, self.task.dst.id, self.task.replicaSet.index(original_dst)
-        #             self.task.dst = self.task.replicaSet[0]
-        #         elif(self.switch.selectionStrategy == "oracle_rev"):
-        #             self.task.replicaSet.sort(key=lambda x: self.calculateOracleExpDelay_reverse(self.task.src, x, self.task.count))
-        #             self.task.dst = self.task.replicaSet[0]
-        #         elif(self.switch.selectionStrategy == "oracle_rev_client"):
-        #             self.task.replicaSet.sort(key=lambda x: self.calculateOracleExpDelay_reverse_client(self.task.src, x, self.task.count))
-        #             #print "Original DST:", self.task.dst.id, "Modified DST:", self.task.replicaSet[0].id
-        #             self.task.dst = self.task.replicaSet[0]
-        #         elif(self.switch.selectionStrategy == "oracle_rev_avg"):
-        #             self.task.replicaSet.sort(key=lambda x: self.calculateOracleExpDelay_reverse_avg(self.task.src, x))
-        #             #print "Original DST:", self.task.dst.id, "Modified DST:", self.task.replicaSet[0].id
-        #             self.task.dst = self.task.replicaSet[0]
-        #         elif(self.switch.selectionStrategy == "oracle_rev_avg_client"):
-        #             self.task.replicaSet.sort(key=lambda x: self.calculateOracleExpDelay_reverse_avg_client(self.task.src, x))
-        #             #print "Original DST:", self.task.dst.id, "Modified DST:", self.task.replicaSet[0].id
-        #             self.task.dst = self.task.replicaSet[0]
-        #         elif(self.switch.selectionStrategy == "oracle_client"):
-        #             self.task.replicaSet.sort(key=lambda x: self.calculateOracleExpDelay_client(self.task.src, x))
-        #             #print "Original DST:", self.task.dst.id, "Modified DST:", self.task.replicaSet[0].id
-        #             self.task.dst = self.task.replicaSet[0]
-        #         elif(self.switch.selectionStrategy == "oracle_all"):
-        #             self.task.replicaSet.sort(key=lambda x: self.calculateOracleExpDelay_all(self.task.src, x, self.task.count))
-        #             #print "Original DST:", self.task.dst.id, "Modified DST:", self.task.replicaSet[0].id
-        #             self.task.dst = self.task.replicaSet[0]
-        #         elif(self.switch.selectionStrategy == "oracle_probability"):
-        #             scoreDict = {}
-        #             total = 0
-        #             #print self.task.src, self.task.dst, self.task.replicaSet
-        #             for r in self.task.replicaSet:
-        #                 delay = self.calculateOracleExpDelay_reverse_client(self.task.src, r, self.task.count)
-        #                 scoreDict[r] = delay
-        #                 total += delay
-        #             if(total > 0):
-        #                 for r in scoreDict.keys():
-        #                     scoreDict[r] = scoreDict[r]/total
-        #             x = random.uniform(0, 1)
-        #             upto = 0
-        #             for r in scoreDict.keys():
-        #                 if upto + scoreDict[r] > x:
-        #                     self.task.dst = r
-        #                     break
-        #                 upto += scoreDict[r]
-        #         self.log.debug("Chosen destination is: %s"%self.task.dst)
-        #     #if this is a request and I'm the source leaf switch
-        #     #Add expected response packets to request status
-        #     if((not self.task.response) and self.switch.isNeighbor(self.task.src) and (not self.task.isCut)):
-        #             if(not self.task in self.switch.requestStatus):
-        #                 # Add response packets to be received if it's not a retransmit
-        #                 self.switch.requestStatus[self.task] = [i for i in xrange(1, self.task.count+1)]
-        #                 if(self.switch.rateLimiterEnabled):
-        #                     #Loop over possible replicas and select the highest ranked replica that has available tokens
-        #                     for replica in self.task.replicaSet:
-        #                         durationToWait = self.switch.rateLimiters[replica].tryAcquire()
-        #                         if(durationToWait == 0):
-        #                             replicaIndex = self.task.replicaSet.index(replica)
-        #
-        #                             if(not replicaIndex == 0):
-        #                                 self.task.replicaSet[replicaIndex], self.task.replicaSet[0] =\
-        #                                 self.task.replicaSet[0], self.task.replicaSet[replicaIndex]
-        #                             break
-        #                     self.task.dst = self.task.replicaSet[0]
-        #                     self.switch.rateLimiters[self.task.dst].update()
-        #
-        #     #Get uplink port for next hop
-        #     egress = self.switch.getNextHop(self.task.src, self.task.dst, False)
-        #
-        #     #----CONGA----
-        #     #If I'm the source leaf, add congestion parameters
-        #     if(self.switch.isNeighbor(self.task.src)):
-        #         self.task.setCE(0, egress)
-        #         port, metric = self.switch.congestionTable.getFrom(self.task.dst.getUppers()[0])
-        #         if(port):
-        #             self.task.fb = port
-        #             self.task.fbMetric = metric
-        #
-        #     #If I'm the destination leaf, update congestion Table and server aggregates
-        #     if(self.switch.isNeighbor(self.task.dst)):
-        #         self.switch.congestionTable.updateFrom(self.task.src.getUppers()[0], self.task.lbTag, self.task.ce)
-        #         #if stats for the reverse path are piggy-backed, update To table as well
-        #         if(self.task.fb is not None):
-        #             self.switch.congestionTable.updateTo(self.task.src.getUppers()[0], self.task.fb, self.task.fbMetric)
-        #
-        #         #If this a server response and this is the first packet (so we don't have to aggregate stats multiple times)
-        #         if(self.task.dst.isClient() and self.task.seqN == 1):
-        #             #print '>>>>>>', self.task.serverFB["queueSizeAfter"], self.task.serverFB["serviceTime"]
-        #             self.updateEma(self.task.src, self.task.serverFB["queueSizeAfter"], self.switch.queueSizeMap)
-        #             self.updateEma(self.task.src, self.task.serverFB["serviceTime"], self.switch.serviceTimeMap)
-        #             self.updateEma(self.task.src, self.task.serverFB["queueSizeAfter"], self.switch.cqueueSizeMap[self.task.dst])
-        #             self.updateEma(self.task.src, self.task.serverFB["serviceTime"], self.switch.cserviceTimeMap[self.task.dst])
-        #
-        # egress.enqueueTask(self.task)
 
     def run(self):
         # Find next hop and forward packet
@@ -383,34 +259,34 @@ class Executor(Simulation.Process):
 
         #if I'm a spine switch or a direct neighbor to both src and dst just forward packet along path
         if(self.switch.isSpine() or (self.switch.isNeighbor(self.task.src) and self.switch.isNeighbor(self.task.dst))):
-            egress = self.switch.getNextHop(self.task.src, self.task.dst, "local")
+            #FIXME modifying this to call pathLookupTable's getNextHop func
+            egressPort = self.switch.getNextHop(self.task.src, self.task.dst, "local")
             #----CONGA----
-            if(self.task.ce<(len(egress.buffer.waitQ) + 1)*egress.getTxTime(self.task)):
-                self.task.setCE((len(egress.buffer.waitQ) + 1)*egress.getTxTime(self.task))
+            if(self.task.ce<(len(egressPort.buffer.waitQ) + 1)*egressPort.getTxTime(self.task)):
+                self.task.setCE((len(egressPort.buffer.waitQ) + 1)*egressPort.getTxTime(self.task))
 
         else:
             #this is a request packet
             if(not self.task.response):
                 if(self.switch.isNeighbor(self.task.src)):
                     #construct path and forward
-                    shortestPath = self.switch.latency_lookup.getShortestPath(self.task.dst)
+                    shortestPath = self.switch.latency_lookup.getRateLimitedShortestPath(self.task)
                     self.task.switchFB["forwardPath"] = shortestPath
                     self.task.switchFB["srcLeafArrival"] = Simulation.now()
-                    egressPort = self.switch.getPort(shortestPath.getNextHop(self.switch))
+                    egressPort = self.switch.getPort(shortestPath.getFirstNode())
                 else:
                     #calculate latency and update task
                     self.task.switchFB["forwardLatency"] = Simulation.now() - self.task.switchFB["srcLeafArrival"]
-                    egressPort = self.getPort(self.task.dst)
+                    egressPort = self.switch.getPort(self.task.dst)
             #this is a response packet
             else:
                 if(self.switch.isNeighbor(self.task.src)):
-                    shortestPath = self.switch.latency_lookup.getShortestPath(self.task.dst)
-                    egressPort = self.switch.getPort(shortestPath.getNextHop(self.switch))
+                    shortestPath = self.switch.latency_lookup.getRateLimitedShortestPath(self.task)
+                    egressPort = self.switch.getPort(shortestPath.getFirstNode())
                 else:
                     latency = self.task.switchFB["forwardLatency"]
-                    forwardPath = self.task.switchFB["forwardPath"]
-                    self.switch.latency_lookup.update(forwardPath, latency)
-                    egressPort = self.getPort(self.task.dst)
+                    self.switch.latency_lookup.updatePath(latency, self.task)
+                    egressPort = self.switch.getPort(self.task.dst)
 
 
             #----CONGA----

@@ -232,11 +232,11 @@ def runExperiment(args):
 
     #Construct topology and connect nodes
     print "chosen selection strategy:", args.switchSelectionStrategy
-    topo = leafspineTopo.LeafSpinTopology(args.iSpine, args.iLeaf, args.hostsPerLeaf, args.spineLeafBW,
+    constants.TOPOLOGY = leafspineTopo.LeafSpinTopology(args.iSpine, args.iLeaf, args.hostsPerLeaf, args.spineLeafBW,
                              args.leafHostBW, args.procTime, clients, servers, args.switchSelectionStrategy,
                              args.switchForwardingStrategy, args.c4Weight, args.rateInterval, args.cubicC,
                              args.cubicSmax, args.cubicBeta, args.hysterisisFactor, args.switchRateLimiter)
-    topo.createTopo()
+    constants.TOPOLOGY.createTopo()
 
     #print "generate workload"
     for i in range(args.numWorkload):
@@ -250,7 +250,7 @@ def runExperiment(args):
                             at=0.0),
         workloadGens.append(w)
     
-    sc = statcollector.StatCollector(clients, servers, topo.getSwitches(), workloadGens, args.numRequests)
+    sc = statcollector.StatCollector(clients, servers, constants.TOPOLOGY.getSwitches(), workloadGens, args.numRequests)
     Simulation.activate(sc, sc.run(0.1), at=0.0)
 
     # Setup signal handlers
@@ -343,7 +343,7 @@ def runExperiment(args):
     log.info("----- Switch Stats -----")
     avgBufferSize = 0
     c = 0       
-    for sw in topo.getSwitches():
+    for sw in constants.TOPOLOGY.getSwitches():
         for n in sw.neighbors:
             p = sw.neighbors[n]
             printMonitorTimeSeriesToFile(swWaitMonFD,
