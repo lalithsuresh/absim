@@ -16,6 +16,8 @@ class Server(Node):
                                                  monitored=True)
         self.serverRRMonitor = Simulation.Monitor(name="ServerMonitor")
 
+        self.receivedRequestStatus = {} # to buffer the pkts of received requests  
+
     def enqueueTask(self, task):
         if(task.isCut):
             #This is a notification of a packet drop
@@ -32,9 +34,19 @@ class Server(Node):
             egress.enqueueTask(response)
             return
         
-        executor = Executor(self, task)
-        self.serverRRMonitor.observe(1)
-        Simulation.activate(executor, executor.run(), Simulation.now())
+        #print "receive request with id= ", task.id, "  seqN=", task.seqN
+        if not (task.id in self.receivedRequestStatus.keys()):
+            self.receivedRequestStatus[task.id] = [task.seqN]
+        else:
+            self.receivedRequestStatus[task.id].append(task.seqN)
+        
+        #print "receivedRequestStatus with id ", task.id, " =", self.receivedRequestStatus[task.id]
+        if len(self.receivedRequestStatus[task.id]) == task.requestPktCount:
+            executor = Executor(self, task)
+            self.serverRRMonitor.observe(1)
+            Simulation.activate(executor, executor.run(), Simulation.now())
+
+            del  self.receivedRequestStatus[task.id]
 
     def getServiceTime(self):
         serviceTime = 0.0

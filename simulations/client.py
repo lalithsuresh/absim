@@ -150,13 +150,21 @@ class Client(Node):
         # Add response packets to be received
         self.requestStatus[task] = [i for i in xrange(1, task.count+1)]
         #print "Task", task.id, "request status", self.requestStatus[task]
-        # Get switch I'm delivering to
-        nextSwitch = self.getNeighbors().keys()[0]
-        # Get port I'm delivering through
-        egress = self.getPort(nextSwitch)
-
-        # Immediately send out request
-        egress.enqueueTask(task)
+       
+        
+        for i in xrange(1, task.requestPktCount+1):
+            requestPacket = misc.cloneDataTask(task)
+            # requestPacket.count = task.count
+            requestPacket.seqN = i
+            #  requestPacket.src = task.src
+            #  requestPacket.dst = task.dst
+            # Get switch I'm delivering to
+            nextSwitch = self.getNeighbors().keys()[0]
+            # Get port I'm delivering through
+            egress = self.getPort(nextSwitch)
+            # Immediately send out request
+            egress.enqueueTask(requestPacket)
+            #print "send request with id= ", requestPacket.id, " requestcount=",requestPacket.requestPktCount, " seqN=", requestPacket.seqN
 
         # Set timer for packet
         #packetTimer = PacketTimer()
@@ -259,7 +267,14 @@ class Client(Node):
             #Resend packet
             #TODO We actually need to reschedule the request so that it passes through the backpressure scheduler
             #print self.id, 'dropped request', packet.id
-            self.sendRequest(self.request[packet.id], packet.src, True)
+
+            #self.sendRequest(self.request[packet.id], packet.src, True)
+            
+            nextSwitch = self.getNeighbors().keys()[0]
+            egress = self.getPort(nextSwitch)
+            resendPacket = misc.cloneDataTask(packet)
+            resendPacket.restorePacket()
+            egress.enqueueTask(resendPacket)
             return
         #print 'Client received response with ID:', packet.id, 'seqN:', packet.seqN, 'count:', packet.count
         #print 'Client has', len(self.requestStatus.keys()), 'pending requests'
@@ -268,6 +283,7 @@ class Client(Node):
             #print "status", self.requestStatus
             status = self.requestStatus[self.request[packet.id]]
             status.remove(packet.seqN)
+            #print "receive response with id= ", packet.id, "  seqN=", packet.seqN
             if(len(status)==0):
                 #Response received in full
                 #print self.id, 'successfully received response for request:', packet.id, packet.seqN
