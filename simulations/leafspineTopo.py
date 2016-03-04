@@ -52,8 +52,9 @@ class LeafSpinTopology():
             self.HostList.append(c)
         for s in self.ServerList:
             self.HostList.append(s)
-        self.createLink()
+        self.createLinks()
         self.updateConnections()
+        self.updatePaths()
         
     """
     Create Switch and Host
@@ -85,7 +86,7 @@ class LeafSpinTopology():
     """
     Create Link 
     """
-    def createLink(self):
+    def createLinks(self):
         for x in range(0, self.iSpine):
             for y in range(0, self.iLeaf):
                 self.addLink(self.SpineSwitchList[x], self.LeafSwitchList[y], bw=self.spineLeafBW)
@@ -127,6 +128,13 @@ class LeafSpinTopology():
             usws = lsw.getUppers()
             for usw in usws:
                 usw.addConnectedHosts(lsw, lsw.getConnectedHosts())
+
+    """
+    Update Paths for leaf switches
+    """
+    def updatePaths(self):
+        for lsw in self.LeafSwitchList:
+            lsw.trackPaths()
 
         #for c in self.CoreSwitchList:
         #    print c.getConnectedHosts()
