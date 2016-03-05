@@ -117,18 +117,19 @@ class BackgroundTrafficGenerator(Simulation.Process):
         self.src = src
         self.dst = dst
         self.flowsize = flowsize
-        self.rate = constants.BACKGROUND_SENDING_DELAY
+        self.delay = constants.BACKGROUND_SENDING_DELAY
         Simulation.Process.__init__(self, name='BackgroundTraffic-%s-%s'%(src,dst))
 
     def run(self):
         while(self.flowsize>0):
-            dumbTask = DataTask("DumpTask" + str(self.taskCounter + self.initialNum),
-                                         self.latencyMonitor)
+            dumbTask = DataTask("DumpTask-%i-%i"%(self.src.id, self.dst.id), None)
             dumbTask.trafficType = constants.BACKGROUND
             dumbTask.src = self.src
             dumbTask.dst = self.dst
-            nextSwitch = self.getNeighbors().keys()[0]
+            nextSwitch = self.src.getNeighbors().keys()[0]
             # Get port I'm delivering through
-            egress = self.getPort(nextSwitch)
+            egress = self.src.getPort(nextSwitch)
             # Immediately send out request
             egress.enqueueTask(dumbTask)
+            self.flowsize -= 1
+            yield Simulation.hold, self, self.delay

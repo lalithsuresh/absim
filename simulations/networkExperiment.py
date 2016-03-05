@@ -1,3 +1,5 @@
+
+import SimPy.SimulationTrace
 import SimPy.Simulation as Simulation
 import server
 import client

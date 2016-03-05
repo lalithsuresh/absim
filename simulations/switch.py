@@ -257,7 +257,7 @@ class Executor(Simulation.Process):
         yield Simulation.hold, self, self.switch.procTime
         task_size = constants.PACKET_SIZE
                    
-        if (self.switch.isNeighbor(self.task.src) and not self.task.response):
+        if (self.switch.isNeighbor(self.task.src) and not self.task.response and self.task.trafficType == constants.APP):
             #perform replica selection
             self.task.dst = self.getTaskDst(self.task)
 
