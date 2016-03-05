@@ -1,5 +1,5 @@
 
-import SimPy.SimulationTrace
+#import SimPy.SimulationTrace
 import SimPy.Simulation as Simulation
 import server
 import client
@@ -66,6 +66,7 @@ def runExperiment(args):
     constants.NUMBER_OF_CLIENTS = args.numClients
     constants.SWITCH_BUFFER_SIZE = args.switchBufferSize
     constants.PACKET_SIZE = args.packetSize
+    constants.TEST_RUN = args.testRun
     
     # Print out experiment input parameters
     paramsFD = open("../%s/InputParams" % args.logFolder, 'w')
@@ -349,6 +350,8 @@ def runExperiment(args):
 
     log.info("----- Switch Stats -----")
     avgBufferSize = 0
+    avgUtil = 0
+    dropNotifs = 0
     c = 0       
     for sw in constants.TOPOLOGY.getSwitches():
         for n in sw.neighbors:
@@ -356,24 +359,31 @@ def runExperiment(args):
             printMonitorTimeSeriesToFile(swWaitMonFD,
                                      sw.id,
                                      p.buffer.waitMon)
-            log.info("Port %s Avg. Queue Size: %f"%(p, p.buffer.waitMon.mean()))
-            avgBufferSize += p.buffer.waitMon.mean()
+            log.info("Port %s Avg. Queue Size: %f | Avg. Util:%f"%(p, p.buffer.waitMon.timeAverage(),\
+                                                                   p.buffer.actMon.timeAverage()))
+            avgBufferSize += p.buffer.waitMon.timeAverage()
+            avgUtil += p.buffer.actMon.timeAverage()
+            dropNotifs += p.numDropNotifs
             c += 1
     avgBufferSize = avgBufferSize/float(c)
+    avgUtil = avgUtil/float(c)
     log.info("Avg. Link Queue Size: %f"%avgBufferSize)
-    log.info("Avg. Link Utilization: %f"%sc.bwMonitor.mean())             
+    #log.info("Avg. Link Utilization: %f"%sc.bwMonitor.mean()) #old way of calculating utilization
+    log.info("Avg. Link Utilization: %f"%avgUtil)
+    log.info("No. of packets dropped: %f"%dropNotifs)
 
-    print "------- Latency ------"
-    print "Mean Latency:",\
-      sum([float(entry[1].split()[0]) for entry in latencyMonitor])/float(len(latencyMonitor))
-    a = np.array([float(entry[1].split()[0]) for entry in latencyMonitor])
-    p50 = np.percentile(a, 50) # return 50th percentile, e.g. median.
-    p99 = np.percentile(a, 99) # return 99th percentile.
-    print "Percentile 50:", p50
-    print "Percentile 99:", p99
-    printMonitorTimeSeriesToFile(latencyFD, "0",
-                                 latencyMonitor)
-    assert args.numRequests == len(latencyMonitor)
+    if(len(latencyMonitor)>0):
+        print "------- Latency ------"
+        print "Mean Latency:",\
+          sum([float(entry[1].split()[0]) for entry in latencyMonitor])/float(len(latencyMonitor))
+        a = np.array([float(entry[1].split()[0]) for entry in latencyMonitor])
+        p50 = np.percentile(a, 50) # return 50th percentile, e.g. median.
+        p99 = np.percentile(a, 99) # return 99th percentile.
+        print "Percentile 50:", p50
+        print "Percentile 99:", p99
+        printMonitorTimeSeriesToFile(latencyFD, "0",
+                                     latencyMonitor)
+        #assert args.numRequests == len(latencyMonitor)
     
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Absinthe sim.')
@@ -483,6 +493,8 @@ if __name__ == '__main__':
                         type=str, default="stdout")
     parser.add_argument('--readFraction', nargs='?',
                         type=float, default=0.5)
+    parser.add_argument('--testRun', action='store_true',
+                        default=False)   #allow simulator to stay running even if all requests sent
 
     args = parser.parse_args()
 

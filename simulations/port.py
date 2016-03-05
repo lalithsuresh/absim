@@ -22,6 +22,7 @@ class Port():
         self.latencyTrackerMonitor = Simulation.Monitor(name="LatencyTracker")
         self.numCutPackets = 0
         self.numPackets = 0
+        self.numDropNotifs = 0
       
     def enqueueTask(self, task):
         #print 'Enqueueing request:%s to port [src:%s, dst:%s]'%(task.id, self.src.id, self.dst.id)
@@ -85,6 +86,7 @@ class Executor(Simulation.Process):
         elif((len(self.port.buffer.waitQ) - self.port.numCutPackets) >= constants.SWITCH_BUFFER_SIZE and not self.port.src.htype == "client" and not self.port.src.htype == "server"):
             #print 'buffer queue size', len(self.port.buffer.waitQ), 'max buffer size', constants.SWITCH_BUFFER_SIZE
             #Packet was dropped; Forward packet header to the reverse path
+            self.port.numDropNotifs += 1
             dropNotif = misc.cloneDataTask(self.task)
             dropNotif.setServerFB(self.task.serverFB)
             dropNotif.requestTask = self.task.requestTask

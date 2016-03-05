@@ -113,16 +113,17 @@ def find_all_paths_for_nodes(graph, start, end, path=[]):
         return paths
 
 class BackgroundTrafficGenerator(Simulation.Process):
-    def __init__(self, src, dst, flowsize):
+    def __init__(self, id, src, dst, flowsize):
+        self.id = id
         self.src = src
         self.dst = dst
         self.flowsize = flowsize
         self.delay = constants.BACKGROUND_SENDING_DELAY
-        Simulation.Process.__init__(self, name='BackgroundTraffic-%s-%s'%(src,dst))
+        Simulation.Process.__init__(self, name='BackgroundTraffic--%s-%s-%s'%(id,src,dst))
 
     def run(self):
-        while(self.flowsize>0):
-            dumbTask = DataTask("DumpTask-%i-%i"%(self.src.id, self.dst.id), None)
+        while(self.flowsize>0 and not constants.END_SIMULATION):
+            dumbTask = DataTask("DumbTask-%s-%s"%(self.src, self.dst), None)
             dumbTask.trafficType = constants.BACKGROUND
             dumbTask.src = self.src
             dumbTask.dst = self.dst

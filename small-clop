@@ -72,7 +72,7 @@ python networkExperiment.py  \
 	--expPrefix expDelay \
 	--simulationDuration 10000000 \
 	--seed 1 \
-	--numRequests 5000\
+	--numRequests 1\
 	--logFolder logs\
 	--demandSkew 0.0\
 	--highDemandFraction 0.0\
@@ -80,9 +80,10 @@ python networkExperiment.py  \
 	--slowServerSlowness 0.9\
 	--intervalParam 500\
 	--timeVaryingDrift 5\
-  --readFraction 0.8\
+    --readFraction 0.8\
 	--backpressure\
-	--switchRateLimiter;
+	--switchRateLimiter\
+	--testRun;
   
 
 cd ..

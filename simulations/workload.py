@@ -1,6 +1,6 @@
 import SimPy.Simulation as Simulation
 import random
-import task
+import sys
 import datatask
 import numpy
 import constants
@@ -107,8 +107,7 @@ class Workload(Simulation.Process):
             while int(r) <= 14:
                 r = genpareto.rvs(c, loc=0, scale=214.476)
             return int(r)
-    
- #       choice = random.random()
+
         f_x = 0
         for i in distr_1_14.keys():
             f_x += distr_1_14[i]/p_1_14

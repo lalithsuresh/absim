@@ -2,9 +2,12 @@ import constants
 from collections import defaultdict
 
 class Path():
-    def __init__(self):
-        self.path_elements = list()
-        self.path_key = ""
+    def __init__(self, path_elements=False):
+        if(path_elements):
+            self.path_elements = path_elements
+        else:
+            self.path_elements = list()
+        self.path_key = hash(str(self.path_elements))
 
     def append(self, node):
         self.path_elements.append(node)
@@ -30,6 +33,13 @@ class Path():
     def removeFirstNode(self):
         self.path_elements.remove(self.getFirstNode())
 
+    def reverse(self):
+        self.path_elements.reverse()
+        self.path_key = hash(str(self.path_elements))
+
+    def clone(self):
+        return Path(list(self.path_elements))
+
     def __eq__(self, other):
         if isinstance(other, self.__class__):
             return self.path_key == other.path_key
@@ -42,6 +52,9 @@ class Path():
     def __hash__(self):
         return self.path_key
 
+    def __str__(self):
+        return str(self.path_elements)
+
 class PathLookupTable():
     def __init__(self, switch):
         self.path_latencies = defaultdict(dict)
@@ -50,11 +63,15 @@ class PathLookupTable():
         self.PerPacketMultiPath = False # packets are forwarded independently of each other
 
     def addPath(self, path):
-        #We remove switch from all possible paths (makes traversing through path simpler)
-        path.removeFirstNode()
         self.path_latencies[path.getLastNode()][path] = 0
 
-    def updatePath(self, latency, task):
+    def updatePath(self, latency, path):
+        if path in self.path_latencies[path.getLastNode()]:
+            self.path_latencies[path.getLastNode()][path] = self.ewma(self.path_latencies[path.getLastNode()][path], latency)
+        else:
+            self.path_latencies[path.getLastNode()][path] = latency
+
+    def updatePathForTask(self, latency, task):
         path = self.history[task.id][0]
         if path in self.path_latencies[path.getLastNode()]:
             self.path_latencies[path.getLastNode()][path] = self.ewma(self.path_latencies[path.getLastNode()][path], latency)
@@ -88,7 +105,7 @@ class PathLookupTable():
         minTT = 1e9
         for path in self.path_latencies[dstLeafSW].keys():
             #2nd-level rate limiter eq: (qi+ba)/ri
-            p = self.switch.getPort(path.getFirstNode())
+            p = self.switch.getPort(path.getNextHop(self.switch))
             num = task.requestPktCount * (constants.PACKET_SIZE*1e6) + p.getQueueSize()*constants.PACKET_SIZE #simplifying assumption that all packets have the same size
             denom = (1- (alpha * self.path_latencies[dstLeafSW][path] - constants.TARGET_LATENCY)/float(constants.TARGET_LATENCY))
             expTT = num/float(denom)

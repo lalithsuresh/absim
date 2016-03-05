@@ -44,9 +44,8 @@ class StatCollector(Simulation.Process):
                 percCompletion += 10
                 print 'Simulation run %d percent complete!'%(float(totalResRecv)/self.numRequests*100.0)
             #This means that all requests have been sent and all responses have been returned
-            if((totalReqSent-totalResRecv) == 0 and finishedReqs):
-                #terminate switches, to stop the periodic DRE update function
-                for s in self.switches:
-                    s.active = False
+            if((totalReqSent-totalResRecv) == 0 and finishedReqs and not constants.TEST_RUN):
+                #set this value to TRUE to terminate any running processes
+                constants.END_SIMULATION = True
                 return
             yield Simulation.hold, self, delay

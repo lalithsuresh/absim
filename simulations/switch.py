@@ -8,6 +8,7 @@ import datatask
 import congestionTable as ct
 import pathLookupTable as plu
 import sys
+import copy
 import logger
 
 class Switch(Node):
@@ -26,7 +27,6 @@ class Switch(Node):
         self.forwardingStrategy = forwardingStrategy
         self.c4Weight = c4Weight
         self.congestionTable = ct.CongestionTable()
-        self.active = True
         self.queueSizeMap = {node: 0 for node in serverList}
         self.serviceTimeMap = {node: 0 for node in serverList}
         self.cqueueSizeMap = {c: {node: 0 for node in serverList} for c in clientList}
@@ -55,6 +55,12 @@ class Switch(Node):
 
         # Request status
         self.requestStatus = {} #request/response mappings to keep track of a request's status (in terms of received packets)
+
+        # Server feedback aggregates
+        self.queueSizeMap = {node: 0 for node in serverList}
+        self.serviceTimeMap = {node: 0 for node in serverList}
+        self.cqueueSizeMap = {c: {node: 0 for node in serverList} for c in clientList}
+        self.cserviceTimeMap = {c: {node: 0 for node in serverList} for c in clientList}
         
         #Strategy function dictionary; Holds mappings between strats and corresponding funcs
         
@@ -86,7 +92,12 @@ class Switch(Node):
                 continue
             pps = self.getPossiblePaths(l)
             for pp in pps:
+                #Add backward path as well
+                pp.append(l)
+                ppReverse = pp.clone()
+                ppReverse.reverse()
                 self.latency_lookup.addPath(pp)
+                self.latency_lookup.addPath(ppReverse)
 
     def enqueueTask(self, task):
         #if(self.isLeaf()):
@@ -161,14 +172,16 @@ class Switch(Node):
     def getPossiblePaths(self, dst):
         if(self.isNeighbor(dst)):
             p = plu.Path()
+            #print dst
             p.append(self)
+            #print p
             return [p]
         allpps = []
         for nh in self.getPossibleHops(dst):
             pps = nh.getPossiblePaths(dst)
             for pp in pps:
                 pp.prepend(self)
-                pp.append(dst)
+                #pp.append(dst)
             allpps.extend(pps)
         return allpps
 
@@ -277,20 +290,29 @@ class Executor(Simulation.Process):
                     shortestPath = self.switch.latency_lookup.getRateLimitedShortestPath(self.task)
                     self.task.switchFB["forwardPath"] = shortestPath
                     self.task.switchFB["srcLeafArrival"] = Simulation.now()
-                    egressPort = self.switch.getPort(shortestPath.getFirstNode())
+                    egressPort = self.switch.getPort(shortestPath.getNextHop(self.switch))
                 else:
                     #calculate latency and update task
-                    self.task.switchFB["forwardLatency"] = Simulation.now() - self.task.switchFB["srcLeafArrival"]
+                    #the following condition might not be true if the packet is a drop notification
+                    if("srcLeafArrival" in self.task.switchFB):
+                        self.task.switchFB["forwardLatency"] = Simulation.now() - self.task.switchFB["srcLeafArrival"]
+                        self.switch.latency_lookup.updatePath(self.task.switchFB["forwardLatency"], self.task.switchFB["forwardPath"])
                     egressPort = self.switch.getPort(self.task.dst)
             #this is a response packet
             else:
                 if(self.switch.isNeighbor(self.task.src)):
                     #construct path and forward
                     shortestPath = self.switch.latency_lookup.getRateLimitedShortestPath(self.task)
-                    egressPort = self.switch.getPort(shortestPath.getFirstNode())
+                    self.task.switchFB["forwardPath"] = Simulation.now()
+                    self.task.switchFB["srcLeafArrival"] = Simulation.now()
+                    egressPort = self.switch.getPort(shortestPath.getNextHop(self.switch))
                 else:
-                    latency = self.task.switchFB["forwardLatency"]
-                    self.switch.latency_lookup.updatePath(latency, self.task)
+                    if("srcLeafArrival" in self.task.switchFB):
+                        latency = self.task.switchFB["forwardLatency"]
+                        self.switch.latency_lookup.updatePathForTask(latency, self.task)
+                    if("srcLeafArrival" in self.task.switchFB):
+                        backpathLatency = Simulation.now() - self.task.switchFB["srcLeafArrival"]
+                        self.switch.latency_lookup.updatePath(backpathLatency, self.task.switchFB["forwardPath"])
                     egressPort = self.switch.getPort(self.task.dst)
 
 
@@ -310,6 +332,14 @@ class Executor(Simulation.Process):
                 if(self.task.fb is not None):
                     self.switch.congestionTable.updateTo(self.task.src.getUppers()[0], self.task.fb, self.task.fbMetric)
 
+                #If this a server response and this is the first packet (so we don't have to aggregate stats multiple times)
+                if(self.task.dst.isClient() and self.task.seqN == 1 and self.task.trafficType == constants.APP):
+                    #print '>>>>>>', self.task.serverFB["queueSizeAfter"], self.task.serverFB["serviceTime"]
+                    self.updateEma(self.task.src, self.task.serverFB["queueSizeAfter"], self.switch.queueSizeMap)
+                    self.updateEma(self.task.src, self.task.serverFB["serviceTime"], self.switch.serviceTimeMap)
+                    self.updateEma(self.task.src, self.task.serverFB["queueSizeAfter"], self.switch.cqueueSizeMap[self.task.dst])
+                    self.updateEma(self.task.src, self.task.serverFB["serviceTime"], self.switch.cserviceTimeMap[self.task.dst])
+
         egressPort.enqueueTask(self.task)
 
 
@@ -326,7 +356,7 @@ class Executor(Simulation.Process):
             fakeBackTask = misc.cloneDataTask(task)
             fakeBackTask.dst = task.src
             fakeBackTask.src = task.dst
-            shortestBackPath = self.switch.latency_lookup.getShortestPath(fakeBackTask)
+            shortestBackPath = self.switch.latency_lookup.getRateLimitedShortestPath(fakeBackTask)
             latency3 = self.switch.latency_lookup.get(shortestBackPath)
 
             if(latency1 + latency2 + latency3 < minTotalDelay):
@@ -541,7 +571,7 @@ class DREUpdater(Simulation.Process):
         self.switch = switch
         Simulation.Process.__init__(self, name='DREUpdater')
     def run(self):
-        while self.switch.active:
+        while not constants.END_SIMULATION:
             yield Simulation.hold, self, constants.CE_UPDATE_PERIOD
             for p in self.switch.neighbors.values():
                 p.updateDRE()

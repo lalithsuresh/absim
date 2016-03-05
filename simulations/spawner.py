@@ -10,10 +10,10 @@ class Spawner(Simulation.Process):
     def __init__(self):
         Simulation.Process.__init__(self, name='Spawner')
         self.hostList = constants.TOPOLOGY.HostList
-        self.delay = constants.BACKGROUND_SPAWNING_DELAY
+        self.interarrivalParam = constants.BACKGROUND_SPAWNING_INTERARRIVAL
 
-        #Flow size CDF (numPackets, 1, CDF)
         '''
+        Flow size CDF (numPackets, 1, CDF) ~ DCTCP paper
         6 1 0
         6 1 0.15
         13 1 0.2
@@ -33,9 +33,11 @@ class Spawner(Simulation.Process):
         self.cdf = interpolate.interp1d(bins, data)
 
     def run(self):
+        count = 0
         while(not constants.END_SIMULATION):
-            self.spawnFlow()
-            yield Simulation.hold, self, self.delay
+            self.spawnFlow(count)
+            count += 1
+            yield Simulation.hold, self, np.random.poisson(self.interarrivalParam)
 
     def getFlowSizeSample(self):
         r = np.random.rand()
@@ -44,16 +46,15 @@ class Spawner(Simulation.Process):
         return flowsize
 
     def getHosts(self):
+        #pick src and dest at random
+        #FIXME should we introduce bias?
         src = random.choice(self.hostList)
         dst = src
         while (src == dst):
             dst = random.choice(self.hostList)
         return (src, dst)
 
-    def spawnFlow(self):
-        #pick src and dest at random
-        #FIXME should we introduce bias?
-
+    def spawnFlow(self, count):
         hosts = self.getHosts()
-        executor = BackgroundTrafficGenerator(hosts[0], hosts[1], self.getFlowSizeSample())
+        executor = BackgroundTrafficGenerator(count, hosts[0], hosts[1], self.getFlowSizeSample())
         Simulation.activate(executor, executor.run(), Simulation.now())
