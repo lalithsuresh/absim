@@ -2,6 +2,7 @@ import SimPy.Simulation as Simulation
 import server
 import client
 import workload
+import spawner
 import argparse
 import random
 import constants
@@ -252,6 +253,10 @@ def runExperiment(args):
     
     sc = statcollector.StatCollector(clients, servers, constants.TOPOLOGY.getSwitches(), workloadGens, args.numRequests)
     Simulation.activate(sc, sc.run(0.1), at=0.0)
+
+    # Run flow spawner
+    sp = spawner.Spawner()
+    Simulation.activate(sp, sp.run(), at=0.0)
 
     # Setup signal handlers
     signal.signal(signal.SIGTERM, sigterm_handler)

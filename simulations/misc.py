@@ -1,6 +1,7 @@
 from collections import namedtuple
 from datatask import DataTask
 import SimPy.Simulation as Simulation
+import constants
 
 class DeliverMessageWithDelay(Simulation.Process):
     def __init__(self):
@@ -76,7 +77,7 @@ class ReceiveRate():
 def cloneDataTask(task):
     newTask = DataTask(task.id, task.latencyMonitor, task.count, task.src, task.dst,\
                         task.size, task.response, task.seqN, \
-                        task.start, task.replicaSet, task.queueSizeEst, task.requestPktCount, task.requestType)
+                        task.start, task.replicaSet, task.queueSizeEst, task.requestPktCount, task.requestType, task.trafficType)
     return newTask
     
 def parse_graph(name='default'):
@@ -110,3 +111,24 @@ def find_all_paths_for_nodes(graph, start, end, path=[]):
                 for newpath in newpaths:
                     paths.append(newpath)
         return paths
+
+class BackgroundTrafficGenerator(Simulation.Process):
+    def __init__(self, src, dst, flowsize):
+        self.src = src
+        self.dst = dst
+        self.flowsize = flowsize
+        self.rate = constants.BACKGROUND_SENDING_DELAY
+        Simulation.Process.__init__(self, name='BackgroundTraffic-%s-%s'%(src,dst))
+
+    def run(self):
+        while(self.flowsize>0):
+            dumbTask = DataTask("DumpTask" + str(self.taskCounter + self.initialNum),
+                                         self.latencyMonitor)
+            dumbTask.trafficType = constants.BACKGROUND
+            dumbTask.src = self.src
+            dumbTask.dst = self.dst
+            nextSwitch = self.getNeighbors().keys()[0]
+            # Get port I'm delivering through
+            egress = self.getPort(nextSwitch)
+            # Immediately send out request
+            egress.enqueueTask(dumbTask)

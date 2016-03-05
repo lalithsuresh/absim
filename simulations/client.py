@@ -262,6 +262,7 @@ class Client(Node):
         return replicaSet
 
     def receiveResponse(self, packet):
+
         if(packet.isCut):
             #This is a notification of a packet drop
             #Resend packet
@@ -276,6 +277,11 @@ class Client(Node):
             resendPacket.restorePacket()
             egress.enqueueTask(resendPacket)
             return
+
+        #Do nothing if it's just background traffic
+        if(packet.trafficType == constants.BACKGROUND):
+            return
+
         #print 'Client received response with ID:', packet.id, 'seqN:', packet.seqN, 'count:', packet.count
         #print 'Client has', len(self.requestStatus.keys()), 'pending requests'
         if self.request[packet.id] in self.requestStatus:

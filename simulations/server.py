@@ -1,9 +1,11 @@
 import SimPy.Simulation as Simulation
+import constants
 import math
 import random
 import sys
 import misc
 from node import Node
+
 class Server(Node):
     """A representation of a physical server that holds resources"""
     def __init__(self, id_, resourceCapacity,
@@ -19,6 +21,7 @@ class Server(Node):
         self.receivedRequestStatus = {} # to buffer the pkts of received requests  
 
     def enqueueTask(self, task):
+
         if(task.isCut):
             #This is a notification of a packet drop
             #Resend packet
@@ -32,6 +35,10 @@ class Server(Node):
             response.requestTask = task.requestTask
             # resend response
             egress.enqueueTask(response)
+            return
+
+        #Do nothing if it's just background traffic
+        if(task.trafficType == constants.BACKGROUND):
             return
         
         #print "receive request with id= ", task.id, "  seqN=", task.seqN
@@ -90,9 +97,9 @@ class Executor(Simulation.Process):
         yield Simulation.release, self, self.server.queueResource
 
         queueSizeAfter = len(self.server.queueResource.waitQ)
-        
-        
-        
+
+
+
         for i in xrange(1, self.task.count+1):
             respPacket = misc.cloneDataTask(self.task)
             respPacket.count = self.task.count

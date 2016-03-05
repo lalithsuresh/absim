@@ -6,10 +6,11 @@ class DataTask(task.Task):
     """This is a data task which accounts for a task's size in bytes"""
     def __init__(self, id_, latencyMonitor, count=1, src=None, dst=None, size=constants.PACKET_SIZE,\
                   response=False, seqN=0, start=False,\
-                    replicas=[], queueSizeEst=0, requestPktCount=0, requestType=constants.READ):
+                    replicas=[], queueSizeEst=0, requestPktCount=0, requestType=constants.READ, trafficType=constants.APP):
                    #completionEvent=False, receivedEvent=False, replicas=[], queueSizeEst=0, requestPktCount=0):
 
         task.Task.__init__(self, id_, latencyMonitor, start, replicas, queueSizeEst)
+        self.trafficType = trafficType
         self.response = response
         self.size = constants.PACKET_SIZE
         self.src = src
