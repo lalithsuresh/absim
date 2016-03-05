@@ -256,6 +256,10 @@ class Executor(Simulation.Process):
         # Find next hop and forward packet
         yield Simulation.hold, self, self.switch.procTime
         task_size = constants.PACKET_SIZE
+                   
+        if (self.switch.isNeighbor(self.task.src) and not self.task.response):
+            #perform replica selection
+            self.task.dst = self.getTaskDst(task)
 
         #if I'm a spine switch or a direct neighbor to both src and dst just forward packet along path
         if(self.switch.isSpine() or (self.switch.isNeighbor(self.task.src) and self.switch.isNeighbor(self.task.dst))):
@@ -281,6 +285,7 @@ class Executor(Simulation.Process):
             #this is a response packet
             else:
                 if(self.switch.isNeighbor(self.task.src)):
+                    #construct path and forward
                     shortestPath = self.switch.latency_lookup.getRateLimitedShortestPath(self.task)
                     egressPort = self.switch.getPort(shortestPath.getFirstNode())
                 else:
@@ -308,6 +313,26 @@ class Executor(Simulation.Process):
         egressPort.enqueueTask(self.task)
 
 
+    def getTaskDst(self, task):
+        minTotalDelay = constants.MAXREQUESTDELAY
+        bestDst = task.replicaSet[0]
+        for replica in task.replicaSet:
+            task.dst = replica
+            shortestToPath = self.switch.latency_lookup.getRateLimitedShortestPath(task)
+            latency1 = self.switch.latency_lookup.get(shortestToPath)
+               
+            latency2 = self.switch.queueSizeMap[replica] * self.switch.serviceTimeMap[replica]
+
+            fakeBackTask = misc.cloneDataTask(task)
+            fakeBackTask.dst = task.src
+            fakeBackTask.src = task.dst
+            shortestBackPath = self.switch.latency_lookup.getRateLimitedShortestPath(fakeBackTask)
+            latency3 = self.switch.latency_lookup.get(shortestBackPath)
+
+            if(latency1 + latency2 + latency3 < minTotalDelay):
+                bestDst = replica
+                minTotalDelay = latency1 + latency2 + latency3
+        return bestDst
 
 
     def updateEma(self, replica, metric, map):
