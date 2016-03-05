@@ -259,7 +259,7 @@ class Executor(Simulation.Process):
                    
         if (self.switch.isNeighbor(self.task.src) and not self.task.response):
             #perform replica selection
-            self.task.dst = self.getTaskDst(task)
+            self.task.dst = self.getTaskDst(self.task)
 
         #if I'm a spine switch or a direct neighbor to both src and dst just forward packet along path
         if(self.switch.isSpine() or (self.switch.isNeighbor(self.task.src) and self.switch.isNeighbor(self.task.dst))):
@@ -326,7 +326,7 @@ class Executor(Simulation.Process):
             fakeBackTask = misc.cloneDataTask(task)
             fakeBackTask.dst = task.src
             fakeBackTask.src = task.dst
-            shortestBackPath = self.switch.latency_lookup.getRateLimitedShortestPath(fakeBackTask)
+            shortestBackPath = self.switch.latency_lookup.getShortestPath(fakeBackTask)
             latency3 = self.switch.latency_lookup.get(shortestBackPath)
 
             if(latency1 + latency2 + latency3 < minTotalDelay):
