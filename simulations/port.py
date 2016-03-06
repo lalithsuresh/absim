@@ -37,7 +37,6 @@ class Port():
             #print '>>>>PACKET DROPPED!, dst:', task.dst.id, task.id
         #    return False
             #print 'This is my current Q size:', self.getQueueSize()
-        #print task, self.src, self.dst
         self.pckt_acc += task.size
         executor = Executor(self, task)
         Simulation.activate(executor, executor.run(), Simulation.now())
@@ -119,7 +118,8 @@ class Executor(Simulation.Process):
              waitingTime))
         
         if(self.task.isCut):
-            self.port.numCutPackets -= 1                  
+            self.port.numCutPackets -= 1
+
         #Forward to the next device
         if(self.port.dst.htype == "client"):
             #print 'PORT INFO:', self.port.src.id, self.port.dst.id

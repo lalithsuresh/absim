@@ -146,7 +146,7 @@ class Switch(Node):
             elif(forwardingStrat == "passive"):
                 egressPort = self.getPort(random.choice(possible_hops))
         return egressPort
-    
+
     def getHopCount(self, dst):
         #print 'DST', dst.id, dst.htype
         hopCount = 0
@@ -269,7 +269,7 @@ class Executor(Simulation.Process):
         # Find next hop and forward packet
         yield Simulation.hold, self, self.switch.procTime
         task_size = constants.PACKET_SIZE
-                   
+
         if (self.switch.isNeighbor(self.task.src) and not self.task.response and self.task.trafficType == constants.APP):
             #perform replica selection
             self.task.dst = self.getTaskDst(self.task)
@@ -286,11 +286,16 @@ class Executor(Simulation.Process):
             #this is a request packet
             if(not self.task.response):
                 if(self.switch.isNeighbor(self.task.src)):
-                    #construct path and forward
-                    shortestPath = self.switch.latency_lookup.getRateLimitedShortestPath(self.task)
-                    self.task.switchFB["forwardPath"] = shortestPath
-                    self.task.switchFB["srcLeafArrival"] = Simulation.now()
-                    egressPort = self.switch.getPort(shortestPath.getNextHop(self.switch))
+                    if(self.switch.forwardingStrategy == "CONGA"):
+                        egressPort, CE = self.switch.congestionTable.getTo(self, [self.switch.getPort(n)\
+                                        for n in self.switch.getPossibleHops(self.task.dst)])
+                    elif(self.switch.forwardingStrategy == "ECMP"):
+                        egressPort = self.switch.getPort(random.choice(self.switch.getPossibleHops(self.task.dst)))
+                    elif(self.switch.forwardingStrategy == "C4"):
+                        shortestPath = self.switch.latency_lookup.getRateLimitedShortestPath(self.task)
+                        self.task.switchFB["forwardPath"] = shortestPath
+                        self.task.switchFB["srcLeafArrival"] = Simulation.now()
+                        egressPort = self.switch.getPort(shortestPath.getNextHop(self.switch))
                 else:
                     #calculate latency and update task
                     #the following condition might not be true if the packet is a drop notification
@@ -302,10 +307,16 @@ class Executor(Simulation.Process):
             else:
                 if(self.switch.isNeighbor(self.task.src)):
                     #construct path and forward
-                    shortestPath = self.switch.latency_lookup.getRateLimitedShortestPath(self.task)
-                    self.task.switchFB["forwardPath"] = Simulation.now()
-                    self.task.switchFB["srcLeafArrival"] = Simulation.now()
-                    egressPort = self.switch.getPort(shortestPath.getNextHop(self.switch))
+                    if(self.switch.forwardingStrategy == "CONGA"):
+                        egressPort, CE = self.switch.congestionTable.getTo(self, [self.switch.getPort(n)\
+                                        for n in self.switch.getPossibleHops(self.task.dst)])
+                    elif(self.switch.forwardingStrategy == "ECMP"):
+                        egressPort = self.switch.getPort(random.choice(self.switch.getPossibleHops(self.task.dst)))
+                    elif(self.switch.forwardingStrategy == "C4"):
+                        shortestPath = self.switch.latency_lookup.getRateLimitedShortestPath(self.task)
+                        self.task.switchFB["forwardPath"] = shortestPath
+                        self.task.switchFB["srcLeafArrival"] = Simulation.now()
+                        egressPort = self.switch.getPort(shortestPath.getNextHop(self.switch))
                 else:
                     if("srcLeafArrival" in self.task.switchFB):
                         latency = self.task.switchFB["forwardLatency"]
@@ -348,7 +359,7 @@ class Executor(Simulation.Process):
         bestDst = task.replicaSet[0]
         for replica in task.replicaSet:
             task.dst = replica
-            shortestToPath = self.switch.latency_lookup.getRateLimitedShortestPath(task)
+            shortestToPath = self.switch.latency_lookup.getShortestPath(task)
             latency1 = self.switch.latency_lookup.get(shortestToPath)
                
             latency2 = self.switch.queueSizeMap[replica] * self.switch.serviceTimeMap[replica]
@@ -356,7 +367,7 @@ class Executor(Simulation.Process):
             fakeBackTask = misc.cloneDataTask(task)
             fakeBackTask.dst = task.src
             fakeBackTask.src = task.dst
-            shortestBackPath = self.switch.latency_lookup.getRateLimitedShortestPath(fakeBackTask)
+            shortestBackPath = self.switch.latency_lookup.getShortestPath(fakeBackTask)
             latency3 = self.switch.latency_lookup.get(shortestBackPath)
 
             if(latency1 + latency2 + latency3 < minTotalDelay):

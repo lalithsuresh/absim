@@ -151,7 +151,7 @@ class Client(Node):
         self.requestStatus[task] = [i for i in xrange(1, task.count+1)]
         #print "Task", task.id, "request status", self.requestStatus[task]
        
-        
+
         for i in xrange(1, task.requestPktCount+1):
             requestPacket = misc.cloneDataTask(task)
             # requestPacket.count = task.count
@@ -262,7 +262,6 @@ class Client(Node):
         return replicaSet
 
     def receiveResponse(self, packet):
-
         if(packet.isCut):
             #This is a notification of a packet drop
             #Resend packet
@@ -278,7 +277,7 @@ class Client(Node):
             egress.enqueueTask(resendPacket)
             return
 
-        #Do nothing if it's just background traffic
+            #Do nothing if it's just background traffic
         if(packet.trafficType == constants.BACKGROUND):
             return
 
@@ -297,6 +296,7 @@ class Client(Node):
         else:
             print 'Something wrong happened!'
             sys.exit(-1)
+        #print self.requestStatus
                 
     def metricDecay(self, replica):
         return math.exp(-(Simulation.now() - self.lastSeen[replica])

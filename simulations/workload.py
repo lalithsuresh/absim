@@ -35,7 +35,7 @@ class Workload(Simulation.Process):
             taskToSchedule = datatask.DataTask("Task" + str(self.taskCounter + self.initialNum),
                                        self.latencyMonitor)
             self.taskCounter += 1
-            
+
             # Push out a task...
             clientNode = self.weightedChoice()
             
@@ -66,8 +66,8 @@ class Workload(Simulation.Process):
             
             #If model is poisson, add poisson delay
             if (self.model == "poisson"):
-                yield Simulation.hold, self,\
-                    numpy.random.poisson(self.model_param)
+                delay = numpy.random.poisson(self.model_param*1000)/1000.0
+                yield Simulation.hold, self, delay
 
             # If model is constant, add fixed delay
             if (self.model == "constant"):
@@ -86,7 +86,7 @@ class Workload(Simulation.Process):
 
     def getRequestType(self):
         r = random.uniform(0, 1)
-        if r >= self.readFraction:
+        if r <= self.readFraction:
             return constants.READ
         else:
             return constants.WRITE

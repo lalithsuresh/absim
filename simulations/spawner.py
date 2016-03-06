@@ -37,7 +37,9 @@ class Spawner(Simulation.Process):
         while(not constants.END_SIMULATION):
             self.spawnFlow(count)
             count += 1
-            yield Simulation.hold, self, np.random.poisson(self.interarrivalParam)
+            #multiply by 1000 to avoid getting zero delays
+            delay = np.random.poisson(self.interarrivalParam*1000)/1000.0
+            yield Simulation.hold, self, delay
 
     def getFlowSizeSample(self):
         r = np.random.rand()

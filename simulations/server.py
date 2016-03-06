@@ -18,10 +18,9 @@ class Server(Node):
                                                  monitored=True)
         self.serverRRMonitor = Simulation.Monitor(name="ServerMonitor")
 
-        self.receivedRequestStatus = {} # to buffer the pkts of received requests  
+        self.receivedRequestStatus = {} # to buffer the pkts of received requests
 
     def enqueueTask(self, task):
-
         if(task.isCut):
             #This is a notification of a packet drop
             #Resend packet
@@ -37,7 +36,10 @@ class Server(Node):
             egress.enqueueTask(response)
             return
 
-        
+        #Do nothing if it's just background traffic
+        if(task.trafficType == constants.BACKGROUND):
+            return
+
         #print "receive request with id= ", task.id, "  seqN=", task.seqN
         if not (task.id in self.receivedRequestStatus.keys()):
             self.receivedRequestStatus[task.id] = [task.seqN]
