@@ -37,9 +37,6 @@ class Server(Node):
             egress.enqueueTask(response)
             return
 
-        #Do nothing if it's just background traffic
-        if(task.trafficType == constants.BACKGROUND):
-            return
         
         #print "receive request with id= ", task.id, "  seqN=", task.seqN
         if not (task.id in self.receivedRequestStatus.keys()):

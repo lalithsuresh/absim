@@ -365,6 +365,20 @@ def runExperiment(args):
             avgUtil += p.buffer.actMon.timeAverage()
             dropNotifs += p.numDropNotifs
             c += 1
+
+    for host in constants.TOPOLOGY.getHosts():
+        for n in host.neighbors:
+            p = host.neighbors[n]
+            printMonitorTimeSeriesToFile(swWaitMonFD,
+                                         host.id,
+                                         p.buffer.waitMon)
+            log.info("Port %s Avg. Queue Size: %f | Avg. Util:%f"%(p, p.buffer.waitMon.timeAverage(), \
+                                                                   p.buffer.actMon.timeAverage()))
+            avgBufferSize += p.buffer.waitMon.timeAverage()
+            avgUtil += p.buffer.actMon.timeAverage()
+            dropNotifs += p.numDropNotifs
+            c += 1
+
     avgBufferSize = avgBufferSize/float(c)
     avgUtil = avgUtil/float(c)
     log.info("Avg. Link Queue Size: %f"%avgBufferSize)

@@ -91,9 +91,24 @@ class LeafSpinTopology():
             for y in range(0, self.iLeaf):
                 self.addLink(self.SpineSwitchList[x], self.LeafSwitchList[y], bw=self.spineLeafBW)
 
-        for x in range(0, len(self.HostList)):
-            r = random.randint(0, len(self.LeafSwitchList)-1)
-            self.addLink(self.LeafSwitchList[r], self.HostList[x], bw=self.leafHostBW)
+        #Assign clients/servers evenly to leaf switches
+        tempC = list(self.ClientList)
+        tempS = list(self.ServerList)
+        cPerL = max(len(self.ClientList)/len(self.LeafSwitchList),1)
+        sPerL = max(len(self.ServerList)/len(self.LeafSwitchList),1)
+
+        while(len(tempC) > 0 or len(tempS) > 0):
+            for x in range(0, len(self.LeafSwitchList)):
+                for y in range(min(cPerL, len(tempC))):
+                    self.addLink(self.LeafSwitchList[x], tempC[0], bw=self.leafHostBW)
+                    tempC.pop(0)
+                for z in range(min(sPerL, len(tempS))):
+                    self.addLink(self.LeafSwitchList[x], tempS[0], bw=self.leafHostBW)
+                    tempS.pop(0)
+            #Set 1 to account for any left-overs
+            cPerL = 1
+            sPerL = 1
+
 
     def addLink(self, n1, n2, bw):
         #print "Adding link between %s:%s and %s:%s"%(n1.id, n1.htype, n2.id, n2.htype)
@@ -165,6 +180,9 @@ class LeafSpinTopology():
     
     def getSwitches(self):
         return self.LeafSwitchList + self.SpineSwitchList
+
+    def getHosts(self):
+        return self.HostList
     
     #Draws the specified Fat-Tree using the NetworkX library
     #===========================================================================

@@ -37,16 +37,17 @@ class Port():
             #print '>>>>PACKET DROPPED!, dst:', task.dst.id, task.id
         #    return False
             #print 'This is my current Q size:', self.getQueueSize()
+        #print task, self.src, self.dst
         self.pckt_acc += task.size
         executor = Executor(self, task)
         Simulation.activate(executor, executor.run(), Simulation.now())
 
     def getTxTime(self, task):
-        txTime = task.size/(self.bw/1000.0) # 1 MB/s = 0.001 MB/s
+        txTime = task.size/float(self.bw)
         return txTime
 
     def getTxTime_size(self, size):
-        txTime = size/(self.bw/1000.0) # 1 MB/s = 0.001 MB/s
+        txTime = size/float(self.bw)
         return txTime
       
     def getQueueSize(self):
@@ -102,6 +103,7 @@ class Executor(Simulation.Process):
 
         #print self.port.src.id, self.port.dst.id, 'wait queue before:', len(self.port.buffer.waitQ)
         #yield Simulation.hold, self
+        #print len(self.port.buffer.waitQ)
         yield Simulation.request, self, self.port.buffer
         #print self.port.src.id, self.port.dst.id, 'wait queue after:', len(self.port.buffer.waitQ)
         waitingTime = Simulation.now() - start
@@ -111,6 +113,7 @@ class Executor(Simulation.Process):
         yield Simulation.hold, self, delay
         yield Simulation.release, self, self.port.buffer
         #Tracks link waiting times (which is directly correlated if not synonymous with congestion)
+
         self.port.latencyTrackerMonitor\
             .observe("%s %s" % (self.port.dst.id,
              waitingTime))

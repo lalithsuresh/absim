@@ -37,20 +37,23 @@ cd simulations;
 # # To profile, replace the first line with:
 # # python -m cProfile -o output.txt experiment.py \"
 
+# time units in microseconds
+# storage units in megabytes
+
 python networkExperiment.py  \
- 	--iLeaf 12 \
- 	--iSpine 8 \
- 	--numClients 30 \
- 	--numServers 10 \
+ 	--iLeaf 9 \
+ 	--iSpine 4 \
+ 	--numClients 32 \
+ 	--numServers 32 \
  	--hostsPerLeaf 8 \
- 	--spineLeafBW 250 \
- 	--leafHostBW 125 \
+ 	--spineLeafBW 1250 \
+ 	--leafHostBW 1250 \
     --utilization 0.7\
     --expScenario base\
-    --procTime 0.002 \
+    --procTime 0.2 \
     --valueSizeModel pareto \
-    --packetSize 0.00057 \
-    --switchBufferSize 30 \
+    --packetSize 0.001 \
+    --switchBufferSize 10000 \
     --switchForwardingStrategy CONGA \
     --switchSelectionStrategy passive \
     --c4Weight 0.8 \
@@ -68,7 +71,7 @@ python networkExperiment.py  \
 	--selectionStrategy expDelay \
 	--shadowReadRatio 0.0 \
 	--accessPattern uniform \
-	--nwLatencyBase 0.005 \
+	--nwLatencyBase 0.2 \
 	--expPrefix expDelay \
 	--simulationDuration 10000000 \
 	--seed 1 \

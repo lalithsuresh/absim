@@ -76,8 +76,8 @@ class ReceiveRate():
 
 def cloneDataTask(task):
     newTask = DataTask(task.id, task.latencyMonitor, task.count, task.src, task.dst,\
-                        task.size, task.response, task.seqN, \
-                        task.start, task.replicaSet, task.queueSizeEst, task.requestPktCount, task.requestType, task.trafficType)
+                        task.size, task.response, task.seqN, task.start, task.replicaSet,\
+                       task.queueSizeEst, task.requestPktCount, task.requestType, task.trafficType)
     return newTask
     
 def parse_graph(name='default'):
@@ -123,6 +123,7 @@ class BackgroundTrafficGenerator(Simulation.Process):
 
     def run(self):
         while(self.flowsize>0 and not constants.END_SIMULATION):
+            #print 'dumbPacket generated'
             dumbTask = DataTask("DumbTask-%s-%s"%(self.src, self.dst), None)
             dumbTask.trafficType = constants.BACKGROUND
             dumbTask.src = self.src
@@ -132,5 +133,6 @@ class BackgroundTrafficGenerator(Simulation.Process):
             egress = self.src.getPort(nextSwitch)
             # Immediately send out request
             egress.enqueueTask(dumbTask)
+            #print 'enqueuing task', egress
             self.flowsize -= 1
             yield Simulation.hold, self, self.delay

@@ -91,7 +91,7 @@ class Workload(Simulation.Process):
         else:
             return constants.WRITE
 
-    # Pareto distributed value sizes derived from Facebook kwy-value store workload
+    # Pareto distributed value sizes derived from Facebook key-value store workload
     def fbGenValueSize(self):
         #Probabilities for the first 14 values
         distr_1_14 = {1:0.00583, 2:0.17820, 3:0.09239, 4:0.00018,

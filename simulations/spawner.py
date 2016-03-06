@@ -11,7 +11,7 @@ class Spawner(Simulation.Process):
         Simulation.Process.__init__(self, name='Spawner')
         self.hostList = constants.TOPOLOGY.HostList
         self.interarrivalParam = constants.BACKGROUND_SPAWNING_INTERARRIVAL
-
+        self.test = self.getHosts()
         '''
         Flow size CDF (numPackets, 1, CDF) ~ DCTCP paper
         6 1 0
