@@ -41,28 +41,28 @@ cd simulations;
 # storage units in megabytes
 
 python networkExperiment.py  \
- 	--iLeaf 9 \
- 	--iSpine 4 \
- 	--numClients 32 \
- 	--numServers 32 \
+ 	--iLeaf 4 \
+ 	--iSpine 1 \
+ 	--numClients 1 \
+ 	--numServers 4 \
  	--hostsPerLeaf 8 \
- 	--spineLeafBW 1250 \
- 	--leafHostBW 1250 \
+ 	--spineLeafBW 1.250 \
+ 	--leafHostBW 1.250 \
     --utilization 0.7\
     --expScenario base\
     --procTime 0.2 \
     --valueSizeModel pareto \
     --packetSize 0.001 \
     --switchBufferSize 10000 \
-    --switchForwardingStrategy CONGA \
-    --switchSelectionStrategy passive \
+    --switchForwardingStrategy Clairvoyant \
+    --switchSelectionStrategy Clairvoyant \
     --c4Weight 0.8 \
 	--numWorkload 10 \
 	--workloadModel poisson \
 	--serverConcurrency 4 \
-	--serviceTime 4 \
+	--serviceTime 0.5 \
 	--serviceTimeModel random.expovariate \
-	--replicationFactor 10 \
+	--replicationFactor 3 \
 	--rateInterval 20\
 	--cubicC 0.000004\
 	--cubicSmax 10\
@@ -75,7 +75,7 @@ python networkExperiment.py  \
 	--expPrefix expDelay \
 	--simulationDuration 10000000 \
 	--seed 1 \
-	--numRequests 20000\
+	--numRequests 10000\
 	--logFolder logs\
 	--demandSkew 0.0\
 	--highDemandFraction 0.0\
@@ -83,7 +83,8 @@ python networkExperiment.py  \
 	--slowServerSlowness 0.9\
 	--intervalParam 500\
 	--timeVaryingDrift 5\
-    --readFraction 1;
+    --readFraction 1\
+    --logLevel DEBUG;
   
 
 cd ..

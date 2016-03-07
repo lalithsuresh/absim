@@ -66,6 +66,7 @@ def runExperiment(args):
     constants.NUMBER_OF_CLIENTS = args.numClients
     constants.SWITCH_BUFFER_SIZE = args.switchBufferSize
     constants.PACKET_SIZE = args.packetSize
+    constants.FORWARDING_STRATEGY = args.switchForwardingStrategy
     constants.TEST_RUN = args.testRun
     
     # Print out experiment input parameters
@@ -337,6 +338,9 @@ def runExperiment(args):
         printMonitorTimeSeriesToFile(edScoreFD,
                                      clientNode.id,
                                      clientNode.edScoreMonitor)
+
+    log.info("----- Server Stats -----")
+
     for serv in servers:
         printMonitorTimeSeriesToFile(waitMonFD,
                                      serv.id,
@@ -347,6 +351,9 @@ def runExperiment(args):
         printMonitorTimeSeriesToFile(serverRRFD,
                                      serv.id,
                                      serv.serverRRMonitor)
+
+        log.info("Server %s Avg. Queue Size: %f | Avg. Util:%f"%(serv, serv.queueResource.waitMon.timeAverage(), \
+                                                               serv.queueResource.actMon.timeAverage()))
 
     log.info("----- Switch Stats -----")
     avgBufferSize = 0

@@ -4,6 +4,7 @@ import math
 import random
 import sys
 import misc
+import logger
 from node import Node
 
 class Server(Node):
@@ -19,6 +20,11 @@ class Server(Node):
         self.serverRRMonitor = Simulation.Monitor(name="ServerMonitor")
 
         self.receivedRequestStatus = {} # to buffer the pkts of received requests
+
+        self.log = self.init_logger(id_)
+
+    def init_logger(self, id_):
+        return logger.getLogger("Server:%s" % id_, constants.LOG_LEVEL)
 
     def enqueueTask(self, task):
         if(task.isCut):
@@ -81,6 +87,7 @@ class Executor(Simulation.Process):
     def __init__(self, server, task):
         self.server = server
         self.task = task
+        self.log = self.server.log
         Simulation.Process.__init__(self, name='Executor')
 
     def run(self):
@@ -88,6 +95,11 @@ class Executor(Simulation.Process):
         queueSizeBefore = len(self.server.queueResource.waitQ)
         totalQueueSizeBefore = len(self.server.queueResource.waitQ + self.server.queueResource.activeQ)
         ideallySortedReplicaSet = self.sort(self.task.replicaSet)
+
+        #Record latency
+        if(constants.FORWARDING_STRATEGY == "C4"):
+            forwardLatency = Simulation.now() - self.task.switchFB["srcLeafArrival"]
+            self.log.debug("[Arrival] %s"%self.task)
         yield Simulation.hold, self
         yield Simulation.request, self, self.server.queueResource
         waitTime = Simulation.now() - start         # W_i
@@ -101,7 +113,8 @@ class Executor(Simulation.Process):
 
         for i in xrange(1, self.task.count+1):
             respPacket = misc.cloneDataTask(self.task)
-            respPacket.count = self.task.count
+            respPacket.requestPktCount = self.task.count
+            respPacket.count = 1
             respPacket.seqN = i
             respPacket.dst = self.task.src
             respPacket.src = self.task.dst
@@ -112,7 +125,12 @@ class Executor(Simulation.Process):
                                    "queueSizeAfter": queueSizeAfter,
                                    "totalQueueSizeBefore": totalQueueSizeBefore,
                                    "idealReplicaSet": ideallySortedReplicaSet})
-            respPacket.setSwitchFB(self.task.switchFB)
+            if(constants.FORWARDING_STRATEGY == "C4"):
+                #print self.task.switchFB, respPacket, respPacket.dst, respPacket.trafficType, respPacket.isCut
+                respPacket.setSwitchFB(self.task.switchFB)
+                respPacket.switchFB["forwardLatency"] = forwardLatency
+                respPacket.switchFB["srvDeparture"] = Simulation.now()
+                self.log.debug("[Departure] %s"%self.task)
             # Get switch I'm delivering to
             nextSwitch = self.server.getNeighbors().keys()[0]
             # Get port I'm delivering through

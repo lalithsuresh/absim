@@ -69,7 +69,7 @@ class DataTask(task.Task):
         self.serverFB = fb
 
     def setSwitchFB(self, fb):
-        self.switchFB = fb
+        self.switchFB = fb.copy()
 
     def setRequest(self, task):
         self.requestTask = task

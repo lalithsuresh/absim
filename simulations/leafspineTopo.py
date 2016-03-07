@@ -91,6 +91,14 @@ class LeafSpinTopology():
             for y in range(0, self.iLeaf):
                 self.addLink(self.SpineSwitchList[x], self.LeafSwitchList[y], bw=self.spineLeafBW)
 
+        #FIXME just for testing (REMOVE ASAP)!!
+        #for h in self.HostList:
+        #    #leaf = random.choice(self.LeafSwitchList)
+        #    leaf = self.LeafSwitchList[0]
+        #    self.addLink(leaf, h, bw=self.leafHostBW)
+        #return
+
+
         #Assign clients/servers evenly to leaf switches
         tempC = list(self.ClientList)
         tempS = list(self.ServerList)

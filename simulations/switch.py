@@ -85,19 +85,28 @@ class Switch(Node):
         else:
             return False
 
+    #FIXME modify to track paths per endhost
     def trackPaths(self):
+        servers = constants.TOPOLOGY.ServerList
         leaves = constants.TOPOLOGY.LeafSwitchList
+        for s in servers:
+            pps = self.getPossiblePaths(s)
+            for pp in pps:
+                pp.append(s)
+                self.latency_lookup.addPath(pp)
+
+                #Add backward paths as well
+                ppReverse = pp.clone()
+                ppReverse.reverse()
+                self.latency_lookup.addPath(ppReverse)
+
         for l in leaves:
-            if(l is self):
+            if l == self:
                 continue
             pps = self.getPossiblePaths(l)
             for pp in pps:
-                #Add backward path as well
                 pp.append(l)
-                ppReverse = pp.clone()
-                ppReverse.reverse()
                 self.latency_lookup.addPath(pp)
-                self.latency_lookup.addPath(ppReverse)
 
     def enqueueTask(self, task):
         #if(self.isLeaf()):
@@ -267,109 +276,182 @@ class Executor(Simulation.Process):
 
     def run(self):
         # Find next hop and forward packet
+        #FIXME there might be a problem for writes since we can allocate them to a different replica
+        #FIXME for clairvoyant reads, we need to update responses to remove task from lookup table
+        #FIXME C4's replica selection logic shouldn't be tied to its load-balancing counterpart
         yield Simulation.hold, self, self.switch.procTime
         task_size = constants.PACKET_SIZE
 
-        if (self.switch.isNeighbor(self.task.src) and not self.task.response and self.task.trafficType == constants.APP):
+        forwardingStrat = self.switch.forwardingStrategy
+        if(self.task.trafficType == constants.BACKGROUND):
+            forwardingStrat = "ECMP"
+
+        if (self.switch.isNeighbor(self.task.src) and not self.task.response and self.task.trafficType == constants.APP\
+            and self.switch.selectionStrategy == "C4"):
             #perform replica selection
             self.task.dst = self.getTaskDst(self.task)
 
         #if I'm a spine switch or a direct neighbor to both src and dst just forward packet along path
-        if(self.switch.isSpine() or (self.switch.isNeighbor(self.task.src) and self.switch.isNeighbor(self.task.dst))):
-            #FIXME modifying this to call pathLookupTable's getNextHop func
+        src_and_dst = (self.switch.isNeighbor(self.task.src) and self.switch.isNeighbor(self.task.dst))
+        if(self.switch.isSpine() or src_and_dst):
             egressPort = self.switch.getNextHop(self.task.src, self.task.dst, "local")
             #----CONGA----
             if(self.task.ce<(len(egressPort.buffer.waitQ) + 1)*egressPort.getTxTime(self.task)):
                 self.task.setCE((len(egressPort.buffer.waitQ) + 1)*egressPort.getTxTime(self.task))
+            if(src_and_dst and forwardingStrat == "C4"):
+                #this is a request packet
+                if(not self.task.response):
+                    shortestPath = self.switch.latency_lookup.getShortestPath(self.task)
+                    self.task.switchFB["srcLeafArrival"] = Simulation.now()
+                    self.log.debug("Arrival %s isResponse:%s %s"%(self.task, self.task.response, self.switch))
+                #this is a response packet
+                else:
+                    if("forwardLatency" in self.task.switchFB):
+                        latency = self.task.switchFB["forwardLatency"]
+                        path = self.switch.latency_lookup.history[self.task.id][0]
+                        self.switch.latency_lookup.updatePath(latency, path)
+                        self.log.debug("Forwardpath Latency %s %s %s %s %s"%(self.task, self.task.response, self.switch,\
+                                        path, self.switch.latency_lookup.get(path)))
+                    if("srvDeparture" in self.task.switchFB):
+                        backpathLatency = Simulation.now() - self.task.switchFB["srvDeparture"]
+                        path = plu.Path()
+                        path.append(self.task.src)
+                        path.append(self.switch)
+                        self.switch.latency_lookup.updatePath(backpathLatency, path)
+                        self.log.debug("Backwardpath Latency %s %s %s %s %s"%(self.task, self.task.response, self.switch, \
+                                        path, self.switch.latency_lookup.get(path)))
 
         else:
             #this is a request packet
             if(not self.task.response):
                 if(self.switch.isNeighbor(self.task.src)):
-                    if(self.switch.forwardingStrategy == "CONGA"):
+                    if(forwardingStrat == "CONGA"):
                         egressPort, CE = self.switch.congestionTable.getTo(self, [self.switch.getPort(n)\
                                         for n in self.switch.getPossibleHops(self.task.dst)])
-                    elif(self.switch.forwardingStrategy == "ECMP"):
+                    elif(forwardingStrat == "ECMP"):
                         egressPort = self.switch.getPort(random.choice(self.switch.getPossibleHops(self.task.dst)))
-                    elif(self.switch.forwardingStrategy == "C4"):
-                        shortestPath = self.switch.latency_lookup.getRateLimitedShortestPath(self.task)
+                    elif(forwardingStrat == "C4"):
+                        shortestPath = self.switch.latency_lookup.getShortestPath(self.task)
+                        #print shortestPath
                         self.task.switchFB["forwardPath"] = shortestPath
                         self.task.switchFB["srcLeafArrival"] = Simulation.now()
+                        egressPort = self.switch.getPort(shortestPath.getNextHop(self.switch))
+                        self.log.debug("Arrival %s isResponse:%s %s"%(self.task, self.task.response, self.switch))
+                    elif(forwardingStrat == "Clairvoyant"):
+                        shortestPath = self.switch.latency_lookup.getShortestPath_oracle(self.task)
                         egressPort = self.switch.getPort(shortestPath.getNextHop(self.switch))
                 else:
                     #calculate latency and update task
                     #the following condition might not be true if the packet is a drop notification
-                    if("srcLeafArrival" in self.task.switchFB):
-                        self.task.switchFB["forwardLatency"] = Simulation.now() - self.task.switchFB["srcLeafArrival"]
-                        self.switch.latency_lookup.updatePath(self.task.switchFB["forwardLatency"], self.task.switchFB["forwardPath"])
+                    if(forwardingStrat == "C4"):
+                        self.log.debug("Arrival %s isResponse:%s %s"%(self.task, self.task.response, self.switch))
+                        #backpath from src leaf switch to dst leaf switch
+                        if "srcLeafArrival" in self.task.switchFB and "forwardPath" in self.task.switchFB:
+                            backpathLatency = Simulation.now() - self.task.switchFB["srcLeafArrival"]
+                            backpath = self.task.switchFB["forwardPath"].clone()
+                            #remove last node since we're only measuring latency up until dst leaf
+                            backpath.removeLastNode()
+                            self.switch.latency_lookup.updatePath(backpathLatency, backpath)
+                            self.switch.log.debug("Backpath Latency %s %s %s %s %s"%(self.task, self.task.response, \
+                                                    self.switch, backpath, self.switch.latency_lookup.get(backpath)))
                     egressPort = self.switch.getPort(self.task.dst)
             #this is a response packet
             else:
                 if(self.switch.isNeighbor(self.task.src)):
                     #construct path and forward
-                    if(self.switch.forwardingStrategy == "CONGA"):
+                    if(forwardingStrat == "CONGA"):
                         egressPort, CE = self.switch.congestionTable.getTo(self, [self.switch.getPort(n)\
                                         for n in self.switch.getPossibleHops(self.task.dst)])
-                    elif(self.switch.forwardingStrategy == "ECMP"):
+                    elif(forwardingStrat == "ECMP"):
                         egressPort = self.switch.getPort(random.choice(self.switch.getPossibleHops(self.task.dst)))
-                    elif(self.switch.forwardingStrategy == "C4"):
-                        shortestPath = self.switch.latency_lookup.getRateLimitedShortestPath(self.task)
-                        self.task.switchFB["forwardPath"] = shortestPath
+                    elif(forwardingStrat == "C4"):
+                        #FIXME why are we setting history to false?
+                        shortestPath = self.switch.latency_lookup.getShortestPathToLeaf(self.task, True, False)
+                        if("forwardPath" in self.task.switchFB):
+                            shortestPath = shortestPath.clone()
+                            shortestPath.prepend(self.task.switchFB["forwardPath"].getLastNode())
+                            self.task.switchFB["forwardPath"] = shortestPath
                         self.task.switchFB["srcLeafArrival"] = Simulation.now()
                         egressPort = self.switch.getPort(shortestPath.getNextHop(self.switch))
+                        self.log.debug("Arrival %s isResponse:%s %s"%(self.task, self.task.response, self.switch))
+                    elif(forwardingStrat == "Clairvoyant"):
+                        shortestPath = self.switch.latency_lookup.getShortestPathToLeaf_oracle(self.task, True, False)
+                        egressPort = self.switch.getPort(shortestPath.getNextHop(self.switch))
+
                 else:
-                    if("srcLeafArrival" in self.task.switchFB):
-                        latency = self.task.switchFB["forwardLatency"]
-                        self.switch.latency_lookup.updatePathForTask(latency, self.task)
-                    if("srcLeafArrival" in self.task.switchFB):
-                        backpathLatency = Simulation.now() - self.task.switchFB["srcLeafArrival"]
-                        self.switch.latency_lookup.updatePath(backpathLatency, self.task.switchFB["forwardPath"])
+                    if(forwardingStrat == "C4"):
+                        if("forwardLatency" in self.task.switchFB):
+                            #update latency of forward path
+                            latency = self.task.switchFB["forwardLatency"]
+                            self.log.debug("Forwardpath Latency %s %s %s %s %s"%(self.task, self.task.response, \
+                                           self.switch, self.switch.latency_lookup.history[self.task.id][0], \
+                                           self.switch.latency_lookup.get(self.switch.latency_lookup.history[self.task.id][0])))
+                            self.switch.latency_lookup.updatePathForTask(latency, self.task)
+                        if("srvDeparture" in self.task.switchFB):
+                            #update latency of reverse path
+                            backpathLatency = Simulation.now() - self.task.switchFB["srvDeparture"]
+                            self.switch.latency_lookup.updatePath(backpathLatency, self.task.switchFB["forwardPath"])
+                            self.switch.log.debug("Backpath Latency %s %s %s %s %s %s"%(self.task, self.task.response,\
+                                                self.switch, self.task.switchFB["forwardPath"], \
+                                                self.switch.latency_lookup.get(self.task.switchFB["forwardPath"]), \
+                                                self.task.switchFB["srvDeparture"]))
+                            self.log.debug("Arrival %s isResponse:%s %s"%(self.task, self.task.response, self.switch))
                     egressPort = self.switch.getPort(self.task.dst)
 
 
-            #----CONGA----
-            #If I'm the source leaf, add congestion parameters
-            if(self.switch.isNeighbor(self.task.src)):
-                self.task.setCE(0, egressPort)
-                port, metric = self.switch.congestionTable.getFrom(self.task.dst.getUppers()[0])
-                if(port):
-                    self.task.fb = port
-                    self.task.fbMetric = metric
+        #----CONGA----
+        #If I'm the source leaf, add congestion parameters
+        if(self.switch.isNeighbor(self.task.src)):
+            self.task.setCE(0, egressPort)
+            port, metric = self.switch.congestionTable.getFrom(self.task.dst.getUppers()[0])
+            if(port):
+                self.task.fb = port
+                self.task.fbMetric = metric
 
-            #If I'm the destination leaf, update congestion Table and server aggregates
-            if(self.switch.isNeighbor(self.task.dst)):
-                self.switch.congestionTable.updateFrom(self.task.src.getUppers()[0], self.task.lbTag, self.task.ce)
-                #if stats for the reverse path are piggy-backed, update To table as well
-                if(self.task.fb is not None):
-                    self.switch.congestionTable.updateTo(self.task.src.getUppers()[0], self.task.fb, self.task.fbMetric)
+        #If I'm the destination leaf, update congestion Table and server aggregates
+        if(self.switch.isNeighbor(self.task.dst)):
+            self.switch.congestionTable.updateFrom(self.task.src.getUppers()[0], self.task.lbTag, self.task.ce)
+            #if stats for the reverse path are piggy-backed, update To table as well
+            if(self.task.fb is not None):
+                self.switch.congestionTable.updateTo(self.task.src.getUppers()[0], self.task.fb, self.task.fbMetric)
 
-                #If this a server response and this is the first packet (so we don't have to aggregate stats multiple times)
-                if(self.task.dst.isClient() and self.task.seqN == 1 and self.task.trafficType == constants.APP):
-                    #print '>>>>>>', self.task.serverFB["queueSizeAfter"], self.task.serverFB["serviceTime"]
-                    self.updateEma(self.task.src, self.task.serverFB["queueSizeAfter"], self.switch.queueSizeMap)
-                    self.updateEma(self.task.src, self.task.serverFB["serviceTime"], self.switch.serviceTimeMap)
-                    self.updateEma(self.task.src, self.task.serverFB["queueSizeAfter"], self.switch.cqueueSizeMap[self.task.dst])
-                    self.updateEma(self.task.src, self.task.serverFB["serviceTime"], self.switch.cserviceTimeMap[self.task.dst])
+            #If this a server response and this is the first packet (so we don't have to aggregate stats multiple times)
+            if(self.task.dst.isClient() and self.task.seqN == 1 and self.task.trafficType == constants.APP and not self.task.isCut):
+                #print '>>>>>>', self.task.serverFB["queueSizeAfter"], self.task.serverFB["serviceTime"]
+                self.updateEma(self.task.src, self.task.serverFB["queueSizeAfter"], self.switch.queueSizeMap)
+                self.updateEma(self.task.src, self.task.serverFB["serviceTime"], self.switch.serviceTimeMap)
+                self.updateEma(self.task.src, self.task.serverFB["queueSizeAfter"], self.switch.cqueueSizeMap[self.task.dst])
+                self.updateEma(self.task.src, self.task.serverFB["serviceTime"], self.switch.cserviceTimeMap[self.task.dst])
 
         egressPort.enqueueTask(self.task)
 
 
     def getTaskDst(self, task):
+        self.log.debug("-----Choosing replica using %s-----"%self.switch.selectionStrategy)
         minTotalDelay = constants.MAXREQUESTDELAY
         bestDst = task.replicaSet[0]
         for replica in task.replicaSet:
             task.dst = replica
-            shortestToPath = self.switch.latency_lookup.getShortestPath(task)
-            latency1 = self.switch.latency_lookup.get(shortestToPath)
-               
-            latency2 = self.switch.queueSizeMap[replica] * self.switch.serviceTimeMap[replica]
 
-            fakeBackTask = misc.cloneDataTask(task)
-            fakeBackTask.dst = task.src
-            fakeBackTask.src = task.dst
-            shortestBackPath = self.switch.latency_lookup.getShortestPath(fakeBackTask)
-            latency3 = self.switch.latency_lookup.get(shortestBackPath)
+            if(self.switch.selectionStrategy == "C4"):
+                shortestToPath = self.switch.latency_lookup.getShortestPath(task, True, False)
+                latency1 = self.switch.latency_lookup.get(shortestToPath)
+                latency2 = (self.switch.queueSizeMap[replica]+1) * self.switch.serviceTimeMap[replica]
+                shortestBackPath = self.switch.latency_lookup.getShortestPath(task, False, False)
+                latency3 = self.switch.latency_lookup.get(shortestBackPath)
+            elif(self.switch.selectionStrategy == "Clairvoyant"):
+                print 'Unleash the powers of foresight!'
+                shortestToPath = self.switch.latency_lookup.getShortestPath_oracle(task, True, False)
+                latency1 = self.switch.latency_lookup.getLatency_oracle(shortestToPath)
+                latency2 = (len(replica.queueResource.waitQ)+1) * self.switch.getServiceTime()
+                shortestBackPath = self.switch.latency_lookup.getShortestPath_oracle(task, False, False)
+                latency3 = self.switch.latency_lookup.getLatency_oracle(shortestBackPath)
 
+            #self.log.debug(shortestToPath)
+            #self.log.debug(shortestBackPath)
+            #self.log.debug(self.switch.latency_lookup.bck_path_latencies)
+            #self.log.debug(self.switch.latency_lookup.fwd_path_latencies)
+            self.log.debug("Choice -- %s %s : P1:%s P2:%s P3:%s"%(replica, replica.getUppers()[0], latency1, latency2, latency3))
             if(latency1 + latency2 + latency3 < minTotalDelay):
                 bestDst = replica
                 minTotalDelay = latency1 + latency2 + latency3

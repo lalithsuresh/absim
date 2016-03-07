@@ -103,14 +103,22 @@ class Executor(Simulation.Process):
         #print self.port.src.id, self.port.dst.id, 'wait queue before:', len(self.port.buffer.waitQ)
         #yield Simulation.hold, self
         #print len(self.port.buffer.waitQ)
+        #entryTime = Simulation.now()
+        #queuesize = len(self.port.buffer.waitQ)
+
         yield Simulation.request, self, self.port.buffer
         #print self.port.src.id, self.port.dst.id, 'wait queue after:', len(self.port.buffer.waitQ)
+
         waitingTime = Simulation.now() - start
         tx_delay = self.port.getTxTime(self.task)
-        prop_delay = constants.NW_LATENCY_BASE
-        delay = tx_delay + prop_delay
-        yield Simulation.hold, self, delay
+
+        yield Simulation.hold, self, tx_delay
         yield Simulation.release, self, self.port.buffer
+
+        prop_delay = constants.NW_LATENCY_BASE
+        yield Simulation.hold, self, prop_delay
+
+        #print 'Time spent', Simulation.now() - entryTime, self.port.src, self.port.dst, queuesize
         #Tracks link waiting times (which is directly correlated if not synonymous with congestion)
 
         self.port.latencyTrackerMonitor\

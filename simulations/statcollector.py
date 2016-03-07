@@ -6,7 +6,7 @@ Created on 22 Oct 2014
 
 import SimPy.Simulation as Simulation
 import constants
-import random
+import logger
 
 class StatCollector(Simulation.Process):
     '''
@@ -21,6 +21,7 @@ class StatCollector(Simulation.Process):
         self.numRequests = numRequests
         self.reqResDiff = Simulation.Monitor(name="ReqResDiffMonitor")
         self.bwMonitor = Simulation.Monitor(name="BandwidthMonitor")
+        self.log = logger.getLogger("StatCollector", constants.LOG_LEVEL)
         Simulation.Process.__init__(self, name='StatCollector')
         
     def run(self, delay):
@@ -42,7 +43,7 @@ class StatCollector(Simulation.Process):
             finishedReqs = all(w.numRequests == 0 for w in self.workloads)
             if((float(totalResRecv)/self.numRequests*100.0) >= percCompletion):
                 percCompletion += 10
-                print 'Simulation run %d percent complete!'%(float(totalResRecv)/self.numRequests*100.0)
+                self.log.info('Simulation run %d percent complete!'%(float(totalResRecv)/self.numRequests*100.0))
             #This means that all requests have been sent and all responses have been returned
             if((totalReqSent-totalResRecv) == 0 and finishedReqs and not constants.TEST_RUN):
                 #set this value to TRUE to terminate any running processes
