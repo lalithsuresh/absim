@@ -39,6 +39,7 @@ cd simulations;
 
 # time units in microseconds
 # storage units in megabytes
+# data transfer units in megabytes/sec
 
 python networkExperiment.py  \
  	--iLeaf 4 \
@@ -46,21 +47,21 @@ python networkExperiment.py  \
  	--numClients 1 \
  	--numServers 4 \
  	--hostsPerLeaf 8 \
- 	--spineLeafBW 1.250 \
- 	--leafHostBW 1.250 \
+ 	--spineLeafBW 1250 \
+ 	--leafHostBW 1250 \
     --utilization 0.7\
     --expScenario base\
-    --procTime 0.2 \
+    --swProcTime 0.2 \
+    --linkPropDelay 0.4 \
     --valueSizeModel pareto \
     --packetSize 0.001 \
     --switchBufferSize 10000 \
-    --switchForwardingStrategy Clairvoyant \
-    --switchSelectionStrategy Clairvoyant \
-    --c4Weight 0.8 \
+    --switchForwardingStrategy C4 \
+    --switchSelectionStrategy C4 \
 	--numWorkload 10 \
 	--workloadModel poisson \
 	--serverConcurrency 4 \
-	--serviceTime 0.5 \
+	--serviceTime 100 \
 	--serviceTimeModel random.expovariate \
 	--replicationFactor 3 \
 	--rateInterval 20\
@@ -71,7 +72,6 @@ python networkExperiment.py  \
 	--selectionStrategy expDelay \
 	--shadowReadRatio 0.0 \
 	--accessPattern uniform \
-	--nwLatencyBase 0.2 \
 	--expPrefix expDelay \
 	--simulationDuration 10000000 \
 	--seed 1 \
@@ -84,7 +84,9 @@ python networkExperiment.py  \
 	--intervalParam 500\
 	--timeVaryingDrift 5\
     --readFraction 1\
-    --logLevel DEBUG;
+    --bckTrafficDelay 0.001\
+    --bckSpawnDelay 1\
+    --logLevel INFO;
   
 
 cd ..

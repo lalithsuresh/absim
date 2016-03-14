@@ -291,6 +291,9 @@ class Executor(Simulation.Process):
             #perform replica selection
             self.task.dst = self.getTaskDst(self.task)
 
+        #----CONGA----
+        
+
         #if I'm a spine switch or a direct neighbor to both src and dst just forward packet along path
         src_and_dst = (self.switch.isNeighbor(self.task.src) and self.switch.isNeighbor(self.task.dst))
         if(self.switch.isSpine() or src_and_dst):
@@ -299,6 +302,7 @@ class Executor(Simulation.Process):
             if(self.task.ce<(len(egressPort.buffer.waitQ) + 1)*egressPort.getTxTime(self.task)):
                 self.task.setCE((len(egressPort.buffer.waitQ) + 1)*egressPort.getTxTime(self.task))
             if(src_and_dst and forwardingStrat == "C4"):
+                print 'stuffx'
                 #this is a request packet
                 if(not self.task.response):
                     shortestPath = self.switch.latency_lookup.getShortestPath(self.task)

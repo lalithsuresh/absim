@@ -37,16 +37,16 @@ class Port():
             #print '>>>>PACKET DROPPED!, dst:', task.dst.id, task.id
         #    return False
             #print 'This is my current Q size:', self.getQueueSize()
-        self.pckt_acc += task.size
+        self.pckt_acc += task.size * 1000 #MB --> B
         executor = Executor(self, task)
         Simulation.activate(executor, executor.run(), Simulation.now())
 
     def getTxTime(self, task):
-        txTime = task.size/float(self.bw)
+        txTime = task.size/float(self.bw)*1000000
         return txTime
 
     def getTxTime_size(self, size):
-        txTime = size/float(self.bw)
+        txTime = size/float(self.bw)*1000000
         return txTime
       
     def getQueueSize(self):
@@ -115,7 +115,7 @@ class Executor(Simulation.Process):
         yield Simulation.hold, self, tx_delay
         yield Simulation.release, self, self.port.buffer
 
-        prop_delay = constants.NW_LATENCY_BASE
+        prop_delay = constants.PROPAGATION_DELAY
         yield Simulation.hold, self, prop_delay
 
         #print 'Time spent', Simulation.now() - entryTime, self.port.src, self.port.dst, queuesize

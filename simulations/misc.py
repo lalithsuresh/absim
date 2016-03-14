@@ -118,7 +118,7 @@ class BackgroundTrafficGenerator(Simulation.Process):
         self.src = src
         self.dst = dst
         self.flowsize = flowsize
-        self.delay = constants.BACKGROUND_SENDING_DELAY
+        self.delay = constants.BACKGROUND_TRAFFIC_DELAY
         Simulation.Process.__init__(self, name='BackgroundTraffic--%s-%s-%s'%(id,src,dst))
 
     def run(self):

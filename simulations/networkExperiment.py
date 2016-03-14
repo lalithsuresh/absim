@@ -60,13 +60,13 @@ def runExperiment(args):
     clients = []
     workloadGens = []
     
-    constants.NW_LATENCY_BASE = args.nwLatencyBase
-    constants.NW_LATENCY_MU = args.nwLatencyMu
-    constants.NW_LATENCY_SIGMA = args.nwLatencySigma
+    constants.PROPAGATION_DELAY = args.linkPropDelay
     constants.NUMBER_OF_CLIENTS = args.numClients
     constants.SWITCH_BUFFER_SIZE = args.switchBufferSize
     constants.PACKET_SIZE = args.packetSize
     constants.FORWARDING_STRATEGY = args.switchForwardingStrategy
+    constants.BACKGROUND_TRAFFIC_DELAY = args.bckTrafficDelay
+    constants.BACKGROUND_SPAWNING_DELAY = args.bckSpawnDelay
     constants.TEST_RUN = args.testRun
     
     # Print out experiment input parameters
@@ -238,7 +238,7 @@ def runExperiment(args):
     #Construct topology and connect nodes
     print "chosen selection strategy:", args.switchSelectionStrategy
     constants.TOPOLOGY = leafspineTopo.LeafSpinTopology(args.iSpine, args.iLeaf, args.hostsPerLeaf, args.spineLeafBW,
-                             args.leafHostBW, args.procTime, clients, servers, args.switchSelectionStrategy,
+                             args.leafHostBW, args.swProcTime, clients, servers, args.switchSelectionStrategy,
                              args.switchForwardingStrategy, args.c4Weight, args.rateInterval, args.cubicC,
                              args.cubicSmax, args.cubicBeta, args.hysterisisFactor, args.switchRateLimiter)
     constants.TOPOLOGY.createTopo()
@@ -446,12 +446,8 @@ if __name__ == '__main__':
                         default=False)
     parser.add_argument('--accessPattern', nargs='?',
                         type=str, default="uniform")
-    parser.add_argument('--nwLatencyBase', nargs='?',
-                        type=float, default=0.960)
-    parser.add_argument('--nwLatencyMu', nargs='?',
-                        type=float, default=0.040)
-    parser.add_argument('--nwLatencySigma', nargs='?',
-                        type=float, default=0.0)
+    parser.add_argument('--linkPropDelay', nargs='?',
+                        type=float, default=0.4)
     parser.add_argument('--expPrefix', nargs='?',
                         type=str, default="")
     parser.add_argument('--seed', nargs='?',
@@ -496,10 +492,10 @@ if __name__ == '__main__':
                         type=float, default=1)
     parser.add_argument('--spineLeafBW', nargs='?',
                         type=float, default=1)
-    parser.add_argument('--procTime', nargs='?',
+    parser.add_argument('--swProcTime', nargs='?',
                         type=float, default=0.002)
     parser.add_argument('--valueSizeModel', nargs='?',
-                        type=str, default="blabla")
+                        type=str, default="pareto")
     parser.add_argument('--packetSize', nargs='?',
                         type=float, default=0.00057)
     parser.add_argument('--switchSelectionStrategy', nargs='?',
@@ -514,6 +510,10 @@ if __name__ == '__main__':
                         type=str, default="stdout")
     parser.add_argument('--readFraction', nargs='?',
                         type=float, default=0.5)
+    parser.add_argument('--bckTrafficDelay', nargs='?',
+                        type=float, default=0.001)
+    parser.add_argument('--bckSpawnDelay', nargs='?',
+                        type=float, default=1)
     parser.add_argument('--testRun', action='store_true',
                         default=False)   #allow simulator to stay running even if all requests sent
 
