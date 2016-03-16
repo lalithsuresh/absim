@@ -218,5 +218,5 @@ class PathLookupTable():
 
     @staticmethod
     def ewma(old, new):
-        alpha = 0.9
+        alpha = 0.5
         return alpha * new + (1 - alpha) * old

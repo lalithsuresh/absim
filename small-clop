@@ -37,15 +37,20 @@ cd simulations;
 # # To profile, replace the first line with:
 # # python -m cProfile -o output.txt experiment.py \"
 
+
+#    --switchForwardingStrategy Clairvoyant \
+#    --switchSelectionStrategy Clairvoyant \
+
+
 # time units in microseconds
 # storage units in megabytes
 # data transfer units in megabytes/sec
 
 python networkExperiment.py  \
  	--iLeaf 4 \
- 	--iSpine 1 \
- 	--numClients 1 \
- 	--numServers 4 \
+ 	--iSpine 3 \
+ 	--numClients 2 \
+ 	--numServers 8 \
  	--hostsPerLeaf 8 \
  	--spineLeafBW 1250 \
  	--leafHostBW 1250 \
@@ -84,8 +89,8 @@ python networkExperiment.py  \
 	--intervalParam 500\
 	--timeVaryingDrift 5\
     --readFraction 1\
-    --bckTrafficDelay 0.001\
-    --bckSpawnDelay 1\
+    --bckTrafficDelay 1\
+    --bckSpawnDelay 250\
     --logLevel INFO;
   
 

@@ -287,7 +287,7 @@ class Executor(Simulation.Process):
             forwardingStrat = "ECMP"
 
         if (self.switch.isNeighbor(self.task.src) and not self.task.response and self.task.trafficType == constants.APP\
-            and self.switch.selectionStrategy == "C4"):
+            and (self.switch.selectionStrategy == "C4" or self.switch.selectionStrategy == "Clairvoyant")):
             #perform replica selection
             self.task.dst = self.getTaskDst(self.task)
 
@@ -302,7 +302,7 @@ class Executor(Simulation.Process):
             if(self.task.ce<(len(egressPort.buffer.waitQ) + 1)*egressPort.getTxTime(self.task)):
                 self.task.setCE((len(egressPort.buffer.waitQ) + 1)*egressPort.getTxTime(self.task))
             if(src_and_dst and forwardingStrat == "C4"):
-                print 'stuffx'
+                #print 'stuffx'
                 #this is a request packet
                 if(not self.task.response):
                     shortestPath = self.switch.latency_lookup.getShortestPath(self.task)
@@ -444,7 +444,7 @@ class Executor(Simulation.Process):
                 shortestBackPath = self.switch.latency_lookup.getShortestPath(task, False, False)
                 latency3 = self.switch.latency_lookup.get(shortestBackPath)
             elif(self.switch.selectionStrategy == "Clairvoyant"):
-                print 'Unleash the powers of foresight!'
+                #print 'Unleash the powers of foresight!'
                 shortestToPath = self.switch.latency_lookup.getShortestPath_oracle(task, True, False)
                 latency1 = self.switch.latency_lookup.getLatency_oracle(shortestToPath)
                 latency2 = (len(replica.queueResource.waitQ)+1) * self.switch.getServiceTime()
@@ -456,9 +456,11 @@ class Executor(Simulation.Process):
             #self.log.debug(self.switch.latency_lookup.bck_path_latencies)
             #self.log.debug(self.switch.latency_lookup.fwd_path_latencies)
             self.log.debug("Choice -- %s %s : P1:%s P2:%s P3:%s"%(replica, replica.getUppers()[0], latency1, latency2, latency3))
-            if(latency1 + latency2 + latency3 < minTotalDelay):
+            sumDelay = latency1 + latency2 + latency3 
+            #sumDelay = (latency1/1000)**3 + (latency2/1000)**3 + (latency3/1000)**3
+            if(sumDelay < minTotalDelay):
                 bestDst = replica
-                minTotalDelay = latency1 + latency2 + latency3
+                minTotalDelay = sumDelay
         return bestDst
 
 
