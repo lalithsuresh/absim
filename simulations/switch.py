@@ -457,6 +457,7 @@ class Executor(Simulation.Process):
             #self.log.debug(self.switch.latency_lookup.fwd_path_latencies)
             self.log.debug("Choice -- %s %s : P1:%s P2:%s P3:%s"%(replica, replica.getUppers()[0], latency1, latency2, latency3))
             sumDelay = latency1 + latency2 + latency3 
+            #sumDelay = latency1 + latency2
             #sumDelay = (latency1/1000)**3 + (latency2/1000)**3 + (latency3/1000)**3
             if(sumDelay < minTotalDelay):
                 bestDst = replica

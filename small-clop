@@ -60,7 +60,7 @@ python networkExperiment.py  \
     --linkPropDelay 0.4 \
     --valueSizeModel pareto \
     --packetSize 0.001 \
-    --switchBufferSize 10000 \
+    --switchBufferSize 100 \
     --switchForwardingStrategy C4 \
     --switchSelectionStrategy C4 \
 	--numWorkload 10 \

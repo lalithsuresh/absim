@@ -99,6 +99,7 @@ class Workload(Simulation.Process):
                       9:0.00837, 10:0.00837, 11:0.08989, 12:0.00092,
                       13:0.00326, 14:0.01980}
         p_1_14 = sum(distr_1_14.values())
+        random.seed()
         choice = random.random()
         if (choice > p_1_14):
             r = 0
