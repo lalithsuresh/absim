@@ -283,16 +283,15 @@ class Executor(Simulation.Process):
         task_size = constants.PACKET_SIZE
 
         forwardingStrat = self.switch.forwardingStrategy
-        if(self.task.trafficType == constants.BACKGROUND):
+        if(self.task.trafficType == constants.BACKGROUND or self.task.isCut):
             forwardingStrat = "ECMP"
 
-        if (self.switch.isNeighbor(self.task.src) and not self.task.response and self.task.trafficType == constants.APP\
-            and (self.switch.selectionStrategy == "C4" or self.switch.selectionStrategy == "Clairvoyant")):
+        if (self.switch.isNeighbor(self.task.src) and not self.task.response \
+                    and self.task.trafficType == constants.APP and \
+                    (self.switch.selectionStrategy == "C4" or self.switch.selectionStrategy == "Clairvoyant")\
+                    and not self.task.isCut):
             #perform replica selection
             self.task.dst = self.getTaskDst(self.task)
-
-        #----CONGA----
-        
 
         #if I'm a spine switch or a direct neighbor to both src and dst just forward packet along path
         src_and_dst = (self.switch.isNeighbor(self.task.src) and self.switch.isNeighbor(self.task.dst))
@@ -336,8 +335,7 @@ class Executor(Simulation.Process):
                         egressPort = self.switch.getPort(random.choice(self.switch.getPossibleHops(self.task.dst)))
                     elif(forwardingStrat == "C4"):
                         shortestPath = self.switch.latency_lookup.getShortestPath(self.task)
-                        #print shortestPath
-                        self.task.switchFB["forwardPath"] = shortestPath
+                        self.task.switchFB["forwardPath"] = shortestPath.clone()
                         self.task.switchFB["srcLeafArrival"] = Simulation.now()
                         egressPort = self.switch.getPort(shortestPath.getNextHop(self.switch))
                         self.log.debug("Arrival %s isResponse:%s %s"%(self.task, self.task.response, self.switch))
@@ -376,6 +374,9 @@ class Executor(Simulation.Process):
                             shortestPath.prepend(self.task.switchFB["forwardPath"].getLastNode())
                             self.task.switchFB["forwardPath"] = shortestPath
                         self.task.switchFB["srcLeafArrival"] = Simulation.now()
+                        #self.log.debug("switchDebug %s %s %s %s %s %s %s"%(self.task.id, self.switch, shortestPath, \
+                        #                                                  self.task.isCut, self.task.src, self.task.dst,\
+                        #                                                  self.task.trafficType))
                         egressPort = self.switch.getPort(shortestPath.getNextHop(self.switch))
                         self.log.debug("Arrival %s isResponse:%s %s"%(self.task, self.task.response, self.switch))
                     elif(forwardingStrat == "Clairvoyant"):
@@ -384,7 +385,7 @@ class Executor(Simulation.Process):
 
                 else:
                     if(forwardingStrat == "C4"):
-                        if("forwardLatency" in self.task.switchFB):
+                        if("forwardLatency" in self.task.switchFB and self.switch.latency_lookup.hasHistory(self.task)):
                             #update latency of forward path
                             latency = self.task.switchFB["forwardLatency"]
                             self.log.debug("Forwardpath Latency %s %s %s %s %s"%(self.task, self.task.response, \

@@ -8,6 +8,7 @@ import SimPy.Simulation as Simulation
 import constants
 import random
 import misc
+import logger
 
 class Port():
     def __init__(self, src, dst, bw):
@@ -23,6 +24,7 @@ class Port():
         self.numCutPackets = 0
         self.numPackets = 0
         self.numDropNotifs = 0
+        self.log = logger.getLogger(str(self.src) + ":" + str(self.dst), constants.LOG_LEVEL)
       
     def enqueueTask(self, task):
         #print 'Enqueueing request:%s to port [src:%s, dst:%s]'%(task.id, self.src.id, self.dst.id)
@@ -37,6 +39,7 @@ class Port():
             #print '>>>>PACKET DROPPED!, dst:', task.dst.id, task.id
         #    return False
             #print 'This is my current Q size:', self.getQueueSize()
+        #self.log.debug("PORT ENQUEUE %s %s %s %s %s"%(task.id, task.src, task.dst, task.isCut,task.trafficType))
         self.pckt_acc += task.size * 1000 #MB --> B
         executor = Executor(self, task)
         Simulation.activate(executor, executor.run(), Simulation.now())
@@ -92,6 +95,7 @@ class Executor(Simulation.Process):
             dropNotif.requestTask = self.task.requestTask
             dropNotif.copyCONGAParams(self.task)
             dropNotif.cutPacket()
+            #self.port.log.debug("Cutting packet %s %s %s"%(dropNotif.id, dropNotif.src, dropNotif.dst))
             #print self.task.seqN, 'Packet dropped. Sending header to reverse path. Dst:%s, Type:%s'%(dropNotif.dst.id, dropNotif.dst.htype)
             #print 'src:%s, dst:%s'%(self.task.src, self.task.dst)
             self.port.src.enqueueTask(dropNotif)

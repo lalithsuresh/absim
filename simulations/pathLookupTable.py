@@ -136,7 +136,6 @@ class PathLookupTable():
             table = self.bck_path_latencies
 
         dstLeafSW = task.dst.getUppers()[0]
-
         shortestPath = min(table[dstLeafSW], key=table[dstLeafSW].get)
         #save path
         if(not self.PerPacketMultiPath and history):
@@ -173,6 +172,12 @@ class PathLookupTable():
         if(not self.PerPacketMultiPath and forward and history):
             self.history[task.id] = (shortestPath, 0)
         return shortestPath
+
+    def hasHistory(self, task):
+        if(task.id in self.history.keys()):
+            return True
+        else:
+            return False
 
     @staticmethod
     def getLatency_oracle(path):
